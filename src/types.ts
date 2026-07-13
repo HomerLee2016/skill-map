@@ -4,5 +4,6 @@ export interface RoadmapNode {
   description?: string;
   x?: number;
   y?: number;
+  dependsOn?: string[];
   children?: RoadmapNode[];
 }

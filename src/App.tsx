@@ -18,7 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import type { RoadmapNode } from './types';
 
-// Dynamically import all YAML files in the ./data/ directory as raw strings at build time
+// Import YAML roadmaps as raw strings from the data folder
 const yamlModules = import.meta.glob('./data/*.yaml', { query: '?raw', eager: true });
 
 // Extend RoadmapNode type locally to support new properties
@@ -26,6 +26,7 @@ interface ExtendedRoadmapNode extends RoadmapNode {
   finished?: boolean;
   url?: string;
   quizUrl?: string;
+  subTreeId?: string; // Reference to another tree ID
   children?: ExtendedRoadmapNode[];
 }
 
@@ -42,7 +43,12 @@ const initialRoadmaps: SavedRoadmap[] = Object.entries(yamlModules).map(([path, 
   let id = 'untitled';
   try {
     const parsed = YAML.parse(yamlContent);
-    if (parsed) {
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      // Flat list format: root node is usually the one with no dependencies, or the first one
+      const rootNode = parsed.find(n => !n.dependsOn || n.dependsOn.length === 0) || parsed[0];
+      label = rootNode.label || label;
+      id = rootNode.id || path.split('/').pop()?.replace('.yaml', '') || id;
+    } else if (parsed) {
       label = parsed.label || label;
       id = parsed.id || path.split('/').pop()?.replace('.yaml', '') || id;
     }
@@ -162,6 +168,30 @@ function SkillNode({ id, data, isConnectable }: NodeProps) {
         </div>
       )}
 
+      {/* Sub-tree link */}
+      {data.subTreeId && (
+        <div style={{ marginTop: '6px' }}>
+          <button
+            onClick={() => data.onGoToSubTree(data.subTreeId)}
+            style={{
+              background: '#e0e7ff',
+              color: '#3730a3',
+              border: '1px solid #c7d2fe',
+              borderRadius: '4px',
+              padding: '4px 8px',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            📂 Go to Sub-tree
+          </button>
+        </div>
+      )}
+
       {/* Footer Icons: Link & Quiz */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '8px' }}>
         {data.url && (
@@ -211,85 +241,36 @@ const nodeTypes = {
   skillNode: SkillNode,
 };
 
-// Helper to convert graph to tree YAML structure
-function graphToTree(nodes: Node[], edges: Edge[]): ExtendedRoadmapNode | null {
-  if (nodes.length === 0) return null;
-
-  const childIdsMap = new Map<string, string[]>();
-  const parentIdsMap = new Map<string, string[]>();
-
-  nodes.forEach((n) => {
-    childIdsMap.set(n.id, []);
-    parentIdsMap.set(n.id, []);
-  });
-
+// Helper to convert graph to flat array of nodes with dependsOn references
+function graphToFlatList(nodes: Node[], edges: Edge[]): ExtendedRoadmapNode[] {
+  const dependencyMap = new Map<string, string[]>();
   edges.forEach((e) => {
-    if (childIdsMap.has(e.source)) {
-      childIdsMap.get(e.source)!.push(e.target);
+    if (!dependencyMap.has(e.target)) {
+      dependencyMap.set(e.target, []);
     }
-    if (parentIdsMap.has(e.target)) {
-      parentIdsMap.get(e.target)!.push(e.source);
-    }
+    dependencyMap.get(e.target)!.push(e.source);
   });
 
-  // Roots have no incoming links (no parent)
-  const roots = nodes.filter((n) => (parentIdsMap.get(n.id) || []).length === 0);
-
-  if (roots.length === 0) {
-    roots.push(nodes[0]); // fallback if there's a cycle and no root
-  }
-
-  const mainRoot = roots[0];
-
-  const buildNode = (nodeId: string, visited = new Set<string>()): ExtendedRoadmapNode => {
-    visited.add(nodeId);
-    const flowNode = nodes.find((n) => n.id === nodeId);
-    const label = flowNode?.data?.label || nodeId;
-    const description = flowNode?.data?.description;
-    const finished = flowNode?.data?.finished;
-    const url = flowNode?.data?.url;
-    const quizUrl = flowNode?.data?.quizUrl;
-    const x = flowNode ? Math.round(flowNode.position.x) : 0;
-    const y = flowNode ? Math.round(flowNode.position.y) : 0;
-
+  return nodes.map((n) => {
+    const dependsOn = dependencyMap.get(n.id);
     const res: ExtendedRoadmapNode = {
-      id: nodeId,
-      label,
-      x,
-      y,
-      finished: !!finished,
+      id: n.id,
+      label: n.data.label,
+      x: Math.round(n.position.x),
+      y: Math.round(n.position.y),
+      finished: !!n.data.finished,
     };
 
-    if (description) res.description = description;
-    if (url) res.url = url;
-    if (quizUrl) res.quizUrl = quizUrl;
-
-    const childIds = childIdsMap.get(nodeId) || [];
-    const children: ExtendedRoadmapNode[] = [];
-
-    childIds.forEach((cId) => {
-      if (!visited.has(cId)) {
-        children.push(buildNode(cId, visited));
-      }
-    });
-
-    // Attach other roots as children of the main root so they aren't lost
-    if (nodeId === mainRoot.id) {
-      roots.slice(1).forEach((otherRoot) => {
-        if (!visited.has(otherRoot.id)) {
-          children.push(buildNode(otherRoot.id, visited));
-        }
-      });
-    }
-
-    if (children.length > 0) {
-      res.children = children;
+    if (n.data.description) res.description = n.data.description;
+    if (n.data.url) res.url = n.data.url;
+    if (n.data.quizUrl) res.quizUrl = n.data.quizUrl;
+    if (n.data.subTreeId) res.subTreeId = n.data.subTreeId;
+    if (dependsOn && dependsOn.length > 0) {
+      res.dependsOn = dependsOn;
     }
 
     return res;
-  };
-
-  return buildNode(mainRoot.id);
+  });
 }
 
 // Compute centered layout positions to prevent crossing lines (Smarter width step 350 to prevent overlap)
@@ -364,6 +345,7 @@ export default function App() {
 
   // Active roadmap states
   const [yamlText, setYamlText] = useState<string>(initialRoadmaps[0]?.yaml || '');
+  const [yamlVisible, setYamlVisible] = useState<boolean>(false); // hidden by default
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [error, setError] = useState<string | null>(null);
@@ -375,27 +357,55 @@ export default function App() {
   const [editDetail, setEditDetail] = useState('');
   const [editUrl, setEditUrl] = useState('');
   const [editQuizUrl, setEditQuizUrl] = useState('');
+  const [editSubTreeId, setEditSubTreeId] = useState('');
 
   // Custom Resizer States
   const [leftWidth, setLeftWidth] = useState<number>(450);
   const isDragging = useRef<boolean>(false);
   const ignoreYamlUpdateRef = useRef<boolean>(false);
 
-  // Helper to calculate tree completion percentage for a given YAML text
+  // State for selected edge (highlighted)
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+
+  // Listen for Delete key to remove selected edge without prompt and sync YAML
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' && selectedEdgeId) {
+        setEdges((eds) => {
+          const newEdges = eds.filter((edge) => edge.id !== selectedEdgeId);
+          // Sync to YAML after deletion
+          syncGraphToYaml(nodes, newEdges);
+          return newEdges;
+        });
+        setSelectedEdgeId(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedEdgeId, nodes]);
+
+  // Helper to calculate tree completion percentage for a given YAML text (flat list or nested tree supported)
   const calculateCompleteness = (yaml: string): number => {
     try {
-      const parsed = YAML.parse(yaml) as ExtendedRoadmapNode;
+      const parsed = YAML.parse(yaml);
       if (!parsed) return 0;
       let total = 0;
       let finished = 0;
 
-      const countNode = (node: ExtendedRoadmapNode) => {
-        total++;
-        if (node.finished) finished++;
-        if (node.children) node.children.forEach(countNode);
-      };
+      if (Array.isArray(parsed)) {
+        parsed.forEach((node) => {
+          total++;
+          if (node.finished) finished++;
+        });
+      } else {
+        const countNode = (node: ExtendedRoadmapNode) => {
+          total++;
+          if (node.finished) finished++;
+          if (node.children) node.children.forEach(countNode);
+        };
+        countNode(parsed);
+      }
 
-      countNode(parsed);
       return total > 0 ? Math.round((finished / total) * 100) : 0;
     } catch {
       return 0;
@@ -405,20 +415,21 @@ export default function App() {
   // Sync state changes to YAML editor
   const syncGraphToYaml = (currentNodes: Node[], currentEdges: Edge[]) => {
     ignoreYamlUpdateRef.current = true;
-    const roadmap = graphToTree(currentNodes, currentEdges);
-    if (roadmap) {
-      const newYaml = YAML.stringify(roadmap);
+    const flatList = graphToFlatList(currentNodes, currentEdges);
+    if (flatList && flatList.length > 0) {
+      const newYaml = YAML.stringify(flatList);
       setYamlText(newYaml);
       // Also update in list
       setRoadmaps((prev) =>
         prev.map((r) => {
           if (r.id === selectedRoadmapId) {
-            // Update both the YAML and dynamically fetch the new label as the name
             let newLabel = r.name;
             try {
+              // Find the root label (node without dependencies, or first)
               const parsed = YAML.parse(newYaml);
-              if (parsed && parsed.label) {
-                newLabel = parsed.label;
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                const rootNode = parsed.find(n => !n.dependsOn || n.dependsOn.length === 0) || parsed[0];
+                newLabel = rootNode.label || newLabel;
               }
             } catch {}
             return { ...r, name: newLabel, yaml: newYaml };
@@ -441,7 +452,7 @@ export default function App() {
   // Add a new empty roadmap
   const onCreateRoadmap = () => {
     const newId = `roadmap-${Date.now()}`;
-    const newYaml = `id: custom_roadmap\nlabel: New Custom Roadmap\ndescription: A brand new roadmap.\nx: 100\ny: 50\nfinished: false`;
+    const newYaml = `- id: custom_roadmap_${Date.now().toString().slice(-4)}\n  label: New Custom Roadmap\n  description: A brand new roadmap.\n  x: 100\n  y: 50\n  finished: false`;
     const newRoadmap: SavedRoadmap = {
       id: newId,
       name: 'New Custom Roadmap',
@@ -506,6 +517,7 @@ export default function App() {
         setEditDetail(node.data.description || '');
         setEditUrl(node.data.url || '');
         setEditQuizUrl(node.data.quizUrl || '');
+        setEditSubTreeId(node.data.subTreeId || '');
       }
       return nds;
     });
@@ -524,6 +536,7 @@ export default function App() {
               description: editDetail,
               url: editUrl,
               quizUrl: editQuizUrl,
+              subTreeId: editSubTreeId,
             },
           };
         }
@@ -558,7 +571,7 @@ export default function App() {
     document.removeEventListener('mouseup', stopResize);
   };
 
-  // Parse YAML text to nodes and edges state
+  // Parse YAML text to nodes and edges state (Supports both Flat List with dependsOn & Nested Tree formats)
   useEffect(() => {
     if (ignoreYamlUpdateRef.current) {
       ignoreYamlUpdateRef.current = false;
@@ -566,67 +579,114 @@ export default function App() {
     }
     try {
       if (!yamlText) return;
-      const parsed = YAML.parse(yamlText) as ExtendedRoadmapNode;
-      if (!parsed || !parsed.id) {
-        throw new Error("YAML must contain at least a root node with an 'id' and 'label'.");
-      }
+      const parsed = YAML.parse(yamlText);
+      if (!parsed) return;
 
       const generatedNodes: Node[] = [];
       const generatedEdges: Edge[] = [];
       const visitedIds = new Set<string>();
 
-      const traverse = (
-        node: ExtendedRoadmapNode,
-        parentId: string | null = null,
-        depth = 0,
-        index = 0
-      ) => {
-        const nodeId = node.id;
-        if (visitedIds.has(nodeId)) return;
-        visitedIds.add(nodeId);
+      if (Array.isArray(parsed)) {
+        // 1. Flat List format (dependsOn)
+        parsed.forEach((node: ExtendedRoadmapNode) => {
+          const nodeId = node.id;
+          if (visitedIds.has(nodeId)) return;
+          visitedIds.add(nodeId);
 
-        // If coordinates are missing, we use default index-based layout as fallback
-        const position = {
-          x: node.x !== undefined ? node.x : index * 350 + 50,
-          y: node.y !== undefined ? node.y : depth * 150 + 50,
+          const position = {
+            x: node.x !== undefined ? node.x : 100,
+            y: node.y !== undefined ? node.y : 100,
+          };
+
+          generatedNodes.push({
+            id: nodeId,
+            type: 'skillNode',
+            data: {
+              label: node.label,
+              description: node.description,
+              finished: !!node.finished,
+              url: node.url,
+              quizUrl: node.quizUrl,
+              subTreeId: node.subTreeId,
+              showDescription: showDescriptions,
+              onLabelChange,
+              onToggleFinished,
+              onDelete: onDeleteNode,
+              onEditClick,
+              onGoToSubTree: selectRoadmap,
+            },
+            position,
+          });
+
+          if (node.dependsOn && Array.isArray(node.dependsOn)) {
+            node.dependsOn.forEach((depId) => {
+              generatedEdges.push({
+                id: `e-${depId}-${nodeId}`,
+                source: depId,
+                target: nodeId,
+                markerEnd: { type: MarkerType.ArrowClosed, color: '#646cff' },
+                style: { stroke: '#646cff', strokeWidth: 2 },
+              });
+            });
+          }
+        });
+      } else {
+        // 2. Nested Tree format (Backward Compatibility)
+        const traverseNested = (
+          node: ExtendedRoadmapNode,
+          parentId: string | null = null,
+          depth = 0,
+          index = 0
+        ) => {
+          const nodeId = node.id;
+          if (visitedIds.has(nodeId)) return;
+          visitedIds.add(nodeId);
+
+          const position = {
+            x: node.x !== undefined ? node.x : index * 350 + 50,
+            y: node.y !== undefined ? node.y : depth * 150 + 50,
+          };
+
+          generatedNodes.push({
+            id: nodeId,
+            type: 'skillNode',
+            data: {
+              label: node.label,
+              description: node.description,
+              finished: !!node.finished,
+              url: node.url,
+              quizUrl: node.quizUrl,
+              subTreeId: node.subTreeId,
+              showDescription: showDescriptions,
+              onLabelChange,
+              onToggleFinished,
+              onDelete: onDeleteNode,
+              onEditClick,
+              onGoToSubTree: selectRoadmap,
+            },
+            position,
+          });
+
+          if (parentId) {
+            generatedEdges.push({
+              id: `e-${parentId}-${nodeId}`,
+              source: parentId,
+              target: nodeId,
+              markerEnd: { type: MarkerType.ArrowClosed, color: '#646cff' },
+              style: { stroke: '#646cff', strokeWidth: 2 },
+            });
+          }
+
+          if (node.children && Array.isArray(node.children)) {
+            node.children.forEach((child, childIndex) => {
+              traverseNested(child, nodeId, depth + 1, index + childIndex);
+            });
+          }
         };
 
-        generatedNodes.push({
-          id: nodeId,
-          type: 'skillNode',
-          data: {
-            label: node.label,
-            description: node.description,
-            finished: !!node.finished,
-            url: node.url,
-            quizUrl: node.quizUrl,
-            showDescription: showDescriptions,
-            onLabelChange,
-            onToggleFinished,
-            onDelete: onDeleteNode,
-            onEditClick,
-          },
-          position,
-        });
+        traverseNested(parsed);
+      }
 
-        if (parentId) {
-          generatedEdges.push({
-            id: `e-${parentId}-${nodeId}`,
-            source: parentId,
-            target: nodeId,
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#646cff' },
-            style: { stroke: '#646cff', strokeWidth: 2 },
-          });
-        }
-
-        if (node.children && Array.isArray(node.children)) {
-          node.children.forEach((child, childIndex) => {
-            traverse(child, nodeId, depth + 1, index + childIndex);
-          });
-        }
-      };
-
-      traverse(parsed);
       setNodes(generatedNodes);
       setEdges(generatedEdges);
       setError(null);
@@ -669,16 +729,34 @@ export default function App() {
     [setEdges, setNodes, selectedRoadmapId]
   );
 
-  // Sync positions after dragging finishes
-  const onNodeDragStop = useCallback(() => {
-    setNodes((nds) => {
-      setEdges((eds) => {
-        syncGraphToYaml(nds, eds);
-        return eds;
-      });
-      return nds;
-    });
-  }, [setNodes, setEdges, selectedRoadmapId]);
+  // Delete edge on click
+  // Select edge on click (highlight)
+  const onEdgeClick = useCallback((
+    _: React.MouseEvent,
+    edge: Edge
+  ) => {
+    setSelectedEdgeId(edge.id);
+  }, []);
+
+
+  // Highlight selected edge visually
+  useEffect(() => {
+    setEdges((eds) =>
+      eds.map((e) => {
+        const isSelected = e.id === selectedEdgeId;
+        const newStyle = {
+          ...e.style,
+          stroke: isSelected ? '#ff4d4d' : '#646cff',
+          strokeWidth: isSelected ? 3 : 2,
+        };
+        // Only update if style actually changes to avoid unnecessary re-renders
+        if (e.style?.stroke !== newStyle.stroke || e.style?.strokeWidth !== newStyle.strokeWidth) {
+          return { ...e, style: newStyle };
+        }
+        return e;
+      })
+    );
+  }, [selectedEdgeId]);
 
   // Add new skill node in UI
   const onCreateNode = () => {
@@ -695,6 +773,7 @@ export default function App() {
         onToggleFinished,
         onDelete: onDeleteNode,
         onEditClick,
+        onGoToSubTree: selectRoadmap,
       },
     };
     setNodes((nds) => {
@@ -707,23 +786,19 @@ export default function App() {
     });
   };
 
-  // Auto-Align Nodes in visual tree
-  const onAutoAlign = () => {
+  // Auto-Align Nodes in visual tree (Smarter Callback to resolve the stale state override bug)
+  const onAutoAlign = useCallback(() => {
     if (nodes.length === 0) return;
     const alignedPositions = computeAutoAlignedPositions(nodes, edges);
-
-    setNodes((nds) => {
-      const nextNodes = nds.map((n) => {
-        const pos = alignedPositions.get(n.id) || n.position;
-        return { ...n, position: pos };
-      });
-      setEdges((eds) => {
-        syncGraphToYaml(nextNodes, eds);
-        return eds;
-      });
-      return nextNodes;
-    });
-  };
+    const nextNodes = nodes.map((n) => ({
+      ...n,
+      position: alignedPositions.get(n.id) || n.position,
+    }));
+    
+    // Perform layout update in one clean synchronous pass
+    setNodes(nextNodes);
+    syncGraphToYaml(nextNodes, edges);
+  }, [nodes, edges, selectedRoadmapId, setNodes]);
 
   const currentProgress = calculateCompleteness(yamlText);
 
@@ -877,8 +952,8 @@ export default function App() {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          onNodeDragStop={onNodeDragStop}
           fitView
+          onEdgeClick={onEdgeClick}
         >
           <Background color="#ccc" gap={16} />
           <Controls />
@@ -1011,6 +1086,22 @@ export default function App() {
                 placeholder="https://quiz-resource.com"
                 style={{ width: '100%', padding: '8px', marginTop: '4px', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' }}
               />
+            </label>
+
+            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>
+              Link to Sub-Tree Roadmap
+              <select
+                value={editSubTreeId}
+                onChange={(e) => setEditSubTreeId(e.target.value)}
+                style={{ width: '100%', padding: '8px', marginTop: '4px', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' }}
+              >
+                <option value="">-- None --</option>
+                {roadmaps.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
