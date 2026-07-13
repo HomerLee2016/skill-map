@@ -1,0 +1,41 @@
+id: snowboard
+label: Snowboard Learning Roadmap
+description: Learn snowboarding from beginner basics to intermediate turns.
+x: 400
+y: 50
+finished: false
+children:
+  - id: stance
+    label: Duck Stance Setup
+    description: Adjust bindings to symmetric angles (+15°/-15°) for switch riding.
+    x: 100
+    y: 200
+    finished: true
+  - id: beginner_basics
+    label: Beginner Basics
+    description: Learn to strap in, skate with one foot, and perform straight glides.
+    x: 400
+    y: 200
+    finished: true
+    children:
+      - id: side_slipping
+        label: Sideslipping & Falling Leaf
+        description: Controlled sliding on toe-side and heel-side edges.
+        x: 200
+        y: 350
+        finished: true
+      - id: s_turns
+        label: S-Turns (Intermediate)
+        description: Link heel and toe turns together smoothly down the slope.
+        x: 600
+        y: 350
+        finished: false
+        children:
+          - id: carving
+            label: Beginning of Carving
+            description: Engaging edges cleanly to leave pencil lines without sliding.
+            x: 600
+            y: 500
+            finished: false
+            url: https://en.wikipedia.org/wiki/Carving_(snowboarding)
+            quizUrl: https://www.snowboardaddiction.com/blogs/riding-tutorials/how-to-carve-on-a-snowboard
