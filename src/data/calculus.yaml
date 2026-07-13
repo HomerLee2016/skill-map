@@ -1,48 +1,48 @@
 - id: calculus
   label: Calculus Roadmap
-  description: Complete guide to mastering Calculus
-  x: 400
+  x: 225
   y: 50
   finished: false
+  description: Complete guide to mastering Calculus
 - id: algebra
   label: Basic Algebra
-  description: Mastery of equations, functions, and graphs.
-  x: 100
+  x: 50
   y: 200
   finished: true
+  description: Mastery of equations, functions, and graphs.
   dependsOn:
     - calculus
 - id: limits
   label: Limits
-  description: Understanding limits and continuity.
   x: 400
   y: 200
   finished: false
+  description: Understanding limits and continuity.
   dependsOn:
     - calculus
 - id: sandwich
   label: Sandwich Theorem
-  description: Finding limits using bounding functions.
   x: 400
   y: 350
+  finished: false
+  description: Finding limits using bounding functions.
   url: https://en.wikipedia.org/wiki/Squeeze_theorem
   quizUrl: https://www.khanacademy.org/math/ap-calculus-ab/ab-limits-new/ab-1-9/e/squeeze-theorem
-  finished: false
   dependsOn:
     - limits
 - id: derivatives
   label: Derivatives
-  description: Rates of change and tangent lines.
-  x: 700
-  y: 200
+  x: 400
+  y: 500
   finished: false
+  description: Rates of change and tangent lines.
   dependsOn:
-    - limits
+    - sandwich
 - id: integrals
   label: Integrals
-  description: Accumulation of quantities and areas under curves.
-  x: 1000
-  y: 200
+  x: 400
+  y: 650
   finished: false
+  description: Accumulation of quantities and areas under curves.
   dependsOn:
     - derivatives
