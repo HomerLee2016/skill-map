@@ -2,14 +2,15 @@
 
 An interactive, web-based tool for defining and visualizing educational roadmaps, skill trees, and structured learning paths using YAML.
 
-This project provides a split-pane interface with a live YAML text editor on the left and an interactive, zoomable/pannable Node/Graph visualization on the right powered by React Flow.
+This project provides a workspace with a live YAML text editor, a roadmap sidebar, and an interactive, zoomable/pannable node graph powered by React Flow.
 
 ## Features
 
 - **YAML-Based Definition**: Define your skill trees and roadmap nodes hierarchically using simple and readable YAML structure.
 - **Live Visualization**: Real-time rendering of the node tree as you type.
-- **Interactive Graph**: Pan, zoom, and adjust nodes in a responsive canvas powered by React Flow.
-- **Resizable Layout**: A custom draggable divider allows users to resize the editor and visualizer panels dynamically.
+- **Roadmap Sidebar**: Browse available roadmaps from a dedicated sidebar with a `Roadmaps` header and a `Show YAML` toggle.
+- **Interactive Graph**: Pan, zoom, select, edit, and delete nodes in a responsive canvas powered by React Flow.
+- **Keyboard Delete**: Select a skill node and press `Delete` or `Backspace` to remove it.
 - **Syntax Highlighting & Error Detection**: Rich YAML code editing experience with error feedback when the YAML syntax is invalid or missing required properties (like `id` or `label`).
 
 ---
@@ -40,6 +41,13 @@ Run the Vite development server:
 npm run dev
 ```
 Open your browser and navigate to `http://localhost:5173` to see the editor in action.
+
+### Using the App
+
+- Use the `Roadmaps` sidebar to switch between roadmap files or create a new one.
+- Toggle `Show YAML` in the sidebar to reveal or hide the YAML editor.
+- Click a node to select it, then press `Delete` to remove it.
+- Use the pencil icon on a node to edit its details.
 
 ### Building for Production
 
@@ -102,4 +110,3 @@ children:
 - **Code Editor**: [@uiw/react-textarea-code-editor](https://github.com/uiwjs/react-textarea-code-editor)
 - **YAML Parser**: [yaml](https://github.com/eemeli/yaml)
 - **Linter**: [Oxlint](https://oxc.rs/docs/guide/usage/linter)
-
