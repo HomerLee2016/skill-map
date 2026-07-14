@@ -1,4 +1,3 @@
-import React, { useRef } from 'react';
 import type { SavedRoadmap } from '../types';
 
 interface RoadmapSidebarProps {
@@ -6,6 +5,8 @@ interface RoadmapSidebarProps {
   selectedRoadmapId: string;
   onSelectRoadmap: (id: string) => void;
   onCreateRoadmap: () => void;
+  yamlVisible: boolean;
+  setYamlVisible: (value: boolean) => void;
 }
 
 export function RoadmapSidebar({
@@ -13,26 +14,9 @@ export function RoadmapSidebar({
   selectedRoadmapId,
   onSelectRoadmap,
   onCreateRoadmap,
+  yamlVisible,
+  setYamlVisible,
 }: RoadmapSidebarProps) {
-  const isDragging = useRef(false);
-
-  const startResize = (e: React.MouseEvent) => {
-    e.preventDefault();
-    isDragging.current = true;
-    const onMouseMove = (ev: MouseEvent) => {
-      if (!isDragging.current) return;
-      const newWidth = Math.max(200, Math.min(ev.clientX - 200, window.innerWidth * 0.7));
-      setLeftWidth(newWidth);
-    };
-    const onMouseUp = () => {
-      isDragging.current = false;
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-    };
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  };
-
   return (
     <div
       className="sidebar"
@@ -44,6 +28,18 @@ export function RoadmapSidebar({
         position: 'relative',
       }}
     >
+      <div style={{ padding: '12px 12px 8px', borderBottom: '1px solid #2a2a2a' }}>
+        <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '10px' }}>Roadmaps</div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={yamlVisible}
+            onChange={(e) => setYamlVisible(e.target.checked)}
+            style={{ cursor: 'pointer' }}
+          />
+          Show YAML
+        </label>
+      </div>
       {roadmaps.map((r) => (
         <button
           key={r.id}
@@ -75,7 +71,6 @@ export function RoadmapSidebar({
       >
         + New Roadmap
       </button>
-      {/* Resize handle removed; resizing now controls YAML area only */}
     </div>
   );
 }

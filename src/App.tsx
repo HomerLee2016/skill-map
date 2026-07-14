@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 import YAML from 'yaml';
 import CodeEditor from '@uiw/react-textarea-code-editor';
@@ -6,15 +6,12 @@ import ReactFlow, {
   Background,
   Controls,
   MarkerType,
-  Handle,
-  Position,
   useNodesState,
   useEdgesState,
   addEdge,
   Panel,
   type Node,
   type Edge,
-  type NodeProps,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { RoadmapNode } from './types';
@@ -75,38 +72,6 @@ const initialRoadmaps: SavedRoadmap[] = Object.entries(yamlModules).map(([path, 
 const nodeTypes = {
   skillNode: SkillNode,
 };
-
-// Helper to convert graph to flat array of nodes with dependsOn references
-function graphToFlatList(nodes: Node[], edges: Edge[]): ExtendedRoadmapNode[] {
-  const dependencyMap = new Map<string, string[]>();
-  edges.forEach((e) => {
-    if (!dependencyMap.has(e.target)) {
-      dependencyMap.set(e.target, []);
-    }
-    dependencyMap.get(e.target)!.push(e.source);
-  });
-
-  return nodes.map((n) => {
-    const dependsOn = dependencyMap.get(n.id);
-    const res: ExtendedRoadmapNode = {
-      id: n.id,
-      label: n.data.label,
-      x: Math.round(n.position.x),
-      y: Math.round(n.position.y),
-      finished: !!n.data.finished,
-    };
-
-    if (n.data.description) res.description = n.data.description;
-    if (n.data.url) res.url = n.data.url;
-    if (n.data.quizUrl) res.quizUrl = n.data.quizUrl;
-    if (n.data.subTreeId) res.subTreeId = n.data.subTreeId;
-    if (dependsOn && dependsOn.length > 0) {
-      res.dependsOn = dependsOn;
-    }
-
-    return res;
-  });
-}
 
 // Layout logic moved to useAutoLayout hook
 function App() {
@@ -224,17 +189,18 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
     });
   }, [setNodes, selectedRoadmapId]);
 
-  const onDeleteNode = useCallback((id: string) => {
+  const onNodesDelete = useCallback((deletedNodes: Node[]) => {
+    const deletedIds = new Set(deletedNodes.map((node) => node.id));
     setNodes((nds) => {
-      const nextNodes = nds.filter((n) => n.id !== id);
+      const nextNodes = nds.filter((node) => !deletedIds.has(node.id));
       setEdges((eds) => {
-        const nextEdges = eds.filter((e) => e.source !== id && e.target !== id);
+        const nextEdges = eds.filter((edge) => !deletedIds.has(edge.source) && !deletedIds.has(edge.target));
         syncGraphToYaml(nextNodes, nextEdges);
         return nextEdges;
       });
       return nextNodes;
     });
-  }, [setNodes, setEdges, selectedRoadmapId]);
+  }, [setNodes, setEdges]);
 
   const onEditClick = useCallback((id: string) => {
     setNodes((nds) => {
@@ -288,7 +254,7 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
     showDetails,
     onLabelChange,
     onToggleFinished,
-    onDeleteNode,
+    onNodesDelete,
     onEditClick,
     selectRoadmap,
     ignoreYamlUpdateRef,
@@ -343,7 +309,6 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
         finished: false,
         onLabelChange,
         onToggleFinished,
-        onDelete: onDeleteNode,
         onEditClick,
         onGoToSubTree: selectRoadmap,
       },
@@ -365,16 +330,17 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', fontFamily: 'sans-serif', overflow: 'hidden' }}>
 
-<RoadmapSidebar
+      <RoadmapSidebar
         roadmaps={roadmaps}
         selectedRoadmapId={selectedRoadmapId}
         onSelectRoadmap={selectRoadmap}
         onCreateRoadmap={onCreateRoadmap}
-        leftWidth={leftWidth}
-        setLeftWidth={setLeftWidth}
+        yamlVisible={yamlVisible}
+        setYamlVisible={setYamlVisible}
       />
 
       {/* LEFT SIDE: YAML Editor Container */}
+      {yamlVisible && (
       <div style={{ width: `${leftWidth}px`, height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#1e1e1e', flexShrink: 0 }}>
         <div style={{ padding: '10px', background: '#242424', color: '#fff', fontWeight: 'bold' }}>
           📝 YAML Roadmap Editor
@@ -403,8 +369,10 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
           </div>
         )}
       </div>
+      )}
 
       {/* DRAGGABLE BAR RESIZER */}
+      {yamlVisible && (
       <div
         onMouseDown={startResize}
         style={{
@@ -420,6 +388,7 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
         onMouseEnter={(e) => (e.currentTarget.style.background = '#646cff')}
         onMouseLeave={(e) => (e.currentTarget.style.background = '#444')}
       />
+      )}
 
       {/* RIGHT SIDE: Visual Tree Graph */}
       <div style={{ flex: 1, height: '100%', backgroundColor: '#f9f9f9', position: 'relative' }}>
@@ -452,6 +421,8 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
           nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onNodesDelete={onNodesDelete}
+          deleteKeyCode={['Delete', 'Backspace']}
           onConnect={onConnect}
           fitView
           onEdgeClick={onEdgeClick}
@@ -474,106 +445,22 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
         </ReactFlow>
       </div>
 
-      {/* EDIT MODAL DIALOG */}
-      {editingNodeId && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: '8px',
-            padding: '24px',
-            width: '400px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px'
-          }}>
-            <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', color: '#333' }}>✏️ Edit Skill Node</h3>
-            
-            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>
-              Title
-              <input
-                type="text"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                style={{ width: '100%', padding: '8px', marginTop: '4px', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' }}
-              />
-            </label>
-
-            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>
-              Detail Description
-              <textarea
-                value={editDetail}
-                onChange={(e) => setEditDetail(e.target.value)}
-                style={{ width: '100%', padding: '8px', marginTop: '4px', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box', height: '60px', fontFamily: 'inherit' }}
-              />
-            </label>
-
-            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>
-              Resource URL
-              <input
-                type="text"
-                value={editUrl}
-                onChange={(e) => setEditUrl(e.target.value)}
-                placeholder="https://example.com"
-                style={{ width: '100%', padding: '8px', marginTop: '4px', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' }}
-              />
-            </label>
-
-            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>
-              Quiz/Homework URL
-              <input
-                type="text"
-                value={editQuizUrl}
-                onChange={(e) => setEditQuizUrl(e.target.value)}
-                placeholder="https://quiz-resource.com"
-                style={{ width: '100%', padding: '8px', marginTop: '4px', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' }}
-              />
-            </label>
-
-            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>
-              Link to Sub-Tree Roadmap
-              <select
-                value={editSubTreeId}
-                onChange={(e) => setEditSubTreeId(e.target.value)}
-                style={{ width: '100%', padding: '8px', marginTop: '4px', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' }}
-              >
-                <option value="">-- None --</option>
-                {roadmaps.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-              <button
-                onClick={() => setEditingNodeId(null)}
-                style={{ padding: '8px 16px', background: '#ddd', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={saveNodeEdits}
-                style={{ padding: '8px 16px', background: '#646cff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <EditModal
+        editingNodeId={editingNodeId}
+        setEditingNodeId={setEditingNodeId}
+        editTitle={editTitle}
+        setEditTitle={setEditTitle}
+        editDetail={editDetail}
+        setEditDetail={setEditDetail}
+        editUrl={editUrl}
+        setEditUrl={setEditUrl}
+        editQuizUrl={editQuizUrl}
+        setEditQuizUrl={setEditQuizUrl}
+        editSubTreeId={editSubTreeId}
+        setEditSubTreeId={setEditSubTreeId}
+        roadmaps={roadmaps}
+        onSave={saveNodeEdits}
+      />
 
     </div>
   );

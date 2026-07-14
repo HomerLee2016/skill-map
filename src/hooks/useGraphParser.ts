@@ -19,7 +19,6 @@ export function useGraphParser({
   showDetails,
   onLabelChange,
   onToggleFinished,
-  onDeleteNode,
   onEditClick,
   selectRoadmap,
   ignoreYamlUpdateRef,
@@ -31,7 +30,6 @@ export function useGraphParser({
   showDetails: boolean;
   onLabelChange: (id: string, newLabel: string) => void;
   onToggleFinished: (id: string, finished: boolean) => void;
-  onDeleteNode: (id: string) => void;
   onEditClick: (id: string) => void;
   selectRoadmap: (id: string) => void;
   ignoreYamlUpdateRef: MutableRefObject<boolean>;
@@ -80,7 +78,6 @@ export function useGraphParser({
               showDescription: showDetails,
               onLabelChange,
               onToggleFinished,
-              onDelete: onDeleteNode,
               onEditClick,
               onGoToSubTree: selectRoadmap,
             },
@@ -129,7 +126,6 @@ export function useGraphParser({
               showDescription: showDetails,
               onLabelChange,
               onToggleFinished,
-              onDelete: onDeleteNode,
               onEditClick,
               onGoToSubTree: selectRoadmap,
             },
@@ -169,7 +165,6 @@ export function useGraphParser({
     showDetails,
     onLabelChange,
     onToggleFinished,
-    onDeleteNode,
     onEditClick,
     selectRoadmap,
    ignoreYamlUpdateRef,
