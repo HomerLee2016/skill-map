@@ -1,0 +1,175 @@
+- id: spanish_beginner_travel
+  label: "Spanish for Beginners: Travel Survival"
+  x: 1643
+  y: -266
+  finished: false
+  description: Build a practical Spanish toolkit for travel, basics, and simple
+    everyday use.
+- id: spanish_pronunciation
+  label: Pronunciation Basics
+  x: 1329
+  y: 132
+  finished: false
+  description: Learn vowel sounds, stress, and common letter pairs.
+  dependsOn:
+    - spanish_beginner_travel
+- id: spanish_script_spelling
+  label: Alphabet and Spelling
+  x: 856
+  y: 115
+  finished: false
+  description: Spell names, ask how words are written, and sound out words.
+  dependsOn:
+    - spanish_beginner_travel
+- id: spanish_greetings
+  label: Greetings and Politeness
+  x: 1911
+  y: 113
+  finished: false
+  description: Use common greetings, introductions, and polite phrases.
+  dependsOn:
+    - spanish_beginner_travel
+- id: spanish_self_intro
+  label: Self-Introduction
+  x: 2510
+  y: 115
+  finished: false
+  description: Say who you are, where you are from, and what you need.
+  dependsOn:
+    - spanish_beginner_travel
+- id: spanish_numbers
+  label: Numbers and Counting
+  x: 1245
+  y: 322
+  finished: false
+  description: Count items and recognize simple numbers aloud.
+  dependsOn:
+    - spanish_pronunciation
+- id: spanish_time
+  label: Time and Dates
+  x: 925
+  y: 500
+  finished: false
+  description: Ask for the time and understand simple schedules.
+  dependsOn:
+    - spanish_numbers
+- id: spanish_prices
+  label: Prices and Money
+  x: 1443
+  y: 489
+  finished: false
+  description: Understand fares, costs, and basic payment language.
+  dependsOn:
+    - spanish_numbers
+- id: spanish_core_verbs
+  label: Core Verbs and Sentence Patterns
+  x: 1763
+  y: 297
+  finished: false
+  description: Learn a small set of useful verbs and simple sentence shapes.
+  dependsOn:
+    - spanish_greetings
+- id: spanish_survival_phrases
+  label: Travel Survival Phrases
+  x: 2210
+  y: 346
+  finished: false
+  description: Ask for help, confirm details, and manage basic interactions.
+  dependsOn:
+    - spanish_greetings
+- id: spanish_polite_requests
+  label: Polite Requests
+  x: 2669
+  y: 568
+  finished: false
+  description: Make simple requests using polite language.
+  dependsOn:
+    - spanish_survival_phrases
+- id: spanish_direction_words
+  label: Direction Words
+  x: 2239
+  y: 576
+  finished: false
+  description: Learn left, right, straight, near, and far language.
+  dependsOn:
+    - spanish_survival_phrases
+- id: spanish_transport
+  label: Transport and Directions
+  x: 739
+  y: 718
+  finished: false
+  description: Navigate stations, routes, and simple direction language.
+  dependsOn:
+    - spanish_time
+- id: spanish_station_vocab
+  label: Station and Ticket Vocabulary
+  x: 506
+  y: 919
+  finished: false
+  description: Recognize platform, ticket, exit, and transfer words.
+  dependsOn:
+    - spanish_transport
+- id: spanish_food_ordering
+  label: Food and Ordering
+  x: 1539
+  y: 728
+  finished: false
+  description: Order food, ask for the bill, and handle menu basics.
+  dependsOn:
+    - spanish_prices
+- id: spanish_cafe_basics
+  label: Cafe and Convenience Store Use
+  x: 1573
+  y: 986
+  finished: false
+  description: Buy drinks, snacks, and small travel items.
+  dependsOn:
+    - spanish_food_ordering
+- id: spanish_hotel_checkin
+  label: Hotel Check-In
+  x: 1145
+  y: 724
+  finished: false
+  description: Check in, confirm reservations, and ask simple hotel questions.
+  dependsOn:
+    - spanish_time
+- id: spanish_shopping
+  label: Shopping and Sizes
+  x: 1944
+  y: 726
+  finished: false
+  description: Ask about sizes, colors, and basic store interactions.
+  dependsOn:
+    - spanish_prices
+- id: spanish_emergency
+  label: Emergencies and Help
+  x: 941
+  y: 879
+  finished: false
+  description: Explain urgent needs and get assistance in simple language.
+  dependsOn:
+    - spanish_transport
+- id: spanish_medical
+  label: Medical Basics
+  x: 530
+  y: 1164
+  finished: false
+  description: Explain pain, symptoms, and simple medical needs.
+  dependsOn:
+    - spanish_emergency
+- id: spanish_lost_and_found
+  label: Lost and Found
+  x: 905
+  y: 1160
+  finished: false
+  description: Ask about lost items and describe where you last saw them.
+  dependsOn:
+    - spanish_emergency
+- id: spanish_review_loop
+  label: Survival Practice Loop
+  x: 1278
+  y: 1160
+  finished: false
+  description: Rehearse the most useful phrases until they feel automatic.
+  dependsOn:
+    - spanish_emergency

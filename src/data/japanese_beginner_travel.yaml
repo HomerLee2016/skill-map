@@ -1,0 +1,182 @@
+- id: japanese_beginner_travel
+  label: "Japanese for Beginners: Travel Survival"
+  x: 333
+  y: -280
+  finished: true
+  description: Build a practical Japanese toolkit for short trips and basic travel needs.
+- id: japanese_pronunciation
+  label: Pronunciation Basics
+  x: -492
+  y: 68
+  finished: false
+  description: Learn vowel sounds, long sounds, and basic rhythm.
+  dependsOn:
+    - japanese_beginner_travel
+- id: japanese_script_overview
+  label: Script Overview
+  x: 2
+  y: 52
+  finished: false
+  description: Understand how hiragana, katakana, and kanji are used.
+  dependsOn:
+    - japanese_beginner_travel
+- id: japanese_greetings
+  label: Greetings and Politeness
+  x: 954
+  y: 60
+  finished: false
+  description: Use basic greetings and polite phrases in shops and transit.
+  dependsOn:
+    - japanese_beginner_travel
+- id: japanese_self_intro
+  label: Self-Introduction
+  x: 477
+  y: 51
+  finished: false
+  description: Say who you are, where you are from, and what you need.
+  dependsOn:
+    - japanese_beginner_travel
+- id: japanese_reading_hiragana
+  label: Hiragana Reading
+  x: -91
+  y: 250
+  finished: false
+  description: Recognize and sound out hiragana for common words.
+  dependsOn:
+    - japanese_script_overview
+- id: japanese_reading_katakana
+  label: Katakana Reading
+  x: 273
+  y: 242
+  finished: false
+  description: Read katakana for borrowed words, signs, and menu items.
+  dependsOn:
+    - japanese_script_overview
+- id: japanese_numbers
+  label: Numbers and Counting
+  x: -500
+  y: 250
+  finished: false
+  description: Count items and recognize simple numbers aloud.
+  dependsOn:
+    - japanese_pronunciation
+- id: japanese_time
+  label: Time and Dates
+  x: -734
+  y: 494
+  finished: false
+  description: Ask for the time and understand simple schedules.
+  dependsOn:
+    - japanese_numbers
+- id: japanese_prices
+  label: Prices and Money
+  x: -384
+  y: 494
+  finished: false
+  description: Understand fares, costs, and basic payment language.
+  dependsOn:
+    - japanese_numbers
+- id: japanese_survival_phrases
+  label: Travel Survival Phrases
+  x: 1179
+  y: 232
+  finished: false
+  description: Ask for help, confirm directions, and handle basic travel exchanges.
+  dependsOn:
+    - japanese_greetings
+- id: japanese_polite_requests
+  label: Polite Requests
+  x: 804
+  y: 246
+  finished: false
+  description: Make simple requests using polite forms.
+  dependsOn:
+    - japanese_greetings
+- id: japanese_direction_words
+  label: Direction Words
+  x: 1576
+  y: 486
+  finished: false
+  description: Learn left, right, straight, near, and far language.
+  dependsOn:
+    - japanese_survival_phrases
+- id: japanese_transport
+  label: Transport and Directions
+  x: 1576
+  y: 636
+  finished: false
+  description: Read station language and ask where to go.
+  dependsOn:
+    - japanese_direction_words
+- id: japanese_station_vocab
+  label: Station and Ticket Vocabulary
+  x: 1576
+  y: 786
+  finished: false
+  description: Recognize platform, ticket, exit, and transfer words.
+  dependsOn:
+    - japanese_transport
+- id: japanese_food_ordering
+  label: Food and Ordering
+  x: -34
+  y: 494
+  finished: false
+  description: Order meals, handle allergies, and understand basic menu words.
+  dependsOn:
+    - japanese_numbers
+- id: japanese_cafe_basics
+  label: Cafe and Convenience Store Use
+  x: -34
+  y: 644
+  finished: false
+  description: Buy drinks, snacks, and small travel items.
+  dependsOn:
+    - japanese_food_ordering
+- id: japanese_hotel_checkin
+  label: Hotel Check-In
+  x: 1088
+  y: 480
+  finished: false
+  description: Check in, confirm reservations, and ask simple hotel questions.
+  dependsOn:
+    - japanese_survival_phrases
+- id: japanese_shopping
+  label: Shopping and Sizes
+  x: -384
+  y: 644
+  finished: false
+  description: Ask about sizes, colors, and basic store interactions.
+  dependsOn:
+    - japanese_prices
+- id: japanese_emergency
+  label: Emergencies and Help
+  x: 634
+  y: 488
+  finished: false
+  description: Get help, explain urgent needs, and use simple safety language.
+  dependsOn:
+    - japanese_survival_phrases
+- id: japanese_medical
+  label: Medical Basics
+  x: 464
+  y: 698
+  finished: false
+  description: Explain pain, symptoms, and simple medical needs.
+  dependsOn:
+    - japanese_emergency
+- id: japanese_lost_and_found
+  label: Lost and Found
+  x: 822
+  y: 696
+  finished: false
+  description: Ask about lost items and describe where you last saw them.
+  dependsOn:
+    - japanese_emergency
+- id: japanese_review_loop
+  label: Survival Practice Loop
+  x: 1178
+  y: 694
+  finished: false
+  description: Rehearse the most useful phrases until they feel automatic.
+  dependsOn:
+    - japanese_emergency

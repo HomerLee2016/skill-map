@@ -5,6 +5,7 @@ interface RoadmapSidebarProps {
   selectedRoadmapId: string;
   onSelectRoadmap: (id: string) => void;
   onCreateRoadmap: () => void;
+  onSaveRoadmap: () => void;
   yamlVisible: boolean;
   setYamlVisible: (value: boolean) => void;
 }
@@ -14,6 +15,7 @@ export function RoadmapSidebar({
   selectedRoadmapId,
   onSelectRoadmap,
   onCreateRoadmap,
+  onSaveRoadmap,
   yamlVisible,
   setYamlVisible,
 }: RoadmapSidebarProps) {
@@ -30,6 +32,22 @@ export function RoadmapSidebar({
     >
       <div style={{ padding: '12px 12px 8px', borderBottom: '1px solid #2a2a2a' }}>
         <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '10px' }}>Roadmaps</div>
+        <button
+          onClick={onSaveRoadmap}
+          style={{
+            width: '100%',
+            padding: '10px',
+            background: '#2e7d32',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            marginBottom: '10px',
+            fontWeight: 700,
+          }}
+        >
+          Save Roadmap
+        </button>
         <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
           <input
             type="checkbox"

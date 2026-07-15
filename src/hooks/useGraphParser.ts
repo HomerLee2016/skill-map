@@ -85,7 +85,7 @@ export function useGraphParser({
           });
 
           if (node.dependsOn && Array.isArray(node.dependsOn)) {
-            node.dependsOn.forEach(depId => {
+            node.dependsOn.forEach((depId: string) => {
               generatedEdges.push({
                 id: `e-${depId}-${nodeId}`,
                 source: depId,
@@ -143,7 +143,7 @@ export function useGraphParser({
           }
 
           if (node.children && Array.isArray(node.children)) {
-            node.children.forEach((child, childIndex) => {
+            node.children.forEach((child: ExtendedRoadmapNode, childIndex: number) => {
               traverseNested(child, nodeId, depth + 1, index + childIndex);
             });
           }

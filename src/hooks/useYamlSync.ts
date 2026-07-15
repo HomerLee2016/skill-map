@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 
-import type { Node, Edge } from 'reactflow';
 import YAML from 'yaml';
 import type { SavedRoadmap } from '../types';
 
@@ -9,16 +8,12 @@ import type { SavedRoadmap } from '../types';
  * and also update the roadmap list with the new label.
  */
 export function useYamlSync({
-  nodes,
-  edges,
   yamlText,
   setYamlText,
   setRoadmaps,
   selectedRoadmapId,
   ignoreYamlUpdateRef,
 }: {
-  nodes: Node[];
-  edges: Edge[];
   yamlText: string;
   setYamlText: (t: string) => void;
   setRoadmaps: (updater: (prev: SavedRoadmap[]) => SavedRoadmap[]) => void;
@@ -26,9 +21,9 @@ export function useYamlSync({
   ignoreYamlUpdateRef: React.MutableRefObject<boolean>;
 }) {
   const syncGraphToYaml = useCallback(
-    (currentNodes: Node[], currentEdges: Edge[]) => {
+    (currentNodes: any[], currentEdges: any[]) => {
       ignoreYamlUpdateRef.current = true;
-      const flatList = (function graphToFlatList(nodes: Node[], edges: Edge[]) {
+      const flatList = (function graphToFlatList(nodes: any[], edges: any[]) {
         const dependencyMap = new Map<string, string[]>();
         edges.forEach(e => {
           if (!dependencyMap.has(e.target)) dependencyMap.set(e.target, []);

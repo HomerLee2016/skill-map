@@ -87,7 +87,7 @@ export function SkillNode({ id, data, selected }: NodeProps<SkillNodeData>) {
       {data.subTreeId && (
         <div style={{ marginTop: '6px' }}>
           <button
-            onClick={() => data.onGoToSubTree(data.subTreeId)}
+            onClick={() => data.subTreeId && data.onGoToSubTree(data.subTreeId)}
             style={{
               background: '#e0e7ff',
               color: '#3730a3',

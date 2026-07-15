@@ -6,15 +6,15 @@ import ReactFlow, {
   Background,
   Controls,
   MarkerType,
+  SelectionMode,
   useNodesState,
   useEdgesState,
   addEdge,
   Panel,
   type Node,
-  type Edge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import type { RoadmapNode } from './types';
+import type { SavedRoadmap, ExtendedRoadmapNode } from './types';
 
 import { EditModal } from './components/EditModal';
 import { useGraphParser } from './hooks/useGraphParser';
@@ -28,36 +28,19 @@ import { RoadmapSidebar } from './components/RoadmapSidebar';
 // Import YAML roadmaps as raw strings from the data folder
 const yamlModules = import.meta.glob('./data/*.yaml', { query: '?raw', eager: true });
 
-// Extend RoadmapNode type locally to support new properties
-interface ExtendedRoadmapNode extends RoadmapNode {
-  finished?: boolean;
-  url?: string;
-  quizUrl?: string;
-  subTreeId?: string; // Reference to another tree ID
-  children?: ExtendedRoadmapNode[];
-}
-
-interface SavedRoadmap {
-  id: string;
-  name: string;
-  yaml: string;
-}
-
 // Map the dynamically loaded YAML modules to the initial state
 const initialRoadmaps: SavedRoadmap[] = Object.entries(yamlModules).map(([path, module]: [string, any]) => {
   const yamlContent = module.default as string;
   let label = 'Untitled Roadmap';
-  let id = 'untitled';
+  const id = path.split('/').pop()?.replace('.yaml', '') || 'untitled';
   try {
     const parsed = YAML.parse(yamlContent);
     if (Array.isArray(parsed) && parsed.length > 0) {
       // Flat list format: root node is usually the one with no dependencies, or the first one
       const rootNode = parsed.find(n => !n.dependsOn || n.dependsOn.length === 0) || parsed[0];
       label = rootNode.label || label;
-      id = rootNode.id || path.split('/').pop()?.replace('.yaml', '') || id;
     } else if (parsed) {
       label = parsed.label || label;
-      id = parsed.id || path.split('/').pop()?.replace('.yaml', '') || id;
     }
   } catch (e) {
     console.error(`Error parsing dynamic roadmap label from ${path}`, e);
@@ -96,10 +79,10 @@ function App() {
   const [editSubTreeId, setEditSubTreeId] = useState('');
 
   // Custom Resizer Hook
-  const { leftWidth, setLeftWidth, startResize } = useResizePanel();
+  const { leftWidth, startResize } = useResizePanel();
   const ignoreYamlUpdateRef = useRef<boolean>(false);
 // Initialize YAML sync hook
-const { syncGraphToYaml } = useYamlSync({ nodes, edges, yamlText, setYamlText, setRoadmaps, selectedRoadmapId, ignoreYamlUpdateRef });
+  const { syncGraphToYaml } = useYamlSync({ yamlText, setYamlText, setRoadmaps, selectedRoadmapId, ignoreYamlUpdateRef });
 // Edge selection hook
 const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
 // Helper to calculate tree completion percentage for a given YAML text (flat list or nested tree supported)
@@ -139,6 +122,39 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
     const target = roadmaps.find((r) => r.id === id);
     if (target) {
       setYamlText(target.yaml);
+    }
+  };
+
+  const saveRoadmap = async () => {
+    try {
+      const response = await fetch('/api/save-roadmap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roadmapId: selectedRoadmapId, yaml: yamlText }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.error || 'Failed to save roadmap');
+      }
+      setRoadmaps((prev) =>
+        prev.map((r) => {
+          if (r.id !== selectedRoadmapId) return r;
+          let newLabel = r.name;
+        try {
+          const parsed = YAML.parse(yamlText);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const rootNode = parsed.find((n: any) => !n.dependsOn || n.dependsOn.length === 0) || parsed[0];
+            newLabel = rootNode.label || newLabel;
+          } else if (parsed && typeof parsed === 'object' && parsed.label) {
+            newLabel = parsed.label;
+          }
+        } catch {}
+        return { ...r, name: newLabel, yaml: yamlText };
+      })
+    );
+    } catch (error) {
+      console.error(error);
+      setError(error instanceof Error ? error.message : 'Failed to save roadmap');
     }
   };
 
@@ -254,7 +270,6 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
     showDetails,
     onLabelChange,
     onToggleFinished,
-    onNodesDelete,
     onEditClick,
     selectRoadmap,
     ignoreYamlUpdateRef,
@@ -271,6 +286,10 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
   }, [showDetails, setNodes]);
 
   // Connect handler
+  const persistPositionsToYaml = useCallback(() => {
+    syncGraphToYaml(nodes, edges);
+  }, [nodes, edges, syncGraphToYaml]);
+
   const onConnect = useCallback(
     (params: any) => {
       setEdges((eds) => {
@@ -283,15 +302,12 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
           eds
         );
         setTimeout(() => {
-          setNodes((nds) => {
-            syncGraphToYaml(nds, nextEdges);
-            return nds;
-          });
+          syncGraphToYaml(nodes, nextEdges);
         }, 0);
         return nextEdges;
       });
     },
-    [setEdges, setNodes, selectedRoadmapId]
+    [setEdges, nodes, syncGraphToYaml]
   );
 
   // Edge selection and highlighting are handled by the useEdgeSelection hook
@@ -335,6 +351,7 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
         selectedRoadmapId={selectedRoadmapId}
         onSelectRoadmap={selectRoadmap}
         onCreateRoadmap={onCreateRoadmap}
+        onSaveRoadmap={saveRoadmap}
         yamlVisible={yamlVisible}
         setYamlVisible={setYamlVisible}
       />
@@ -424,6 +441,12 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
           onNodesDelete={onNodesDelete}
           deleteKeyCode={['Delete', 'Backspace']}
           onConnect={onConnect}
+          onNodeDragStop={persistPositionsToYaml}
+          onSelectionDragStop={persistPositionsToYaml}
+          selectionOnDrag
+          selectionMode={SelectionMode.Partial}
+          panOnDrag={[2]}
+          selectNodesOnDrag
           fitView
           onEdgeClick={onEdgeClick}
         >
@@ -439,7 +462,7 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
         onAddNode={onCreateNode}
       />
             <div style={{ fontSize: '11px', color: '#666', borderTop: '1px solid #eee', paddingTop: '6px', marginTop: '4px', lineHeight: '1.4' }}>
-              💡 Drag bottom handle to top handle to link. Click ✏️ to customize.
+              💡 Left-drag on empty space to box-select nodes. Right-drag to pan the canvas. Drag bottom handle to top handle to link. Click ✏️ to customize.
             </div>
           </Panel>
         </ReactFlow>

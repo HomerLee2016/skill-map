@@ -7,3 +7,17 @@ export interface RoadmapNode {
   dependsOn?: string[];
   children?: RoadmapNode[];
 }
+
+export interface ExtendedRoadmapNode extends RoadmapNode {
+  finished?: boolean;
+  url?: string;
+  quizUrl?: string;
+  subTreeId?: string;
+  children?: ExtendedRoadmapNode[];
+}
+
+export interface SavedRoadmap {
+  id: string;
+  name: string;
+  yaml: string;
+}
