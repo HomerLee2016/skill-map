@@ -25,7 +25,7 @@ import { SkillNode } from './components/SkillNode';
 import { useAutoLayout } from './hooks/useAutoLayout';
 import { Toolbar } from './components/Toolbar';
 import { RoadmapSidebar } from './components/RoadmapSidebar';
-import { lessons as availableLessons, tests as availableTests } from './utils/contentCatalog';
+import { getLessonPickerOptions, getTestPickerOptions } from './utils/contentCatalog';
 
 const yamlModules = import.meta.glob('./data/roadmaps/*.yaml', { query: '?raw', eager: true });
 
@@ -449,8 +449,8 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest }: RoadmapProps) {
         editSubTreeId={editSubTreeId}
         setEditSubTreeId={setEditSubTreeId}
         roadmaps={roadmaps}
-        availableLessons={availableLessons.map(({ id, title }) => ({ id, title }))}
-        availableTests={availableTests.map(({ id, title }) => ({ id, title }))}
+        availableLessons={getLessonPickerOptions()}
+        availableTests={getTestPickerOptions()}
         onGoToLesson={onGoToLesson}
         onGoToTest={onGoToTest}
         onSave={saveNodeEdits}

@@ -1,0 +1,12 @@
+# Virtual folder layout for lessons (not filesystem folders).
+# Reference lesson files by id = filename without .md
+
+folders:
+  - name: Spanish
+    children:
+      - name: Beginner
+        items:
+          - spanish-01-demo-01
+
+items:
+  - getting-started

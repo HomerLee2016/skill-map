@@ -1,0 +1,18 @@
+# Virtual folder layout for tests (not filesystem folders).
+# Reference test files by id = filename without .yaml under src/data/tests/
+
+revision:
+  folders:
+    - name: Spanish
+      items:
+        - test-01
+  items: []
+
+new_tests:
+  folders:
+    - name: Spanish
+      children:
+        - name: Numbers
+          items:
+            - test-01
+  items: []

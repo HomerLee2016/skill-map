@@ -297,11 +297,145 @@ body, html, #root {
   flex-shrink: 0;
 }
 
+.tree-structure-hint {
+  margin: 0;
+  padding: 0 12px 10px;
+  font-size: 11px;
+  color: var(--lessons-muted);
+  line-height: 1.4;
+}
+
+.tree-structure-hint code {
+  background: var(--lessons-code-bg);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.tree-section {
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.tree-section-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tree-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: var(--lessons-text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+
+.lessons-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-right: 8px;
+}
+
+.tree-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tree-assign-item {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--sidebar-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--lessons-text);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.tree-add-folder {
+  width: 26px;
+  height: 26px;
+  margin-right: 8px;
+  border: 1px solid var(--sidebar-border);
+  border-radius: 6px;
+  background: var(--node-link-bg);
+  color: var(--node-link-text);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.tree-section-body {
+  padding-bottom: 8px;
+}
+
+.tree-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-folder-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 12px;
+  padding-left: calc(12px + (var(--tree-depth, 0) * 12px));
+  border: none;
+  background: transparent;
+  color: var(--lessons-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.tree-chevron {
+  display: inline-block;
+  width: 12px;
+  font-size: 9px;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.tree-folder-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-item,
+.lessons-item,
+.tests-item {
+  padding-left: calc(12px + (var(--tree-depth, 0) * 12px));
+}
+
+.tree-empty {
+  margin: 0;
+  padding: 8px 12px 12px;
+  font-size: 12px;
+  color: var(--lessons-muted);
+}
+
 .lessons-sidebar-title {
   padding: 16px 12px 8px;
   font-size: 16px;
   font-weight: 700;
-  border-bottom: 1px solid var(--sidebar-border);
+  border-bottom: none;
 }
 
 .lessons-item {

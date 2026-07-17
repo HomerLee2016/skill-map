@@ -1,10 +1,6 @@
 // src/components/EditModal.tsx
 import React, { useState } from 'react';
-
-interface ContentOption {
-  id: string;
-  title: string;
-}
+import type { PickerOption } from '../utils/folderStructure';
 
 interface EditModalProps {
   editingNodeId: string | null;
@@ -22,8 +18,8 @@ interface EditModalProps {
   editSubTreeId: string;
   setEditSubTreeId: (v: string) => void;
   roadmaps: { id: string; name: string }[];
-  availableLessons: ContentOption[];
-  availableTests: ContentOption[];
+  availableLessons: PickerOption[];
+  availableTests: PickerOption[];
   onGoToLesson: (id: string) => void;
   onGoToTest: (id: string) => void;
   onSave: () => void;
@@ -40,7 +36,7 @@ function LinkedContentList({
 }: {
   label: string;
   linkedIds: string[];
-  available: ContentOption[];
+  available: PickerOption[];
   onAdd: (id: string) => void;
   onRemove: (id: string) => void;
   onOpen: (id: string) => void;
@@ -80,8 +76,8 @@ function LinkedContentList({
         >
           <option value="">Select {label.toLowerCase().slice(0, -1)} to link…</option>
           {unlinked.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.title} ({item.id})
+            <option key={`${item.path}-${item.id}`} value={item.id}>
+              {item.label}
             </option>
           ))}
         </select>
@@ -92,10 +88,15 @@ function LinkedContentList({
       ) : (
         linkedIds.map((id) => {
           const item = byId.get(id);
-          const title = item?.title || id;
+          const title = item?.label || id;
           return (
             <div key={id} className="modal-link-row">
-              <button type="button" className="modal-link-name" onClick={() => onOpen(id)} title={`Open ${title}`}>
+              <button
+                type="button"
+                className="modal-link-name"
+                onClick={() => onOpen(id)}
+                title={`Open ${title}`}
+              >
                 {title}
               </button>
               <button

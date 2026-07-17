@@ -125,6 +125,68 @@ function testResultSavePlugin() {
   }
 }
 
+function structureSavePlugin() {
+  const route = '/api/save-structure'
+  async function handleSave(req: any, res: any) {
+    let body = ''
+    req.on('data', (chunk: Buffer) => {
+      body += chunk.toString('utf8')
+    })
+    req.on('end', async () => {
+      try {
+        const { kind, structure } = JSON.parse(body || '{}')
+        if (kind !== 'lessons' && kind !== 'tests') {
+          res.statusCode = 400
+          res.end(JSON.stringify({ ok: false, error: 'kind must be lessons or tests' }))
+          return
+        }
+        if (!structure || typeof structure !== 'object') {
+          res.statusCode = 400
+          res.end(JSON.stringify({ ok: false, error: 'Missing structure' }))
+          return
+        }
+        const filePath = path.resolve(
+          process.cwd(),
+          'src',
+          'data',
+          kind,
+          'structure.yaml'
+        )
+        const allowedRoot = path.resolve(process.cwd(), 'src', 'data', kind)
+        if (!filePath.startsWith(allowedRoot)) {
+          res.statusCode = 400
+          res.end(JSON.stringify({ ok: false, error: 'Invalid structure path' }))
+          return
+        }
+        const yaml = YAML.stringify(structure)
+        await fs.writeFile(filePath, yaml, 'utf8')
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ ok: true }))
+      } catch (error: any) {
+        res.statusCode = 500
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ ok: false, error: error?.message || 'Save failed' }))
+      }
+    })
+  }
+
+  return {
+    name: 'structure-save-plugin',
+    configureServer(server: any) {
+      server.middlewares.use(route, (req: any, res: any, next: any) => {
+        if (req.method !== 'POST') return next()
+        handleSave(req, res)
+      })
+    },
+    configurePreviewServer(server: any) {
+      server.middlewares.use(route, (req: any, res: any, next: any) => {
+        if (req.method !== 'POST') return next()
+        handleSave(req, res)
+      })
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), roadmapSavePlugin(), testResultSavePlugin()],
+  plugins: [react(), roadmapSavePlugin(), testResultSavePlugin(), structureSavePlugin()],
 })
