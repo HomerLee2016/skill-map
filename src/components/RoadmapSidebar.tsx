@@ -8,8 +8,6 @@ interface RoadmapSidebarProps {
   onSaveRoadmap: () => void;
   yamlVisible: boolean;
   setYamlVisible: (value: boolean) => void;
-  darkMode: boolean;
-  setDarkMode: (value: boolean) => void;
 }
 
 function ToggleSwitch({
@@ -45,8 +43,6 @@ export function RoadmapSidebar({
   onSaveRoadmap,
   yamlVisible,
   setYamlVisible,
-  darkMode,
-  setDarkMode,
 }: RoadmapSidebarProps) {
   return (
     <div className="sidebar">
@@ -57,7 +53,6 @@ export function RoadmapSidebar({
         </button>
         <div className="sidebar-toggles">
           <ToggleSwitch checked={yamlVisible} onChange={setYamlVisible} label="Show YAML" />
-          <ToggleSwitch checked={darkMode} onChange={setDarkMode} label="Dark mode" />
         </div>
       </div>
       {roadmaps.map((r) => (

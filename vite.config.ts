@@ -24,8 +24,8 @@ function roadmapSavePlugin() {
           res.end(JSON.stringify({ ok: false, error: 'Missing yaml' }))
           return
         }
-        const filePath = path.resolve(process.cwd(), 'src', 'data', `${roadmapId}.yaml`)
-        const allowedRoot = path.resolve(process.cwd(), 'src', 'data')
+        const filePath = path.resolve(process.cwd(), 'src', 'data', 'roadmaps', `${roadmapId}.yaml`)
+        const allowedRoot = path.resolve(process.cwd(), 'src', 'data', 'roadmaps')
         if (!filePath.startsWith(allowedRoot)) {
           res.statusCode = 400
           res.end(JSON.stringify({ ok: false, error: 'Invalid roadmap path' }))
