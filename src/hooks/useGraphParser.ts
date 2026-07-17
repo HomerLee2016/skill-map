@@ -90,8 +90,8 @@ export function useGraphParser({
                 id: `e-${depId}-${nodeId}`,
                 source: depId,
                 target: nodeId,
-                markerEnd: { type: MarkerType.ArrowClosed, color: '#646cff' },
-                style: { stroke: '#646cff', strokeWidth: 2 },
+                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--edge-stroke)' },
+                style: { stroke: 'var(--edge-stroke)', strokeWidth: 2 },
               });
             });
           }
@@ -137,8 +137,8 @@ export function useGraphParser({
               id: `e-${parentId}-${nodeId}`,
               source: parentId,
               target: nodeId,
-              markerEnd: { type: MarkerType.ArrowClosed, color: '#646cff' },
-              style: { stroke: '#646cff', strokeWidth: 2 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--edge-stroke)' },
+              style: { stroke: 'var(--edge-stroke)', strokeWidth: 2 },
             });
           }
 

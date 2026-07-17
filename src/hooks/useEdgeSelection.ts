@@ -26,7 +26,7 @@ export function useEdgeSelection({
         const isSelected = e.id === selectedEdgeId;
         const newStyle = {
           ...e.style,
-          stroke: isSelected ? '#ff4d4d' : '#646cff',
+          stroke: isSelected ? 'var(--edge-selected-stroke)' : 'var(--edge-stroke)',
           strokeWidth: isSelected ? 3 : 2,
         };
         // Avoid unnecessary re‑render

@@ -36,113 +36,52 @@ export const EditModal: React.FC<EditModalProps> = ({
 }) => {
   if (!editingNodeId) return null;
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-      }}
-    >
-      <div
-        style={{
-          background: 'white',
-          borderRadius: '8px',
-          padding: '24px',
-          width: '400px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-        }}
-      >
-        <h3 style={{ margin: 0, fontSize: '18px', color: '#333' }}>✏️ Edit Skill Node</h3>
-        <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>
+    <div className="modal-overlay">
+      <div className="modal-dialog">
+        <h3 className="modal-title">✏️ Edit Skill Node</h3>
+        <label className="modal-label">
           Title
           <input
             type="text"
+            className="modal-input"
             value={editTitle}
             onChange={(e) => setEditTitle(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px',
-              marginTop: '4px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              boxSizing: 'border-box',
-            }}
           />
         </label>
-        <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>
+        <label className="modal-label">
           Detail Description
           <textarea
+            className="modal-input modal-textarea"
             value={editDetail}
             onChange={(e) => setEditDetail(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px',
-              marginTop: '4px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              boxSizing: 'border-box',
-              height: '60px',
-              fontFamily: 'inherit',
-            }}
           />
         </label>
-        <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>
+        <label className="modal-label">
           Resource URL
           <input
             type="text"
+            className="modal-input"
             value={editUrl}
             onChange={(e) => setEditUrl(e.target.value)}
             placeholder="https://example.com"
-            style={{
-              width: '100%',
-              padding: '8px',
-              marginTop: '4px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              boxSizing: 'border-box',
-            }}
           />
         </label>
-        <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>
+        <label className="modal-label">
           Quiz/Homework URL
           <input
             type="text"
+            className="modal-input"
             value={editQuizUrl}
             onChange={(e) => setEditQuizUrl(e.target.value)}
             placeholder="https://quiz-resource.com"
-            style={{
-              width: '100%',
-              padding: '8px',
-              marginTop: '4px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              boxSizing: 'border-box',
-            }}
           />
         </label>
-        <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>
+        <label className="modal-label">
           Link to Sub-Tree Roadmap
           <select
+            className="modal-input"
             value={editSubTreeId}
             onChange={(e) => setEditSubTreeId(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px',
-              marginTop: '4px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              boxSizing: 'border-box',
-            }}
           >
             <option value="">-- None --</option>
             {roadmaps.map((r) => (
@@ -152,17 +91,11 @@ export const EditModal: React.FC<EditModalProps> = ({
             ))}
           </select>
         </label>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-          <button
-            onClick={() => setEditingNodeId(null)}
-            style={{ padding: '8px 16px', background: '#ddd', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-          >
+        <div className="modal-actions">
+          <button className="modal-btn-cancel" onClick={() => setEditingNodeId(null)}>
             Cancel
           </button>
-          <button
-            onClick={onSave}
-            style={{ padding: '8px 16px', background: '#646cff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-          >
+          <button className="modal-btn-save" onClick={onSave}>
             Save
           </button>
         </div>

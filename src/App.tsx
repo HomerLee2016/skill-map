@@ -298,8 +298,8 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
         const nextEdges = addEdge(
           {
             ...params,
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#646cff' },
-            style: { stroke: '#646cff', strokeWidth: 2 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--edge-stroke)' },
+            style: { stroke: 'var(--edge-stroke)', strokeWidth: 2 },
           },
           eds
         );
@@ -346,7 +346,7 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
   const currentProgress = calculateCompleteness(yamlText);
 
   return (
-      <div className={darkMode ? 'app-shell app-shell-dark' : 'app-shell app-shell-light'} style={{ display: 'flex', width: '100vw', height: '100vh', fontFamily: 'sans-serif', overflow: 'hidden' }}>
+      <div className={darkMode ? 'app-shell app-shell-dark' : 'app-shell app-shell-light'}>
 
       <RoadmapSidebar
         roadmaps={roadmaps}
@@ -362,30 +362,31 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
 
       {/* LEFT SIDE: YAML Editor Container */}
       {yamlVisible && (
-      <div style={{ width: `${leftWidth}px`, height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#1e1e1e', flexShrink: 0 }}>
-        <div style={{ padding: '10px', background: '#242424', color: '#fff', fontWeight: 'bold' }}>
+      <div className="yaml-panel" style={{ width: `${leftWidth}px` }}>
+        <div className="yaml-panel-header">
           📝 YAML Roadmap Editor
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="yaml-panel-body">
           <CodeEditor
             value={yamlText}
             language="yaml"
             placeholder="Please enter YAML code."
             onChange={(ev) => setYamlText(ev.target.value)}
             padding={15}
+            className="yaml-editor"
             style={{
               fontSize: 14,
-              backgroundColor: "#1e1e1e",
-              fontFamily: 'ui-monospace,SFMono-Regular,SF Mono,Consolas,Liberation Mono,Menlo,monospace',
-              minHeight: '100%'
+              backgroundColor: 'var(--yaml-editor-bg)',
+              fontFamily: 'ui-monospace, SFMono-Regular, SF Mono, Consolas, Liberation Mono, Menlo, monospace',
+              minHeight: '100%',
             }}
             data-color-mode="dark"
           />
         </div>
 
         {error && (
-          <div style={{ padding: '10px', background: '#ff4d4d', color: '#fff', fontSize: '12px', overflowX: 'auto', zIndex: 10 }}>
+          <div className="yaml-error">
             <strong>Error:</strong> {error}
           </div>
         )}
@@ -395,45 +396,20 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
       {/* DRAGGABLE BAR RESIZER */}
       {yamlVisible && (
       <div
+        className="panel-resizer"
         onMouseDown={startResize}
-        style={{
-          width: '6px',
-          cursor: 'col-resize',
-          background: '#444',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'background 0.2s',
-          zIndex: 10
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = '#646cff')}
-        onMouseLeave={(e) => (e.currentTarget.style.background = '#444')}
       />
       )}
 
       {/* RIGHT SIDE: Visual Tree Graph */}
-      <div style={{ flex: 1, height: '100%', backgroundColor: darkMode ? '#0f1115' : '#f9f9f9', position: 'relative' }}>
+      <div className="app-canvas">
         {/* Top Centered Progress HUD */}
-        <div className="progress-hud" style={{
-          position: 'absolute',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'var(--hud-bg)',
-          padding: '10px 20px',
-          borderRadius: '20px',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-          zIndex: 100,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '15px',
-          pointerEvents: 'auto'
-        }}>
-          <span className="hud-title" style={{ fontSize: '13px', fontWeight: 'bold' }}>🚀 Progress</span>
-          <div className="hud-track" style={{ width: '150px', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
-            <div style={{ width: `${currentProgress}%`, height: '100%', background: '#2e7d32', transition: 'width 0.4s ease-out' }} />
+        <div className="progress-hud">
+          <span className="hud-title">🚀 Progress</span>
+          <div className="hud-track">
+            <div className="hud-fill" style={{ width: `${currentProgress}%` }} />
           </div>
-          <span className="hud-percent" style={{ fontSize: '13px', fontWeight: 'bold' }}>{currentProgress}%</span>
+          <span className="hud-percent">{currentProgress}%</span>
         </div>
 
         <ReactFlow
@@ -458,7 +434,7 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
           <Controls />
           
           {/* Vertical Panel buttons on Right, Tooltip keeps at Top-Right */}
-                    <Panel position="top-right" className="rf-top-panel" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxWidth: '240px', width: '240px', marginTop: '50px' }}>
+          <Panel position="top-right" className="rf-top-panel">
             <Toolbar
               onAutoAlign={onAutoAlign}
               showDetails={showDetails}
