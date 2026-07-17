@@ -18,6 +18,10 @@ interface SkillNodeData {
 export function SkillNode({ id, data, selected }: NodeProps<SkillNodeData>) {
   return (
     <div
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        data.onEditClick(id);
+      }}
       style={{
         background: selected ? '#eef2ff' : data.finished ? '#eefbf4' : '#ffffff',
         color: '#1a1a1a',
@@ -38,7 +42,9 @@ export function SkillNode({ id, data, selected }: NodeProps<SkillNodeData>) {
             : '0 8px 16px -2px rgba(100, 108, 255, 0.15), 0 4px 6px -1px rgba(0, 0, 0, 0.05)',
         transition: 'all 0.3s',
         outline: selected ? '3px solid rgba(29, 78, 216, 0.18)' : 'none',
+        cursor: 'default',
       }}
+      title="Double-click to edit"
     >
       <div style={{ position: 'absolute', top: '6px', left: '8px', zIndex: 10 }}>
         <input
@@ -50,7 +56,7 @@ export function SkillNode({ id, data, selected }: NodeProps<SkillNodeData>) {
         />
       </div>
 
-      <div style={{ position: 'absolute', top: '4px', right: '4px', display: 'flex', gap: '3px', zIndex: 10 }}>
+      <div style={{ position: 'absolute', top: '4px', right: '4px', display: 'none', gap: '3px', zIndex: 10 }}>
         <button
           onClick={() => data.onEditClick(id)}
           style={{

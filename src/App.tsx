@@ -69,6 +69,8 @@ function App() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [error, setError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState<boolean>(true);
+  const [darkMode, setDarkMode] = useState<boolean>(true);
+  const [tipsOpen, setTipsOpen] = useState<boolean>(true);
 
   // Modal / Editing states
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
@@ -344,7 +346,7 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
   const currentProgress = calculateCompleteness(yamlText);
 
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh', fontFamily: 'sans-serif', overflow: 'hidden' }}>
+      <div className={darkMode ? 'app-shell app-shell-dark' : 'app-shell app-shell-light'} style={{ display: 'flex', width: '100vw', height: '100vh', fontFamily: 'sans-serif', overflow: 'hidden' }}>
 
       <RoadmapSidebar
         roadmaps={roadmaps}
@@ -354,6 +356,8 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
         onSaveRoadmap={saveRoadmap}
         yamlVisible={yamlVisible}
         setYamlVisible={setYamlVisible}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
       />
 
       {/* LEFT SIDE: YAML Editor Container */}
@@ -408,14 +412,14 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
       )}
 
       {/* RIGHT SIDE: Visual Tree Graph */}
-      <div style={{ flex: 1, height: '100%', backgroundColor: '#f9f9f9', position: 'relative' }}>
+      <div style={{ flex: 1, height: '100%', backgroundColor: darkMode ? '#0f1115' : '#f9f9f9', position: 'relative' }}>
         {/* Top Centered Progress HUD */}
-        <div style={{
+        <div className="progress-hud" style={{
           position: 'absolute',
           top: '20px',
           left: '50%',
           transform: 'translateX(-50%)',
-          background: 'rgba(255, 255, 255, 0.95)',
+          background: 'var(--hud-bg)',
           padding: '10px 20px',
           borderRadius: '20px',
           boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
@@ -425,11 +429,11 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
           gap: '15px',
           pointerEvents: 'auto'
         }}>
-          <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#333' }}>🚀 Progress</span>
-          <div style={{ width: '150px', height: '8px', background: '#e0e0e0', borderRadius: '4px', overflow: 'hidden' }}>
+          <span className="hud-title" style={{ fontSize: '13px', fontWeight: 'bold' }}>🚀 Progress</span>
+          <div className="hud-track" style={{ width: '150px', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
             <div style={{ width: `${currentProgress}%`, height: '100%', background: '#2e7d32', transition: 'width 0.4s ease-out' }} />
           </div>
-          <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#2e7d32' }}>{currentProgress}%</span>
+          <span className="hud-percent" style={{ fontSize: '13px', fontWeight: 'bold' }}>{currentProgress}%</span>
         </div>
 
         <ReactFlow
@@ -450,20 +454,19 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
           fitView
           onEdgeClick={onEdgeClick}
         >
-          <Background color="#ccc" gap={16} />
+          <Background color="var(--canvas-grid)" gap={16} />
           <Controls />
           
           {/* Vertical Panel buttons on Right, Tooltip keeps at Top-Right */}
-          <Panel position="top-right" style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(255, 255, 255, 0.95)', padding: '12px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxWidth: '280px', marginTop: '50px' }}>
+                    <Panel position="top-right" className="rf-top-panel" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxWidth: '240px', width: '240px', marginTop: '50px' }}>
             <Toolbar
-        onAutoAlign={onAutoAlign}
-        showDetails={showDetails}
-        setShowDetails={setShowDetails}
-        onAddNode={onCreateNode}
-      />
-            <div style={{ fontSize: '11px', color: '#666', borderTop: '1px solid #eee', paddingTop: '6px', marginTop: '4px', lineHeight: '1.4' }}>
-              💡 Left-drag on empty space to box-select nodes. Right-drag to pan the canvas. Drag bottom handle to top handle to link. Click ✏️ to customize.
-            </div>
+              onAutoAlign={onAutoAlign}
+              showDetails={showDetails}
+              setShowDetails={setShowDetails}
+              onAddNode={onCreateNode}
+              tipsOpen={tipsOpen}
+              setTipsOpen={setTipsOpen}
+            />
           </Panel>
         </ReactFlow>
       </div>
@@ -489,3 +492,4 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
   );
 };
 export default App;
+
