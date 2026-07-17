@@ -1,4 +1,4 @@
-# Spanish 01 test
+# Spanish 01 Demo
 
 Welcome to **Skill Map**. This lesson is loaded from a markdown file in `src/data/lessons/`.
 

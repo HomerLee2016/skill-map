@@ -196,6 +196,21 @@ body, html, #root {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  position: relative;
+}
+
+.page-panel {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.page-panel--active {
+  visibility: visible;
+  pointer-events: auto;
+  z-index: 1;
 }
 
 .roadmap-page {

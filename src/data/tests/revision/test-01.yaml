@@ -1,0 +1,20 @@
+quiz_title: Spanish Numbers 1-10
+questions:
+- question: "What is the Spanish word for the number 1?"
+  options:
+  - "Uno"
+  - "Unido"
+  - "Único"
+  - "Uva"
+  correct_answer: "Uno"
+  last_time: 2026-07-17T14:25:01.808Z
+  familiar: "1.1"
+- question: "How do you say 'two' in Spanish?"
+  options:
+  - "Uno"
+  - "Dos"
+  - "Tres"
+  - "Diez"
+  correct_answer: "Dos"
+  last_time: 2026-07-17T14:25:01.808Z
+  familiar: "1.1"

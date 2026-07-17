@@ -30,15 +30,27 @@ function App() {
         setDarkMode={setDarkMode}
       />
       <main className="app-main">
-        {page === 'roadmap' && (
+        <div
+          className={page === 'roadmap' ? 'page-panel page-panel--active' : 'page-panel'}
+          aria-hidden={page !== 'roadmap'}
+        >
           <Roadmap darkMode={darkMode} onGoToLesson={goToLesson} onGoToTest={goToTest} />
-        )}
-        {page === 'lessons' && (
-          <Lessons selectedLessonId={selectedLessonId} onSelectedLessonIdChange={setSelectedLessonId} />
-        )}
-        {page === 'tests' && (
+        </div>
+        <div
+          className={page === 'lessons' ? 'page-panel page-panel--active' : 'page-panel'}
+          aria-hidden={page !== 'lessons'}
+        >
+          <Lessons
+            selectedLessonId={selectedLessonId}
+            onSelectedLessonIdChange={setSelectedLessonId}
+          />
+        </div>
+        <div
+          className={page === 'tests' ? 'page-panel page-panel--active' : 'page-panel'}
+          aria-hidden={page !== 'tests'}
+        >
           <Tests selectedTestId={selectedTestId} onSelectedTestIdChange={setSelectedTestId} />
-        )}
+        </div>
       </main>
     </div>
   );

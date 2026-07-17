@@ -44,7 +44,7 @@
   finished: false
   description: Count items and recognize simple numbers aloud.
   lessons:
-    - spanish-01-test-01
+    - spanish-01-demo-01
   tests:
     - test-01
   dependsOn:
