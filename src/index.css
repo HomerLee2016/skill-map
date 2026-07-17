@@ -32,7 +32,7 @@ body, html, #root {
   --sidebar-item-selected-bg: #e6eefc;
   --sidebar-create-bg: #eef3f8;
   --sidebar-create-border: #c7d2e2;
-  --sidebar-save-bg: #2e7d32;
+  --sidebar-save-bg: linear-gradient(45deg, #4f46e5, #2563eb);
   --sidebar-save-color: #fff;
   --toggle-on: #4e9afe;
   --toggle-off: #555;
@@ -61,13 +61,13 @@ body, html, #root {
   --node-accent: #2e7d32;
   --edge-stroke: #646cff;
   --edge-selected-stroke: #ff4d4d;
-  --yaml-panel-bg: #1e1e1e;
-  --yaml-header-bg: #242424;
-  --yaml-header-text: #fff;
-  --yaml-editor-bg: #1e1e1e;
+  --yaml-panel-bg: #e1e1e1;
+  --yaml-header-bg: #dbdbdb;
+  --yaml-header-text: #000;
+  --yaml-editor-bg: #e1e1e1;
   --yaml-error-bg: #ff4d4d;
   --yaml-error-text: #fff;
-  --resizer-bg: #444;
+  --resizer-bg: #d8d8d8;
   --resizer-hover-bg: #646cff;
   --modal-overlay: rgba(0, 0, 0, 0.5);
   --modal-bg: #ffffff;
@@ -106,7 +106,7 @@ body, html, #root {
   --sidebar-item-selected-bg: #222;
   --sidebar-create-bg: #222;
   --sidebar-create-border: #444;
-  --sidebar-save-bg: #2e7d32;
+  --sidebar-save-bg: linear-gradient(45deg, #646cff, #4e9afe);
   --sidebar-save-color: #fff;
   --toggle-on: #4e9afe;
   --toggle-off: #555;
@@ -178,7 +178,6 @@ body, html, #root {
   padding: 12px;
   background: var(--toolbar-bg);
   color: var(--toolbar-text);
-  border-bottom: 1px solid var(--toolbar-border);
   width: auto;
   min-width: 0;
   box-sizing: border-box;

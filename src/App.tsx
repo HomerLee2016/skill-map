@@ -381,7 +381,7 @@ const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
               fontFamily: 'ui-monospace, SFMono-Regular, SF Mono, Consolas, Liberation Mono, Menlo, monospace',
               minHeight: '100%',
             }}
-            data-color-mode="dark"
+            data-color-mode={darkMode ? "dark" : "light"}
           />
         </div>
 
