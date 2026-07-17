@@ -1,0 +1,82 @@
+quiz_title: "Spanish Numbers 1-10"
+questions:
+  - question_number: 1
+    question: "What is the Spanish word for the number 1?"
+    options:
+    - "Uno"
+    - "Unido"
+    - "Único"
+    - "Uva"
+    correct_answer: "Uno"
+  - question_number: 2
+    question: "How do you say 'two' in Spanish?"
+    options:
+    - "Uno"
+    - "Dos"
+    - "Tres"
+    - "Diez"
+    correct_answer: "Dos"
+  - question_number: 3
+    question: "What is the Spanish word for 'three'?"
+    options:
+    - "Tren"
+    - "Trece"
+    - "Treinta"
+    - "Tres"
+    correct_answer: "Tres"
+  - question_number: 4
+    question: "What is the Spanish word for the number 4?"
+    options:
+    - "Cuarenta"
+    - "Cinco"
+    - "Cuatro"
+    - "Cuadro"
+    correct_answer: "Cuatro"
+  - question_number: 5
+    question: "Which of these is the number 5?"
+    options:
+    - "Cinco"
+    - "Cerca"
+    - "Cien"
+    - "Cero"
+    correct_answer: "Cinco"
+  - question_number: 6
+    question: "What does 'Seis' mean in English?"
+    options:
+    - "Seven"
+    - "Six"
+    - "Sixteen"
+    - "Second"
+    correct_answer: "Six"
+  - question_number: 7
+    question: "Which number corresponds to the Spanish word 'Siete'?"
+    options:
+    - "6"
+    - "8"
+    - "9"
+    - "7"
+    correct_answer: "7"
+  - question_number: 8
+    question: "Which number is 'Ocho'?"
+    options:
+    - "8"
+    - "7"
+    - "9"
+    - "10"
+    correct_answer: "8"
+  - question_number: 9
+    question: "What is the Spanish word for the number 9?"
+    options:
+    - "Nueve"
+    - "Nuevo"
+    - "Nieve"
+    - "Ocho"
+    correct_answer: "Nueve"
+  - question_number: 10
+    question: "What is the Spanish word for the number 10?"
+    options:
+    - "Dedo"
+    - "Día"
+    - "Diez"
+    - "Dos"
+    correct_answer: "Diez"

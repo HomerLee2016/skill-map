@@ -25,6 +25,7 @@ import { SkillNode } from './components/SkillNode';
 import { useAutoLayout } from './hooks/useAutoLayout';
 import { Toolbar } from './components/Toolbar';
 import { RoadmapSidebar } from './components/RoadmapSidebar';
+import { lessons as availableLessons, tests as availableTests } from './utils/contentCatalog';
 
 const yamlModules = import.meta.glob('./data/roadmaps/*.yaml', { query: '?raw', eager: true });
 
@@ -56,9 +57,11 @@ const nodeTypes = {
 
 interface RoadmapProps {
   darkMode: boolean;
+  onGoToLesson: (id: string) => void;
+  onGoToTest: (id: string) => void;
 }
 
-function Roadmap({ darkMode }: RoadmapProps) {
+function Roadmap({ darkMode, onGoToLesson, onGoToTest }: RoadmapProps) {
   const [roadmaps, setRoadmaps] = useState<SavedRoadmap[]>(initialRoadmaps);
   const [selectedRoadmapId, setSelectedRoadmapId] = useState<string>(initialRoadmaps[0]?.id || 'untitled');
   const [yamlText, setYamlText] = useState<string>(initialRoadmaps[0]?.yaml || '');
@@ -73,7 +76,8 @@ function Roadmap({ darkMode }: RoadmapProps) {
   const [editTitle, setEditTitle] = useState('');
   const [editDetail, setEditDetail] = useState('');
   const [editUrl, setEditUrl] = useState('');
-  const [editQuizUrl, setEditQuizUrl] = useState('');
+  const [editLessons, setEditLessons] = useState<string[]>([]);
+  const [editTests, setEditTests] = useState<string[]>([]);
   const [editSubTreeId, setEditSubTreeId] = useState('');
 
   const { leftWidth, startResize } = useResizePanel();
@@ -224,7 +228,8 @@ function Roadmap({ darkMode }: RoadmapProps) {
         setEditTitle(node.data.label || '');
         setEditDetail(node.data.description || '');
         setEditUrl(node.data.url || '');
-        setEditQuizUrl(node.data.quizUrl || '');
+        setEditLessons(node.data.lessons || []);
+        setEditTests(node.data.tests || []);
         setEditSubTreeId(node.data.subTreeId || '');
       }
       return nds;
@@ -243,7 +248,8 @@ function Roadmap({ darkMode }: RoadmapProps) {
               label: editTitle,
               description: editDetail,
               url: editUrl,
-              quizUrl: editQuizUrl,
+              lessons: editLessons,
+              tests: editTests,
               subTreeId: editSubTreeId,
             },
           };
@@ -269,6 +275,8 @@ function Roadmap({ darkMode }: RoadmapProps) {
     onToggleFinished,
     onEditClick,
     selectRoadmap,
+    onGoToLesson,
+    onGoToTest,
     ignoreYamlUpdateRef,
   });
 
@@ -315,10 +323,14 @@ function Roadmap({ darkMode }: RoadmapProps) {
         label: 'New Skill Node',
         showDescription: showDetails,
         finished: false,
+        lessons: [],
+        tests: [],
         onLabelChange,
         onToggleFinished,
         onEditClick,
         onGoToSubTree: selectRoadmap,
+        onGoToLesson,
+        onGoToTest,
       },
     };
     setNodes((nds) => {
@@ -430,11 +442,17 @@ function Roadmap({ darkMode }: RoadmapProps) {
         setEditDetail={setEditDetail}
         editUrl={editUrl}
         setEditUrl={setEditUrl}
-        editQuizUrl={editQuizUrl}
-        setEditQuizUrl={setEditQuizUrl}
+        editLessons={editLessons}
+        setEditLessons={setEditLessons}
+        editTests={editTests}
+        setEditTests={setEditTests}
         editSubTreeId={editSubTreeId}
         setEditSubTreeId={setEditSubTreeId}
         roadmaps={roadmaps}
+        availableLessons={availableLessons.map(({ id, title }) => ({ id, title }))}
+        availableTests={availableTests.map(({ id, title }) => ({ id, title }))}
+        onGoToLesson={onGoToLesson}
+        onGoToTest={onGoToTest}
         onSave={saveNodeEdits}
       />
     </div>

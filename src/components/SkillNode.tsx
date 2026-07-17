@@ -1,18 +1,22 @@
 import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
+import { getLessonById, getTestById } from '../utils/contentCatalog';
 
 interface SkillNodeData {
   label: string;
   description?: string;
   finished?: boolean;
   url?: string;
-  quizUrl?: string;
+  lessons?: string[];
+  tests?: string[];
   subTreeId?: string;
   showDescription: boolean;
   onLabelChange: (id: string, newLabel: string) => void;
   onToggleFinished: (id: string, finished: boolean) => void;
   onEditClick: (id: string) => void;
   onGoToSubTree: (id: string) => void;
+  onGoToLesson?: (id: string) => void;
+  onGoToTest?: (id: string) => void;
 }
 
 export function SkillNode({ id, data, selected }: NodeProps<SkillNodeData>) {
@@ -23,6 +27,13 @@ export function SkillNode({ id, data, selected }: NodeProps<SkillNodeData>) {
   ]
     .filter(Boolean)
     .join(' ');
+
+  const linkedLessons = (data.lessons || [])
+    .map((lessonId) => getLessonById(lessonId))
+    .filter(Boolean);
+  const linkedTests = (data.tests || [])
+    .map((testId) => getTestById(testId))
+    .filter(Boolean);
 
   return (
     <div
@@ -78,32 +89,50 @@ export function SkillNode({ id, data, selected }: NodeProps<SkillNodeData>) {
         </div>
       )}
 
-      <div className="skill-node-links">
-        {data.url && (
-          <a
-            href={data.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="skill-node-link"
-            title="Open reference link"
-          >
-            🔗
-          </a>
-        )}
-        {data.quizUrl && (
-          <a
-            href={data.quizUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="skill-node-link"
-            title="Take external homework/quiz"
-          >
-            📝
-          </a>
-        )}
-      </div>
+      {(linkedLessons.length > 0 || linkedTests.length > 0 || data.url) && (
+        <div className="skill-node-links">
+          {data.url && (
+            <a
+              href={data.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="skill-node-link"
+              title="Open reference link"
+            >
+              🔗
+            </a>
+          )}
+          {linkedLessons.map((lesson) => (
+            <button
+              key={lesson!.id}
+              type="button"
+              className="skill-node-content-link"
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onGoToLesson?.(lesson!.id);
+              }}
+              title={`Open lesson: ${lesson!.title}`}
+            >
+              📚
+            </button>
+          ))}
+          {linkedTests.map((test) => (
+            <button
+              key={test!.id}
+              type="button"
+              className="skill-node-content-link"
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onGoToTest?.(test!.id);
+              }}
+              title={`Open test: ${test!.title}`}
+            >
+              📝
+            </button>
+          ))}
+        </div>
+      )}
 
       <Handle
         type="target"

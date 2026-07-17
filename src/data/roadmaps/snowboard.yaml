@@ -43,6 +43,5 @@
   finished: false
   description: Engaging edges cleanly to leave pencil lines without sliding.
   url: https://en.wikipedia.org/wiki/Carving_(snowboarding)
-  quizUrl: https://www.snowboardaddiction.com/blogs/riding-tutorials/how-to-carve-on-a-snowboard
   dependsOn:
     - s_turns

@@ -1,0 +1,56 @@
+testId: test-01
+quiz_title: Spanish Numbers 1-10
+timestamp: 2026-07-17T14:25:01.808Z
+questions:
+  - question_number: 1
+    question: What is the Spanish word for the number 1?
+    selected_answer: Uno
+    correct_answer: Uno
+    correct: true
+  - question_number: 2
+    question: How do you say 'two' in Spanish?
+    selected_answer: Tres
+    correct_answer: Dos
+    correct: false
+  - question_number: 3
+    question: What is the Spanish word for 'three'?
+    selected_answer: Tres
+    correct_answer: Tres
+    correct: true
+  - question_number: 4
+    question: What is the Spanish word for the number 4?
+    selected_answer: Cuadro
+    correct_answer: Cuatro
+    correct: false
+  - question_number: 5
+    question: Which of these is the number 5?
+    selected_answer: Cero
+    correct_answer: Cinco
+    correct: false
+  - question_number: 6
+    question: What does 'Seis' mean in English?
+    selected_answer: Sixteen
+    correct_answer: Six
+    correct: false
+  - question_number: 7
+    question: Which number corresponds to the Spanish word 'Siete'?
+    selected_answer: "7"
+    correct_answer: "7"
+    correct: true
+  - question_number: 8
+    question: Which number is 'Ocho'?
+    selected_answer: "10"
+    correct_answer: "8"
+    correct: false
+  - question_number: 9
+    question: What is the Spanish word for the number 9?
+    selected_answer: Nuevo
+    correct_answer: Nueve
+    correct: false
+  - question_number: 10
+    question: What is the Spanish word for the number 10?
+    selected_answer: Dedo
+    correct_answer: Diez
+    correct: false
+score: 3
+total: 10

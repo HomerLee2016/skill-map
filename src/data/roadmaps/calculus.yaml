@@ -27,7 +27,6 @@
   finished: false
   description: Finding limits using bounding functions.
   url: https://en.wikipedia.org/wiki/Squeeze_theorem
-  quizUrl: https://www.khanacademy.org/math/ap-calculus-ab/ab-limits-new/ab-1-9/e/squeeze-theorem
   dependsOn:
     - limits
 - id: derivatives

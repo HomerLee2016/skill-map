@@ -41,7 +41,8 @@ export function useYamlSync({
           };
           if (data.description) res.description = data.description;
           if (data.url) res.url = data.url;
-          if (data.quizUrl) res.quizUrl = data.quizUrl;
+          if (data.lessons?.length) res.lessons = data.lessons;
+          if (data.tests?.length) res.tests = data.tests;
           if (data.subTreeId) res.subTreeId = data.subTreeId;
           if (dependsOn && dependsOn.length > 0) res.dependsOn = dependsOn;
           return res;

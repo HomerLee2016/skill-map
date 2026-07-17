@@ -21,6 +21,8 @@ export function useGraphParser({
   onToggleFinished,
   onEditClick,
   selectRoadmap,
+  onGoToLesson,
+  onGoToTest,
   ignoreYamlUpdateRef,
 }: {
   yamlText: string;
@@ -32,6 +34,8 @@ export function useGraphParser({
   onToggleFinished: (id: string, finished: boolean) => void;
   onEditClick: (id: string) => void;
   selectRoadmap: (id: string) => void;
+  onGoToLesson?: (id: string) => void;
+  onGoToTest?: (id: string) => void;
   ignoreYamlUpdateRef: MutableRefObject<boolean>;
 }) {
   const lastParsedYamlRef = useRef<string | null>(null);
@@ -73,13 +77,16 @@ export function useGraphParser({
               description: node.description,
               finished: !!node.finished,
               url: node.url,
-              quizUrl: node.quizUrl,
+              lessons: node.lessons || [],
+              tests: node.tests || [],
               subTreeId: node.subTreeId,
               showDescription: showDetails,
               onLabelChange,
               onToggleFinished,
               onEditClick,
               onGoToSubTree: selectRoadmap,
+              onGoToLesson,
+              onGoToTest,
             },
             position,
           });
@@ -121,13 +128,16 @@ export function useGraphParser({
               description: node.description,
               finished: !!node.finished,
               url: node.url,
-              quizUrl: node.quizUrl,
+              lessons: node.lessons || [],
+              tests: node.tests || [],
               subTreeId: node.subTreeId,
               showDescription: showDetails,
               onLabelChange,
               onToggleFinished,
               onEditClick,
               onGoToSubTree: selectRoadmap,
+              onGoToLesson,
+              onGoToTest,
             },
             position,
           });
@@ -167,6 +177,8 @@ export function useGraphParser({
     onToggleFinished,
     onEditClick,
     selectRoadmap,
+    onGoToLesson,
+    onGoToTest,
    ignoreYamlUpdateRef,
   ]);
 }

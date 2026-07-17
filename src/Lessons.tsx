@@ -1,46 +1,43 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Markdown from 'react-markdown';
+import { lessons as availableLessons } from './utils/contentCatalog';
 
-const lessonModules = import.meta.glob('./data/lessons/*.md', { query: '?raw', eager: true });
-
-interface Lesson {
-  id: string;
-  title: string;
-  content: string;
+interface LessonsProps {
+  selectedLessonId?: string;
+  onSelectedLessonIdChange?: (id: string) => void;
 }
 
-function titleFromMarkdown(content: string, id: string): string {
-  const match = content.match(/^#\s+(.+)$/m);
-  return match?.[1]?.trim() || id.replace(/[-_]/g, ' ');
-}
+function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
+  const [activeId, setActiveId] = useState(selectedLessonId || availableLessons[0]?.id || '');
 
-const initialLessons: Lesson[] = Object.entries(lessonModules)
-  .map(([path, module]) => {
-    const content = typeof module === 'string' ? module : (module as { default: string }).default;
-    const id = path.split('/').pop()?.replace('.md', '') || 'untitled';
-    return { id, title: titleFromMarkdown(content, id), content };
-  })
-  .sort((a, b) => a.title.localeCompare(b.title));
+  useEffect(() => {
+    if (selectedLessonId) {
+      setActiveId(selectedLessonId);
+    }
+  }, [selectedLessonId]);
 
-function Lessons() {
-  const [selectedId, setSelectedId] = useState(initialLessons[0]?.id ?? '');
-  const selected = initialLessons.find((lesson) => lesson.id === selectedId);
+  const selected = availableLessons.find((lesson) => lesson.id === activeId);
+
+  const selectLesson = (id: string) => {
+    setActiveId(id);
+    onSelectedLessonIdChange?.(id);
+  };
 
   return (
     <div className="lessons-page">
       <aside className="lessons-sidebar">
         <div className="lessons-sidebar-title">Lessons</div>
-        {initialLessons.length === 0 ? (
+        {availableLessons.length === 0 ? (
           <p className="lessons-empty">Add markdown files to <code>src/data/lessons/</code>.</p>
         ) : (
-          initialLessons.map((lesson) => (
+          availableLessons.map((lesson) => (
             <button
               key={lesson.id}
               type="button"
               className={
-                selectedId === lesson.id ? 'lessons-item lessons-item--selected' : 'lessons-item'
+                activeId === lesson.id ? 'lessons-item lessons-item--selected' : 'lessons-item'
               }
-              onClick={() => setSelectedId(lesson.id)}
+              onClick={() => selectLesson(lesson.id)}
             >
               {lesson.title}
             </button>

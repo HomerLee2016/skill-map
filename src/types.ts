@@ -11,9 +11,27 @@ export interface RoadmapNode {
 export interface ExtendedRoadmapNode extends RoadmapNode {
   finished?: boolean;
   url?: string;
-  quizUrl?: string;
+  lessons?: string[];
+  tests?: string[];
   subTreeId?: string;
   children?: ExtendedRoadmapNode[];
+}
+
+export interface TestQuestionResult {
+  question_number: number;
+  question: string;
+  selected_answer: string;
+  correct_answer: string;
+  correct: boolean;
+}
+
+export interface TestResultPayload {
+  testId: string;
+  quiz_title: string;
+  timestamp: string;
+  questions: TestQuestionResult[];
+  score: number;
+  total: number;
 }
 
 export interface SavedRoadmap {
