@@ -8,7 +8,7 @@ questions:
   - "Uva"
   correct_answer: "Uno"
   last_time: 2026-07-17T14:25:01.808Z
-  familiar: "1.1"
+  proficiency: "1.1"
 - question: "How do you say 'two' in Spanish?"
   options:
   - "Uno"
@@ -17,4 +17,4 @@ questions:
   - "Diez"
   correct_answer: "Dos"
   last_time: 2026-07-17T14:25:01.808Z
-  familiar: "1.1"
+  proficiency: "1.1"
