@@ -332,17 +332,64 @@ body, html, #root {
   background: transparent;
   color: var(--lessons-text);
   font-size: 13px;
+  font-family: inherit;
   font-weight: 700;
   cursor: pointer;
   text-align: left;
 }
 
-.lessons-sidebar-header {
+.tree-category-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  padding: 10px 12px;
+  color: var(--lessons-text);
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+
+.lessons-sidebar-header,
+.tests-sidebar-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   padding-right: 8px;
+}
+
+.tree-global-actions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.tree-action-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  border: 1px solid var(--sidebar-border);
+  border-radius: 6px;
+  background: var(--topbar-bg, #fff);
+  color: var(--lessons-text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tree-action-btn:hover {
+  background: var(--sidebar-item-selected-bg);
+  border-color: var(--sidebar-create-border);
 }
 
 .tree-header-actions {
@@ -388,40 +435,73 @@ body, html, #root {
   flex-direction: column;
 }
 
-.tree-folder-toggle {
+.tree-folder-toggle,
+.tree-item-button {
   display: flex;
   align-items: center;
   gap: 6px;
   width: 100%;
   padding: 6px 12px;
-  padding-left: calc(12px + (var(--tree-depth, 0) * 12px));
+  padding-left: calc(10px + (var(--tree-depth, 0) * 16px));
   border: none;
+  border-radius: 6px;
   background: transparent;
   color: var(--lessons-text);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  line-height: 1.4;
   cursor: pointer;
   text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.tree-folder-toggle:hover,
+.tree-item-button:hover {
+  background: var(--sidebar-item-hover-bg, rgba(0, 0, 0, 0.05));
+}
+
+.tree-folder-toggle {
+  font-weight: 600;
 }
 
 .tree-chevron {
-  display: inline-block;
-  width: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
   font-size: 9px;
-  opacity: 0.7;
+  opacity: 0.65;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.tree-chevron-spacer {
+  display: inline-block;
+  width: 14px;
   flex-shrink: 0;
 }
 
-.tree-folder-name {
+.tree-folder-icon,
+.tree-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  font-size: 13px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.tree-folder-name,
+.tree-item-title {
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.tree-item,
-.lessons-item,
-.tests-item {
-  padding-left: calc(12px + (var(--tree-depth, 0) * 12px));
+  font-size: 13px;
 }
 
 .tree-empty {
@@ -431,27 +511,24 @@ body, html, #root {
   color: var(--lessons-muted);
 }
 
-.lessons-sidebar-title {
+.lessons-sidebar-title,
+.tests-sidebar-title {
   padding: 16px 12px 8px;
   font-size: 16px;
   font-weight: 700;
   border-bottom: none;
 }
 
-.lessons-item {
-  display: block;
-  width: 100%;
-  padding: 10px 12px;
-  border: none;
-  background: transparent;
-  color: var(--lessons-text);
-  text-align: left;
-  cursor: pointer;
-  font-size: 14px;
+.lessons-item,
+.tests-item {
+  /* Inherits styles from .tree-item-button */
 }
 
-.lessons-item--selected {
-  background: var(--sidebar-item-selected-bg);
+.lessons-item--selected,
+.tests-item--selected {
+  background: var(--sidebar-item-selected-bg) !important;
+  color: var(--topbar-link-active-text, #1d4ed8);
+  font-weight: 600;
 }
 
 .lessons-content {
@@ -520,29 +597,6 @@ body, html, #root {
   border-right: 1px solid var(--sidebar-border);
   overflow-y: auto;
   flex-shrink: 0;
-}
-
-.tests-sidebar-title {
-  padding: 16px 12px 8px;
-  font-size: 16px;
-  font-weight: 700;
-  border-bottom: 1px solid var(--sidebar-border);
-}
-
-.tests-item {
-  display: block;
-  width: 100%;
-  padding: 10px 12px;
-  border: none;
-  background: transparent;
-  color: var(--lessons-text);
-  text-align: left;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.tests-item--selected {
-  background: var(--sidebar-item-selected-bg);
 }
 
 .tests-content {

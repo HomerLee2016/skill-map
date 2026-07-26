@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import Markdown from 'react-markdown';
 import {
-  addFolderToTree,
-  assignItemToTree,
   buildLessonTree,
   getInitialLessonStructure,
   lessons as availableLessons,
-  listFolderPaths,
-  pathToSegments,
+  promptAddFolder,
+  promptAssignItem,
   type StructureTree,
 } from './utils/contentCatalog';
-import { ContentTreeSidebar } from './components/ContentTreeSidebar';
+import {
+  CategorySection,
+  ContentTreeSidebar,
+  TreeGlobalActions,
+} from './components/ContentTreeSidebar';
+import { useExpandCollapseState } from './hooks/useExpandCollapseState';
 
 interface LessonsProps {
   selectedLessonId?: string;
@@ -29,38 +32,11 @@ async function saveLessonStructure(structure: StructureTree) {
   }
 }
 
-function promptAssign(
-  catalog: { id: string; title: string }[],
-  structure: StructureTree
-): { itemId: string; parentPath: string[] } | null {
-  const options = catalog.map((item) => `${item.id} — ${item.title}`).join('\n');
-  const itemId = window.prompt(`Lesson id to place in a folder:\n${options}`);
-  if (!itemId?.trim()) return null;
-  if (!catalog.some((item) => item.id === itemId.trim())) {
-    window.alert(`Unknown lesson id: ${itemId}`);
-    return null;
-  }
-
-  const paths = listFolderPaths(structure);
-  if (paths.length === 0) {
-    window.alert('Create a folder first, then assign items into it.');
-    return null;
-  }
-  const choice = window.prompt(
-    `Folder path (leave empty for root).\nAvailable:\n${paths.join('\n')}`,
-    paths[0]
-  );
-  if (choice === null) return null;
-  return {
-    itemId: itemId.trim(),
-    parentPath: choice.trim() ? pathToSegments(choice) : [],
-  };
-}
-
 function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
   const [activeId, setActiveId] = useState(selectedLessonId || availableLessons[0]?.id || '');
   const [structure, setStructure] = useState(getInitialLessonStructure);
   const [error, setError] = useState<string | null>(null);
+  const { expandKey, collapseKey, expandAll, collapseAll } = useExpandCollapseState();
 
   const tree = useMemo(() => buildLessonTree(structure), [structure]);
 
@@ -78,80 +54,57 @@ function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
   };
 
   const persist = async (next: StructureTree) => {
-    await saveLessonStructure(next);
-    setStructure(next);
-    setError(null);
-  };
-
-  const handleAddFolder = async () => {
-    const name = window.prompt('New folder name');
-    if (!name?.trim()) return;
-
-    const paths = listFolderPaths(structure);
-    let parentPath: string[] = [];
-    if (paths.length > 0) {
-      const choice = window.prompt(
-        `Parent folder path (leave empty for root).\nAvailable:\n${paths.join('\n')}`,
-        ''
-      );
-      if (choice === null) return;
-      parentPath = choice.trim() ? pathToSegments(choice) : [];
-    }
-
     try {
-      await persist(addFolderToTree(structure, name, parentPath));
+      await saveLessonStructure(next);
+      setStructure(next);
+      setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save structure');
     }
   };
 
-  const handleAssignItem = async () => {
-    const assignment = promptAssign(
+  const handleAddFolder = () => {
+    const next = promptAddFolder(structure);
+    if (next) persist(next);
+  };
+
+  const handleAssignItem = () => {
+    const next = promptAssignItem(
       availableLessons.map(({ id, title }) => ({ id, title })),
-      structure
+      structure,
+      'Lesson'
     );
-    if (!assignment) return;
-    try {
-      await persist(assignItemToTree(structure, assignment.itemId, assignment.parentPath));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save structure');
-    }
+    if (next) persist(next);
   };
 
   return (
     <div className="lessons-page">
       <aside className="lessons-sidebar">
-        <div className="lessons-sidebar-header">
-          <div className="lessons-sidebar-title">Lessons</div>
-          <div className="tree-header-actions">
-            <button
-              type="button"
-              className="tree-assign-item"
-              title="Assign lesson to folder"
-              onClick={handleAssignItem}
-            >
-              ⤵
-            </button>
-            <button type="button" className="tree-add-folder" title="Add folder" onClick={handleAddFolder}>
-              +
-            </button>
-          </div>
-        </div>
-        <p className="tree-structure-hint">
-          Folders are stored in <code>src/data/lessons/structure.yaml</code>
-        </p>
-        {error && <p className="tree-error">{error}</p>}
-        {availableLessons.length === 0 ? (
-          <p className="lessons-empty">Add markdown files to <code>src/data/lessons/</code>.</p>
-        ) : (
-          <ContentTreeSidebar
-            tree={tree}
-            selectedId={activeId}
-            onSelect={selectLesson}
-            itemClassName="lessons-item"
-            selectedClassName="lessons-item--selected"
-          />
-        )}
+        <CategorySection
+          title="Lessons"
+          onAddFolder={handleAddFolder}
+          onAssignItem={handleAssignItem}
+        >
+          <TreeGlobalActions onExpandAll={expandAll} onCollapseAll={collapseAll} />
+          <p className="tree-structure-hint">
+            Folders are stored in <code>src/data/lessons/structure.yaml</code>
+          </p>
+          {error && <p className="tree-error">{error}</p>}
+          {availableLessons.length === 0 ? (
+            <p className="lessons-empty">Add markdown files to <code>src/data/lessons/</code>.</p>
+          ) : (
+            <ContentTreeSidebar
+              tree={tree}
+              selectedId={activeId}
+              onSelect={selectLesson}
+              itemClassName="lessons-item"
+              selectedClassName="lessons-item--selected"
+              expandKey={expandKey}
+              collapseKey={collapseKey}
+              itemIcon="📄"
+            />
+          )}
+        </CategorySection>
       </aside>
       <article className="lessons-content markdown-body">
         {selected ? (

@@ -12,7 +12,14 @@ import {
 } from './folderStructure';
 
 export type { StructureTree, PickerOption } from './folderStructure';
-export { addFolderToTree, assignItemToTree, listFolderPaths, pathToSegments } from './folderStructure';
+export {
+  addFolderToTree,
+  assignItemToTree,
+  listFolderPaths,
+  pathToSegments,
+  promptAddFolder,
+  promptAssignItem,
+} from './folderStructure';
 
 export interface LessonItem {
   id: string;

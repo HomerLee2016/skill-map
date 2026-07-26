@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  addFolderToTree,
-  assignItemToTree,
   buildNewTestTree,
   buildRevisionTestTree,
   getInitialTestsStructure,
-  listFolderPaths,
-  pathToSegments,
+  promptAddFolder,
+  promptAssignItem,
   tests as availableTests,
   type StructureTree,
 } from './utils/contentCatalog';
 import type { TestResultPayload } from './types';
-import { CollapsibleSection, ContentTreeSidebar } from './components/ContentTreeSidebar';
+import {
+  CategorySection,
+  ContentTreeSidebar,
+  TreeGlobalActions,
+} from './components/ContentTreeSidebar';
+import { useExpandCollapseState } from './hooks/useExpandCollapseState';
 
 interface TestsProps {
   selectedTestId?: string;
@@ -30,34 +33,6 @@ async function saveTestsStructure(structure: { revision: StructureTree; new_test
   }
 }
 
-function promptAssign(
-  catalog: { id: string; title: string }[],
-  sectionTree: StructureTree
-): { itemId: string; parentPath: string[] } | null {
-  const options = catalog.map((item) => `${item.id} — ${item.title}`).join('\n');
-  const itemId = window.prompt(`Test id to place in a folder:\n${options}`);
-  if (!itemId?.trim()) return null;
-  if (!catalog.some((item) => item.id === itemId.trim())) {
-    window.alert(`Unknown test id: ${itemId}`);
-    return null;
-  }
-
-  const paths = listFolderPaths(sectionTree);
-  if (paths.length === 0) {
-    window.alert('Create a folder first, then assign items into it.');
-    return null;
-  }
-  const choice = window.prompt(
-    `Folder path (leave empty for root of this section).\nAvailable:\n${paths.join('\n')}`,
-    paths[0]
-  );
-  if (choice === null) return null;
-  return {
-    itemId: itemId.trim(),
-    parentPath: choice.trim() ? pathToSegments(choice) : [],
-  };
-}
-
 function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const [activeId, setActiveId] = useState(selectedTestId || availableTests[0]?.id || '');
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -66,6 +41,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const [lastScore, setLastScore] = useState<{ score: number; total: number } | null>(null);
   const [structure, setStructure] = useState(getInitialTestsStructure);
   const [structureError, setStructureError] = useState<string | null>(null);
+  const { expandKey, collapseKey, expandAll, collapseAll } = useExpandCollapseState();
 
   const revisionTree = useMemo(
     () => buildRevisionTestTree(structure.revision),
@@ -93,24 +69,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
     setLastScore(null);
   };
 
-  const handleAddFolder = async (section: 'revision' | 'new_tests') => {
-    const name = window.prompt('New folder name');
-    if (!name?.trim()) return;
-
-    const sectionTree = structure[section];
-    const paths = listFolderPaths(sectionTree);
-    let parentPath: string[] = [];
-    if (paths.length > 0) {
-      const choice = window.prompt(
-        `Parent folder path (leave empty for root).\nAvailable:\n${paths.join('\n')}`,
-        ''
-      );
-      if (choice === null) return;
-      parentPath = choice.trim() ? pathToSegments(choice) : [];
-    }
-
-    const nextSection = addFolderToTree(sectionTree, name, parentPath);
-    const next = { ...structure, [section]: nextSection };
+  const persist = async (next: { revision: StructureTree; new_tests: StructureTree }) => {
     try {
       await saveTestsStructure(next);
       setStructure(next);
@@ -120,24 +79,21 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
     }
   };
 
-  const handleAssignItem = async (section: 'revision' | 'new_tests') => {
-    const assignment = promptAssign(
+  const handleAddFolder = (section: 'revision' | 'new_tests') => {
+    const nextSection = promptAddFolder(structure[section]);
+    if (nextSection) {
+      persist({ ...structure, [section]: nextSection });
+    }
+  };
+
+  const handleAssignItem = (section: 'revision' | 'new_tests') => {
+    const nextSection = promptAssignItem(
       availableTests.map(({ id, title }) => ({ id, title })),
-      structure[section]
-    );
-    if (!assignment) return;
-    const nextSection = assignItemToTree(
       structure[section],
-      assignment.itemId,
-      assignment.parentPath
+      'Test'
     );
-    const next = { ...structure, [section]: nextSection };
-    try {
-      await saveTestsStructure(next);
-      setStructure(next);
-      setStructureError(null);
-    } catch (err) {
-      setStructureError(err instanceof Error ? err.message : 'Failed to save structure');
+    if (nextSection) {
+      persist({ ...structure, [section]: nextSection });
     }
   };
 
@@ -195,15 +151,17 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   return (
     <div className="tests-page">
       <aside className="tests-sidebar">
-        <div className="tests-sidebar-title">Tests</div>
+        <div className="tests-sidebar-header">
+          <div className="tests-sidebar-title">Tests</div>
+        </div>
+        <TreeGlobalActions onExpandAll={expandAll} onCollapseAll={collapseAll} />
         <p className="tree-structure-hint">
           Folders are stored in <code>src/data/tests/structure.yaml</code>
         </p>
         {structureError && <p className="tree-error">{structureError}</p>}
 
-        <CollapsibleSection
+        <CategorySection
           title="Revision"
-          defaultOpen
           onAddFolder={() => handleAddFolder('revision')}
           onAssignItem={() => handleAssignItem('revision')}
         >
@@ -213,12 +171,14 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
             onSelect={selectTest}
             itemClassName="tests-item"
             selectedClassName="tests-item--selected"
+            expandKey={expandKey}
+            collapseKey={collapseKey}
+            itemIcon="📝"
           />
-        </CollapsibleSection>
+        </CategorySection>
 
-        <CollapsibleSection
+        <CategorySection
           title="New Tests"
-          defaultOpen
           onAddFolder={() => handleAddFolder('new_tests')}
           onAssignItem={() => handleAssignItem('new_tests')}
         >
@@ -228,8 +188,11 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
             onSelect={selectTest}
             itemClassName="tests-item"
             selectedClassName="tests-item--selected"
+            expandKey={expandKey}
+            collapseKey={collapseKey}
+            itemIcon="📝"
           />
-        </CollapsibleSection>
+        </CategorySection>
       </aside>
 
       <div className="tests-content">

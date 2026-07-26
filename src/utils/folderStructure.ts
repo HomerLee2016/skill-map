@@ -270,3 +270,49 @@ export function assignItemToTree(
 
   return { folders, items };
 }
+
+export function promptAddFolder(structure: StructureTree): StructureTree | null {
+  const name = window.prompt('New folder name');
+  if (!name?.trim()) return null;
+
+  const paths = listFolderPaths(structure);
+  let parentPath: string[] = [];
+  if (paths.length > 0) {
+    const choice = window.prompt(
+      `Parent folder path (leave empty for root).\nAvailable:\n${paths.join('\n')}`,
+      ''
+    );
+    if (choice === null) return null;
+    parentPath = choice.trim() ? pathToSegments(choice) : [];
+  }
+
+  return addFolderToTree(structure, name.trim(), parentPath);
+}
+
+export function promptAssignItem(
+  catalog: { id: string; title: string }[],
+  structure: StructureTree,
+  itemLabel = 'Item'
+): StructureTree | null {
+  const options = catalog.map((item) => `${item.id} — ${item.title}`).join('\n');
+  const itemId = window.prompt(`${itemLabel} id to place in a folder:\n${options}`);
+  if (!itemId?.trim()) return null;
+  if (!catalog.some((item) => item.id === itemId.trim())) {
+    window.alert(`Unknown ${itemLabel.toLowerCase()} id: ${itemId}`);
+    return null;
+  }
+
+  const paths = listFolderPaths(structure);
+  if (paths.length === 0) {
+    window.alert('Create a folder first, then assign items into it.');
+    return null;
+  }
+  const choice = window.prompt(
+    `Folder path (leave empty for root).\nAvailable:\n${paths.join('\n')}`,
+    paths[0]
+  );
+  if (choice === null) return null;
+
+  const parentPath = choice.trim() ? pathToSegments(choice) : [];
+  return assignItemToTree(structure, itemId.trim(), parentPath);
+}
