@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import YAML from 'yaml'
+import { insertCompletedQuestion } from './src/db'
 
 // https://vite.dev/config/
 function roadmapSavePlugin() {
@@ -135,9 +136,9 @@ function structureSavePlugin() {
     req.on('end', async () => {
       try {
         const { kind, structure } = JSON.parse(body || '{}')
-        if (kind !== 'lessons' && kind !== 'tests') {
+        if (kind !== 'lessons' && kind !== 'tests' && kind !== 'roadmaps') {
           res.statusCode = 400
-          res.end(JSON.stringify({ ok: false, error: 'kind must be lessons or tests' }))
+          res.end(JSON.stringify({ ok: false, error: 'kind must be lessons, tests, or roadmaps' }))
           return
         }
         if (!structure || typeof structure !== 'object') {
@@ -189,4 +190,13 @@ function structureSavePlugin() {
 
 export default defineConfig({
   plugins: [react(), roadmapSavePlugin(), testResultSavePlugin(), structureSavePlugin()],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5174',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 })

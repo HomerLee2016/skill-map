@@ -25,3 +25,7 @@ dist-ssr
 
 # local testing/draft location
 /local_test/**
+
+# SQLite database files
+*.db
+*.db-journal

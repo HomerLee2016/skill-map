@@ -1,0 +1,70 @@
+// src/db.ts
+// SQLite DB setup using better-sqlite3 and drizzle-orm
+import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
+
+// Initialize the database (file will be created in the project root)
+const sqlite = new Database('skill-map.db');
+// Ensure the table exists for first run
+sqlite.exec(`
+CREATE TABLE IF NOT EXISTS completed_questions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  question_name TEXT NOT NULL,
+  options TEXT NOT NULL,
+  correct_answer TEXT NOT NULL,
+  selected_answer TEXT,
+  correct INTEGER,
+  last_time TEXT NOT NULL,
+  proficiency TEXT,
+  quiz_title TEXT
+);
+`);
+export const db = drizzle(sqlite);
+
+// Table to store completed test questions and question metadata
+export const completed_questions = sqliteTable('completed_questions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  question_name: text('question_name').notNull(),
+  options: text('options').notNull(), // JSON array of option strings
+  correct_answer: text('correct_answer').notNull(),
+  selected_answer: text('selected_answer'),
+  correct: integer('correct'),
+  last_time: text('last_time').notNull(), // ISO timestamp string
+  proficiency: text('proficiency'),
+  quiz_title: text('quiz_title'),
+}, (table) => ({
+  // Composite index for quick lookup by quiz_title and question_name if needed
+  quizQuestionIdx: primaryKey(table.quiz_title, table.question_name),
+}));
+
+// Example function to insert a completed question entry
+export async function insertCompletedQuestion(entry: {
+  question_name: string;
+  options: string[];
+  correct_answer: string;
+  last_time: string; // ISO string
+  proficiency?: string;
+  quiz_title: string;
+  selected_answer?: string;
+  correct?: number;
+}) {
+  await db
+    .insert(completed_questions)
+    .values({
+      question_name: entry.question_name,
+      options: JSON.stringify(entry.options),
+      correct_answer: entry.correct_answer,
+      selected_answer: entry.selected_answer ?? null,
+      correct: entry.correct ?? 0,
+      last_time: entry.last_time,
+      proficiency: entry.proficiency ?? null,
+      quiz_title: entry.quiz_title,
+    })
+    .run();
+}
+
+// Example function to fetch all completed questions for a given quiz
+export async function getCompletedQuestionsByQuiz(quizTitle: string) {
+  return await db.select().from(completed_questions).where(completed_questions.quiz_title.eq(quizTitle)).all();
+}

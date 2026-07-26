@@ -33,12 +33,36 @@ async function saveTestsStructure(structure: { revision: StructureTree; new_test
   }
 }
 
+async function saveQuestionResult(payload: {
+  question_name: string;
+  options: string[];
+  correct_answer: string;
+  selected_answer: string;
+  correct: number;
+  last_time: string;
+  proficiency?: string;
+  quiz_title: string;
+}) {
+  const response = await fetch('/api/save-question-result', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(err || 'Failed to save question result');
+  }
+}
+
+
 function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const [activeId, setActiveId] = useState(selectedTestId || availableTests[0]?.id || '');
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [submitted, setSubmitted] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [lastScore, setLastScore] = useState<{ score: number; total: number } | null>(null);
+  const [correctMap, setCorrectMap] = useState<Record<number, boolean>>({});
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [finished, setFinished] = useState(false);
+  const [score, setScore] = useState(0);
+  const [total, setTotal] = useState(0);
   const [structure, setStructure] = useState(getInitialTestsStructure);
   const [structureError, setStructureError] = useState<string | null>(null);
   const { expandKey, collapseKey, expandAll, collapseAll } = useExpandCollapseState();
@@ -60,13 +84,20 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
 
   const selected = availableTests.find((test) => test.id === activeId);
 
+  useEffect(() => {
+    if (selected) {
+      setTotal(selected.questions.length);
+      setScore(0);
+      setCurrentIdx(0);
+      setFinished(false);
+      setAnswers({});
+      setCorrectMap({});
+    }
+  }, [selected]);
+
   const selectTest = (id: string) => {
     setActiveId(id);
     onSelectedTestIdChange?.(id);
-    setAnswers({});
-    setSubmitted(false);
-    setSubmitError(null);
-    setLastScore(null);
   };
 
   const persist = async (next: { revision: StructureTree; new_tests: StructureTree }) => {
@@ -97,54 +128,41 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleAnswerSelect = async (question: any, option: string) => {
     if (!selected) return;
-    const unanswered = selected.questions.filter((q) => !answers[q.question_number]);
-    if (unanswered.length > 0) {
-      setSubmitError(`Please answer all questions (${unanswered.length} remaining).`);
-      return;
-    }
-
-    const questionResults = selected.questions.map((q) => {
-      const selectedAnswer = answers[q.question_number];
-      const correct = selectedAnswer === q.correct_answer;
-      return {
-        question_number: q.question_number,
-        question: q.question,
-        selected_answer: selectedAnswer,
-        correct_answer: q.correct_answer,
-        correct,
-      };
-    });
-
-    const score = questionResults.filter((r) => r.correct).length;
-    const total = questionResults.length;
-    const timestamp = new Date().toISOString();
-
-    const payload: TestResultPayload = {
-      testId: selected.id,
-      quiz_title: selected.title,
-      timestamp,
-      questions: questionResults,
-      score,
-      total,
-    };
-
+    const isCorrect = option === question.correct_answer;
+    setAnswers((prev) => ({ ...prev, [question.question_number]: option }));
+    setCorrectMap((prev) => ({ ...prev, [question.question_number]: isCorrect }));
     try {
-      const response = await fetch('/api/save-test-result', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+      await saveQuestionResult({
+        question_name: question.question,
+        options: question.options,
+        correct_answer: question.correct_answer,
+        selected_answer: option,
+        correct: isCorrect ? 1 : 0,
+        last_time: new Date().toISOString(),
+        proficiency: question.proficiency,
+        quiz_title: selected?.title ?? '',
       });
-      const result = await response.json().catch(() => null);
-      if (!response.ok || !result?.ok) {
-        throw new Error(result?.error || 'Failed to save test result');
-      }
-      setSubmitted(true);
-      setLastScore({ score, total });
-      setSubmitError(null);
-    } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : 'Failed to save test result');
+    } catch (e) {
+      console.error('Failed to save question result', e);
+    }
+    if (isCorrect) {
+      setScore((s) => s + 1);
+      // Auto-advance after 1 second if not the last question
+      setTimeout(() => {
+        if (selected && currentIdx + 1 < selected.questions.length) {
+          setCurrentIdx((i) => i + 1);
+        } else {
+          setFinished(true);
+        }
+      }, 1000);
+    }
+  };
+
+  const handleNext = () => {
+    if (selected && currentIdx + 1 < selected.questions.length) {
+      setCurrentIdx((i) => i + 1);
     }
   };
 
@@ -205,44 +223,52 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
               <p className="tests-meta">{selected.questions.length} multiple-choice questions</p>
             </header>
 
-            <div className="tests-questions">
-              {selected.questions.map((q) => (
-                <fieldset key={q.question_number} className="test-question">
-                  <legend>
-                    {q.question_number}. {q.question}
-                  </legend>
-                  {q.options.map((option) => (
-                    <label key={option} className="test-option">
-                      <input
-                        type="radio"
-                        name={`q-${selected.id}-${q.question_number}`}
-                        value={option}
-                        checked={answers[q.question_number] === option}
-                        disabled={submitted}
-                        onChange={() =>
-                          setAnswers((prev) => ({ ...prev, [q.question_number]: option }))
-                        }
-                      />
-                      <span>{option}</span>
-                    </label>
+            {finished ? (
+                <div className="tests-score">
+                  <p>Finished! Score: {score} / {total}</p>
+                </div>
+              ) : (
+                <div className="test-question-container">
+                  {selected.questions.slice(currentIdx, currentIdx + 1).map((q) => (
+                    <fieldset key={q.question_number} className="test-question">
+                      <legend>{q.question_number}. {q.question}</legend>
+                        {q.options.map((opt) => {
+                          const chosen = answers[q.question_number] === opt;
+                          const isCorrect = correctMap[q.question_number];
+                          let className = 'option-box';
+                          if (chosen) {
+                            className += isCorrect ? ' correct' : ' incorrect';
+                          } else if (answers[q.question_number] && opt === q.correct_answer) {
+                            // Show correct answer in green when user answered incorrectly
+                            className += ' correct';
+                          }
+                          const disabled = !!answers[q.question_number];
+                          return (
+                           <div
+                             key={opt}
+                             className={className}
+                             onClick={() => !disabled && handleAnswerSelect(q, opt)}
+                             role="button"
+                           >
+                             <span>{opt}</span>
+                           </div>
+                         );
+                       })}
+
+                      {answers[q.question_number] && !correctMap[q.question_number] && currentIdx < selected.questions.length - 1 && (
+                        <button type="button" className="next-btn" onClick={handleNext}>
+                          Next Question
+                        </button>
+                      )}
+                      {answers[q.question_number] && currentIdx === selected.questions.length - 1 && (
+                        <button type="button" className="finish-btn" onClick={() => setFinished(true)}>
+                          Finish Test
+                        </button>
+                      )}
+                    </fieldset>
                   ))}
-                </fieldset>
-              ))}
-            </div>
-
-            {submitError && <div className="tests-error">{submitError}</div>}
-
-            {submitted && lastScore && (
-              <div className="tests-score">
-                Score: {lastScore.score} / {lastScore.total}
-              </div>
-            )}
-
-            {!submitted && (
-              <button type="button" className="tests-submit-btn" onClick={handleSubmit}>
-                Submit Test
-              </button>
-            )}
+                </div>
+              )}
           </>
         )}
       </div>
