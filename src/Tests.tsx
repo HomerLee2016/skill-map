@@ -15,6 +15,7 @@ import {
   TreeGlobalActions,
 } from './components/ContentTreeSidebar';
 import { useExpandCollapseState } from './hooks/useExpandCollapseState';
+import AnswerQuestion from './components/AnswerQuestion';
 
 interface TestsProps {
   selectedTestId?: string;
@@ -299,30 +300,13 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
         ) : revisionMode ? (
           <div className="test-question-container">
             {revisionQuestions.slice(currentIdx, currentIdx + 1).map((q) => (
-              <fieldset key={q.question_number} className="test-question">
-                <legend>{q.question_number}. {q.question}</legend>
-                {q.options.map((opt: string) => {
-                  const chosen = answers[q.question_number] === opt;
-                  const isCorrect = correctMap[q.question_number];
-                  let className = 'option-box';
-                  if (chosen) {
-                    className += isCorrect ? ' correct' : ' incorrect';
-                  } else if (answers[q.question_number] && opt === q.correct_answer) {
-                    className += ' correct';
-                  }
-                  const disabled = !!answers[q.question_number];
-                  return (
-                    <div
-                      key={opt}
-                      className={className}
-                      onClick={() => !disabled && handleAnswerSelect(q, opt)}
-                      role="button"
-                    >
-                      <span>{opt}</span>
-                    </div>
-                  );
-                })}
-              </fieldset>
+              <AnswerQuestion
+                key={q.question_number}
+                q={q}
+                answers={answers}
+                correctMap={correctMap}
+                handleAnswerSelect={handleAnswerSelect}
+              />
             ))}
           </div>
         ) : !selected ? (
@@ -341,42 +325,13 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
               ) : (
                 <div className="test-question-container">
                   {selected.questions.slice(currentIdx, currentIdx + 1).map((q) => (
-                    <fieldset key={q.question_number} className="test-question">
-                      <legend>{q.question_number}. {q.question}</legend>
-                        {q.options.map((opt) => {
-                          const chosen = answers[q.question_number] === opt;
-                          const isCorrect = correctMap[q.question_number];
-                          let className = 'option-box';
-                          if (chosen) {
-                            className += isCorrect ? ' correct' : ' incorrect';
-                          } else if (answers[q.question_number] && opt === q.correct_answer) {
-                            // Show correct answer in green when user answered incorrectly
-                            className += ' correct';
-                          }
-                          const disabled = !!answers[q.question_number];
-                          return (
-                           <div
-                             key={opt}
-                             className={className}
-                             onClick={() => !disabled && handleAnswerSelect(q, opt)}
-                             role="button"
-                           >
-                             <span>{opt}</span>
-                           </div>
-                         );
-                       })}
-
-                      {answers[q.question_number] && !correctMap[q.question_number] && currentIdx < selected.questions.length - 1 && (
-                        <button type="button" className="next-btn" onClick={handleNext}>
-                          Next Question
-                        </button>
-                      )}
-                      {answers[q.question_number] && currentIdx === selected.questions.length - 1 && (
-                        <button type="button" className="finish-btn" onClick={() => setFinished(true)}>
-                          Finish Test
-                        </button>
-                      )}
-                    </fieldset>
+                    <AnswerQuestion
+                      key={q.question_number}
+                      q={q}
+                      answers={answers}
+                      correctMap={correctMap}
+                      handleAnswerSelect={handleAnswerSelect}
+                    />
                   ))}
                 </div>
               )}
