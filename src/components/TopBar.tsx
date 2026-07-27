@@ -11,6 +11,7 @@ const NAV_ITEMS: { id: PageId; label: string }[] = [
   { id: 'roadmap', label: 'Roadmap' },
   { id: 'lessons', label: 'Lessons' },
   { id: 'tests', label: 'Tests' },
+  { id: 'revision', label: 'Revision' },
 ];
 
 export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBarProps) {

@@ -3,6 +3,7 @@ import { TopBar } from './components/TopBar';
 import Roadmap from './Roadmap';
 import Lessons from './Lessons';
 import Tests from './Tests';
+import Revision from './Revision';
 import type { PageId } from './types';
 
 function App() {
@@ -50,6 +51,12 @@ function App() {
           aria-hidden={page !== 'tests'}
         >
           <Tests selectedTestId={selectedTestId} onSelectedTestIdChange={setSelectedTestId} />
+        </div>
+        <div
+          className={page === 'revision' ? 'page-panel page-panel--active' : 'page-panel'}
+          aria-hidden={page !== 'revision'}
+        >
+          <Revision />
         </div>
       </main>
     </div>

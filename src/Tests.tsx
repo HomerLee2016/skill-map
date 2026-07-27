@@ -67,13 +67,6 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const [structure, setStructure] = useState(getInitialTestsStructure);
   const [structureError, setStructureError] = useState<string | null>(null);
   const { expandKey, collapseKey, expandAll, collapseAll } = useExpandCollapseState();
-  // New states for revision feature
-  const [completedRows, setCompletedRows] = useState<any[]>([]);
-  const [revisionMode, setRevisionMode] = useState(false);
-  const [revisionQuestions, setRevisionQuestions] = useState<any[]>([]);
-  const [showSummary, setShowSummary] = useState(false);
-  const [showRevisionSummary, setShowRevisionSummary] = useState(false);
-  const [dueCount, setDueCount] = useState(0);
 
 
   const newTestsTree = useMemo(
@@ -101,8 +94,6 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   }, [selected]);
 
   const selectTest = (id: string) => {
-    setShowSummary(false);
-    setRevisionMode(false);
     setActiveId(id);
     onSelectedTestIdChange?.(id);
   };
@@ -116,66 +107,6 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
       setStructureError(err instanceof Error ? err.message : 'Failed to save structure');
     }
   };
-
-  // Fetch completed questions for Learnt Summary (reusable)
-  const fetchCompleted = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/completed-questions`);
-      if (!res.ok) throw new Error('Failed to fetch completed questions');
-      const json = await res.json();
-      setCompletedRows(json.data);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-  // Initial load
-  useEffect(() => {
-    fetchCompleted();
-  }, []);
-
-
-  // Toggle selection of a question for revision
-  const startRevisionFromSummary = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/due-revision-questions`);
-      if (!res.ok) throw new Error('Failed to fetch due revision questions');
-      const { data } = await res.json();
-      const revQuestions = data.map((row: any) => ({
-        question_number: row.id,
-        question: row.question_name,
-        options: typeof row.options === 'string' ? JSON.parse(row.options) : row.options,
-        correct_answer: row.correct_answer,
-        proficiency: row.proficiency,
-      }));
-      setRevisionQuestions(revQuestions);
-      setRevisionMode(true);
-      setShowRevisionSummary(false);
-      setShowSummary(false);
-      setTotal(revQuestions.length);
-      setScore(0);
-      setCurrentIdx(0);
-      setFinished(false);
-      setAnswers({});
-      setCorrectMap({});
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  useEffect(() => {
-    if (!showRevisionSummary) return;
-    const fetchDueCount = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/due-revision-questions`);
-        if (!res.ok) throw new Error('Failed to fetch due revision count');
-        const json = await res.json();
-        setDueCount(json.data.length);
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    void fetchDueCount();
-  }, [showRevisionSummary]);
 
   const handleAddFolder = (section: 'revision' | 'new_tests') => {
     const nextSection = promptAddFolder(structure[section]);
@@ -195,7 +126,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
     }
   };
 
-  const totalQuestions = revisionMode ? revisionQuestions.length : selected?.questions.length ?? 0;
+  const totalQuestions = selected?.questions.length ?? 0;
   const isLastQuestion = currentIdx + 1 >= totalQuestions;
 
   const advanceToNextQuestion = () => {
@@ -207,7 +138,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   };
 
   const handleAnswerSelect = async (question: any, option: string) => {
-    if (!selected && !revisionMode) return;
+    if (!selected) return;
     const isCorrect = option === question.correct_answer;
     setAnswers((prev) => ({ ...prev, [question.question_number]: option }));
     setCorrectMap((prev) => ({ ...prev, [question.question_number]: isCorrect }));
@@ -220,10 +151,8 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
         correct: isCorrect ? 1 : 0,
         last_time: new Date().toISOString(),
         proficiency: question.proficiency,
-        quiz_title: revisionMode ? 'Revision' : (selected?.title ?? ''),
+        quiz_title: selected?.title ?? '',
       });
-      // Refresh the Learnt Summary data after a successful save
-      await fetchCompleted();
     } catch (e) {
       console.error('Failed to save question result', e);
     }
@@ -251,40 +180,6 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
           Folders are stored in <code>src/data/tests/structure.yaml</code>
         </p>
         {structureError && <p className="tree-error">{structureError}</p>}
-
-          {/* Revision Section */}
-          <CategorySection
-            title="Revision"
-            onAddFolder={() => handleAddFolder('revision')}
-            onAssignItem={() => handleAssignItem('revision')}
-          >
-            <div className="revision-action-list">
-              <button
-                type="button"
-                className="next-btn"
-                onClick={() => {
-                  setShowSummary(true);
-                  setShowRevisionSummary(false);
-                  setRevisionMode(false);
-                  setFinished(false);
-                }}
-              >
-                Learnt Summary
-              </button>
-              <button
-                type="button"
-                className="next-btn"
-                onClick={() => {
-                  setShowRevisionSummary(true);
-                  setShowSummary(false);
-                  setRevisionMode(false);
-                  setFinished(false);
-                }}
-              >
-                Start Revision
-              </button>
-            </div>
-          </CategorySection>
         <CategorySection
           title="New Tests"
           onAddFolder={() => handleAddFolder('new_tests')}
@@ -304,53 +199,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
       </aside>
 
       <div className="tests-content">
-        {showRevisionSummary ? (
-          <div className="revision-summary-card">
-            <h2>You have {dueCount} question{dueCount !== 1 ? 's' : ''} to revise.</h2>
-            <p className="revision-summary-copy">Start a revision round with all questions that are currently due.</p>
-            <button type="button" className="start-now-btn" onClick={startRevisionFromSummary}>Start Revision Now</button>
-          </div>
-        ) : showSummary ? (
-          <div className="summary-table-wrapper">
-            <h2>Learnt Summary</h2>
-            <table className="summary-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Test</th>
-                  <th>Question</th>
-                  <th>Correct Answer</th>
-                  <th>Proficiency</th>
-                </tr>
-              </thead>
-              <tbody>
-                {completedRows.map((row: any) => (
-                  <tr key={row.id}>
-                    <td>{row.id}</td>
-                    <td>{row.quiz_title}</td>
-                    <td>{row.question_name}</td>
-                    <td>{row.correct_answer}</td>
-                    <td>{row.proficiency}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : revisionMode ? (
-          <div className="test-question-container">
-            {revisionQuestions.slice(currentIdx, currentIdx + 1).map((q) => (
-              <AnswerQuestion
-                key={`${q.question_number}-${q.question}`}
-                q={q}
-                answers={answers}
-                correctMap={correctMap}
-                handleAnswerSelect={handleAnswerSelect}
-                onNextQuestion={advanceToNextQuestion}
-                showNextButton={!!answers[q.question_number] && !finished && !isLastQuestion}
-              />
-            ))}
-          </div>
-        ) : !selected ? (
+        {!selected ? (
           <p className="tests-empty">Select a test from the sidebar.</p>
         ) : (
           <>

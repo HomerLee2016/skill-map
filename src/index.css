@@ -195,6 +195,39 @@ body, html, #root {
   backdrop-filter: blur(10px);
 }
 
+.revision-page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.revision-header-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-radius: 16px;
+  background: var(--panel-bg);
+  border: 1px solid var(--sidebar-border);
+  box-shadow: var(--panel-shadow);
+}
+
+.revision-header-card h1 {
+  margin: 0 0 6px;
+  font-size: 24px;
+}
+
+.revision-header-card p {
+  margin: 0;
+  color: var(--tests-muted);
+}
+
+.revision-summary-copy {
+  margin: 0.75rem 0 0;
+  color: var(--tests-muted);
+}
+
 .start-now-btn {
   margin-top: 1rem;
   border: none;
