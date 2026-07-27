@@ -1,8 +1,10 @@
 // src/db.ts
 // SQLite DB setup using better-sqlite3 and drizzle-orm
 import Database from 'better-sqlite3';
+import { createHash } from 'crypto';
+import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 
 // Initialize the database (file will be created in the project root)
 const sqlite = new Database('skill-map.db');
@@ -17,7 +19,8 @@ CREATE TABLE IF NOT EXISTS completed_questions (
   correct INTEGER,
   last_time TEXT NOT NULL,
   proficiency TEXT,
-  quiz_title TEXT
+  quiz_title TEXT,
+  hash TEXT NOT NULL UNIQUE
 );
 `);
 export const db = drizzle(sqlite);
@@ -33,10 +36,8 @@ export const completed_questions = sqliteTable('completed_questions', {
   last_time: text('last_time').notNull(), // ISO timestamp string
   proficiency: text('proficiency'),
   quiz_title: text('quiz_title'),
-}, (table) => ({
-  // Composite index for quick lookup by quiz_title and question_name if needed
-  quizQuestionIdx: primaryKey(table.quiz_title, table.question_name),
-}));
+  hash: text('hash').notNull().unique(),
+});
 
 // Example function to insert a completed question entry
 export async function insertCompletedQuestion(entry: {
@@ -49,6 +50,20 @@ export async function insertCompletedQuestion(entry: {
   selected_answer?: string;
   correct?: number;
 }) {
+  const hash = createHash('sha256')
+    .update(entry.question_name + JSON.stringify(entry.options))
+    .digest('hex');
+  // Avoid duplicate entries
+
+  const exists = await db
+    .select()
+    .from(completed_questions)
+    .where(eq(completed_questions.hash, hash))
+    .get();
+  if (exists) {
+    console.log('Duplicate question detected, skipping insert');
+    return;
+  }
   await db
     .insert(completed_questions)
     .values({
@@ -60,11 +75,12 @@ export async function insertCompletedQuestion(entry: {
       last_time: entry.last_time,
       proficiency: entry.proficiency ?? null,
       quiz_title: entry.quiz_title,
+      hash,
     })
     .run();
 }
 
 // Example function to fetch all completed questions for a given quiz
 export async function getCompletedQuestionsByQuiz(quizTitle: string) {
-  return await db.select().from(completed_questions).where(completed_questions.quiz_title.eq(quizTitle)).all();
+  return await db.select().from(completed_questions).where(eq(completed_questions.quiz_title, quizTitle)).all();
 }

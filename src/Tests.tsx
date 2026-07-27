@@ -21,8 +21,10 @@ interface TestsProps {
   onSelectedTestIdChange?: (id: string) => void;
 }
 
+const API_BASE = 'http://localhost:5178';
+
 async function saveTestsStructure(structure: { revision: StructureTree; new_tests: StructureTree }) {
-  const response = await fetch('/api/save-structure', {
+  const response = await fetch(`${API_BASE}/api/save-structure`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ kind: 'tests', structure }),
@@ -43,7 +45,7 @@ async function saveQuestionResult(payload: {
   proficiency?: string;
   quiz_title: string;
 }) {
-  const response = await fetch('/api/save-question-result', {
+  const response = await fetch(`${API_BASE}/api/save-question-result`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -66,6 +68,13 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const [structure, setStructure] = useState(getInitialTestsStructure);
   const [structureError, setStructureError] = useState<string | null>(null);
   const { expandKey, collapseKey, expandAll, collapseAll } = useExpandCollapseState();
+  // New states for revision feature
+  const [completedRows, setCompletedRows] = useState<any[]>([]);
+  const [revisionSelection, setRevisionSelection] = useState<Set<number>>(new Set());
+  const [revisionMode, setRevisionMode] = useState(false);
+  const [revisionQuestions, setRevisionQuestions] = useState<any[]>([]);
+  const [showSummary, setShowSummary] = useState(false);
+
 
   const revisionTree = useMemo(
     () => buildRevisionTestTree(structure.revision),
@@ -96,6 +105,8 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   }, [selected]);
 
   const selectTest = (id: string) => {
+    setShowSummary(false);
+    setRevisionMode(false);
     setActiveId(id);
     onSelectedTestIdChange?.(id);
   };
@@ -108,6 +119,55 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
     } catch (err) {
       setStructureError(err instanceof Error ? err.message : 'Failed to save structure');
     }
+  };
+
+  // Fetch completed questions for Learnt Summary (reusable)
+  const fetchCompleted = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/completed-questions`);
+      if (!res.ok) throw new Error('Failed to fetch completed questions');
+      const json = await res.json();
+      setCompletedRows(json.data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+  // Initial load
+  useEffect(() => {
+    fetchCompleted();
+  }, []);
+
+
+  // Toggle selection of a question for revision
+  const toggleRevisionSelection = (id: number) => {
+    setRevisionSelection((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) newSet.delete(id);
+      else newSet.add(id);
+      return newSet;
+    });
+  };
+
+  // Start revision test with selected questions
+  const startRevision = () => {
+    if (revisionSelection.size === 0) return;
+    const selected = completedRows.filter((row: any) => revisionSelection.has(row.id));
+    const revQuestions = selected.map((row: any) => ({
+      question_number: row.id,
+      question: row.question_name,
+      options: row.options,
+      correct_answer: row.correct_answer,
+      proficiency: row.proficiency,
+    }));
+    setRevisionQuestions(revQuestions);
+    setRevisionMode(true);
+    // Reset test state for revision
+    setTotal(revQuestions.length);
+    setScore(0);
+    setCurrentIdx(0);
+    setFinished(false);
+    setAnswers({});
+    setCorrectMap({});
   };
 
   const handleAddFolder = (section: 'revision' | 'new_tests') => {
@@ -144,6 +204,8 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
         proficiency: question.proficiency,
         quiz_title: selected?.title ?? '',
       });
+      // Refresh the Learnt Summary data after a successful save
+      await fetchCompleted();
     } catch (e) {
       console.error('Failed to save question result', e);
     }
@@ -178,23 +240,17 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
         </p>
         {structureError && <p className="tree-error">{structureError}</p>}
 
-        <CategorySection
-          title="Revision"
-          onAddFolder={() => handleAddFolder('revision')}
-          onAssignItem={() => handleAssignItem('revision')}
-        >
-          <ContentTreeSidebar
-            tree={revisionTree}
-            selectedId={activeId}
-            onSelect={selectTest}
-            itemClassName="tests-item"
-            selectedClassName="tests-item--selected"
-            expandKey={expandKey}
-            collapseKey={collapseKey}
-            itemIcon="📝"
-          />
-        </CategorySection>
-
+          {/* Revision Section */}
+          <CategorySection
+            title="Revision"
+            onAddFolder={() => handleAddFolder('revision')}
+            onAssignItem={() => handleAssignItem('revision')}
+          >
+            {/* Learnt Summary button */}
+            <button type="button" className="next-btn" onClick={() => { setShowSummary(true); setRevisionMode(false); setFinished(false); }}>
+              Learnt Summary
+            </button>
+          </CategorySection>
         <CategorySection
           title="New Tests"
           onAddFolder={() => handleAddFolder('new_tests')}
@@ -214,7 +270,62 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
       </aside>
 
       <div className="tests-content">
-        {!selected ? (
+        {showSummary ? (
+          <div className="summary-table-wrapper">
+            <h2>Learnt Summary</h2>
+            <table className="summary-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Test</th>
+                  <th>Question</th>
+                  <th>Correct Answer</th>
+                  <th>Proficiency</th>
+                </tr>
+              </thead>
+              <tbody>
+                {completedRows.map((row: any) => (
+                  <tr key={row.id}>
+                    <td>{row.id}</td>
+                    <td>{row.quiz_title}</td>
+                    <td>{row.question_name}</td>
+                    <td>{row.correct_answer}</td>
+                    <td>{row.proficiency}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : revisionMode ? (
+          <div className="test-question-container">
+            {revisionQuestions.slice(currentIdx, currentIdx + 1).map((q) => (
+              <fieldset key={q.question_number} className="test-question">
+                <legend>{q.question_number}. {q.question}</legend>
+                {q.options.map((opt: string) => {
+                  const chosen = answers[q.question_number] === opt;
+                  const isCorrect = correctMap[q.question_number];
+                  let className = 'option-box';
+                  if (chosen) {
+                    className += isCorrect ? ' correct' : ' incorrect';
+                  } else if (answers[q.question_number] && opt === q.correct_answer) {
+                    className += ' correct';
+                  }
+                  const disabled = !!answers[q.question_number];
+                  return (
+                    <div
+                      key={opt}
+                      className={className}
+                      onClick={() => !disabled && handleAnswerSelect(q, opt)}
+                      role="button"
+                    >
+                      <span>{opt}</span>
+                    </div>
+                  );
+                })}
+              </fieldset>
+            ))}
+          </div>
+        ) : !selected ? (
           <p className="tests-empty">Select a test from the sidebar.</p>
         ) : (
           <>
