@@ -1,0 +1,162 @@
+quiz_title: "Spanish Greetings, Introductions & Polite Phrases"
+questions:
+  - question_number: 1
+    question: "How do you say 'Hello' in Spanish?"
+    options:
+      - "Hola"
+      - "Adiós"
+      - "Gracias"
+      - "Por favor"
+    correct_answer: "Hola"
+  - question_number: 2
+    question: "What is the Spanish phrase for 'Good morning'?"
+    options:
+      - "Buenas tardes"
+      - "Buenos días"
+      - "Buenas noches"
+      - "Hasta luego"
+    correct_answer: "Buenos días"
+  - question_number: 3
+    question: "What is the Spanish phrase for 'Good afternoon'?"
+    options:
+      - "Buenos días"
+      - "Buenas tardes"
+      - "Buenas noches"
+      - "Hasta mañana"
+    correct_answer: "Buenas tardes"
+  - question_number: 4
+    question: "What is the Spanish phrase for 'Good night'?"
+    options:
+      - "Buenas tardes"
+      - "Buenos días"
+      - "Buenas noches"
+      - "Hasta luego"
+    correct_answer: "Buenas noches"
+  - question_number: 5
+    question: "How do you ask 'How are you?' (informal) in Spanish?"
+    options:
+      - "¿Cómo te llamas?"
+      - "¿De dónde eres?"
+      - "¿Cómo estás?"
+      - "¿Qué hora es?"
+    correct_answer: "¿Cómo estás?"
+  - question_number: 6
+    question: "How do you ask 'How are you?' (formal) in Spanish?"
+    options:
+      - "¿Cómo estás?"
+      - "¿Cómo está usted?"
+      - "¿Qué tal?"
+      - "¿De dónde es?"
+    correct_answer: "¿Cómo está usted?"
+  - question_number: 7
+    question: "What does '¿Qué tal?' mean?"
+    options:
+      - "How's it going?"
+      - "Where are you?"
+      - "What time is it?"
+      - "Who are you?"
+    correct_answer: "How's it going?"
+  - question_number: 8
+    question: "What is the correct Spanish phrase for 'Nice to meet you'?"
+    options:
+      - "Mucho gusto"
+      - "De nada"
+      - "Por favor"
+      - "Lo siento"
+    correct_answer: "Mucho gusto"
+  - question_number: 9
+    question: "How do you ask 'What is your name?' (informal) in Spanish?"
+    options:
+      - "¿Cómo te llamas?"
+      - "¿Dónde estás?"
+      - "¿Cuántos años tienes?"
+      - "¿Cómo te va?"
+    correct_answer: "¿Cómo te llamas?"
+  - question_number: 10
+    question: "How do you say 'My name is...' in Spanish?"
+    options:
+      - "Yo soy de..."
+      - "Me llamo..."
+      - "Estoy bien..."
+      - "Tengo..."
+    correct_answer: "Me llamo..."
+  - question_number: 11
+    question: "How do you ask 'Where are you from?' in Spanish?"
+    options:
+      - "¿Cómo te llamas?"
+      - "¿De dónde eres?"
+      - "¿Dónde vives?"
+      - "¿A dónde vas?"
+    correct_answer: "¿De dónde eres?"
+  - question_number: 12
+    question: "How do you say 'I am from...' in Spanish?"
+    options:
+      - "Yo soy de..."
+      - "Yo vivo en..."
+      - "Yo voy a..."
+      - "Yo me llamo..."
+    correct_answer: "Yo soy de..."
+  - question_number: 13
+    question: "What does 'Por favor' mean in English?"
+    options:
+      - "Thank you"
+      - "Please"
+      - "You're welcome"
+      - "Excuse me"
+    correct_answer: "Please"
+  - question_number: 14
+    question: "How do you say 'Thank you' in Spanish?"
+    options:
+      - "De nada"
+      - "Perdón"
+      - "Gracias"
+      - "Salud"
+    correct_answer: "Gracias"
+  - question_number: 15
+    question: "What is the Spanish phrase for 'You're welcome'?"
+    options:
+      - "De nada"
+      - "Lo siento"
+      - "Con permiso"
+      - "Hola"
+    correct_answer: "De nada"
+  - question_number: 16
+    question: "How do you say 'I'm sorry' in Spanish?"
+    options:
+      - "Con permiso"
+      - "Lo siento"
+      - "De nada"
+      - "Salud"
+    correct_answer: "Lo siento"
+  - question_number: 17
+    question: "How do you say 'Excuse me' when trying to get past someone?"
+    options:
+      - "Con permiso"
+      - "Lo siento"
+      - "De nada"
+      - "Igualmente"
+    correct_answer: "Con permiso"
+  - question_number: 18
+    question: "What does 'Igualmente' mean when responding to a greeting?"
+    options:
+      - "Likewise / Same to you"
+      - "Not much"
+      - "See you later"
+      - "No problem"
+    correct_answer: "Likewise / Same to you"
+  - question_number: 19
+    question: "How do you say 'See you later' in Spanish?"
+    options:
+      - "Hasta luego"
+      - "Buenas noches"
+      - "Hasta mañana"
+      - "Hola"
+    correct_answer: "Hasta luego"
+  - question_number: 20
+    question: "How do you say 'Goodbye' in Spanish?"
+    options:
+      - "Hola"
+      - "Adiós"
+      - "Hasta pronto"
+      - "Nos vemos"
+    correct_answer: "Adiós"

@@ -195,6 +195,17 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
     }
   };
 
+  const totalQuestions = revisionMode ? revisionQuestions.length : selected?.questions.length ?? 0;
+  const isLastQuestion = currentIdx + 1 >= totalQuestions;
+
+  const advanceToNextQuestion = () => {
+    if (currentIdx + 1 < totalQuestions) {
+      setCurrentIdx((i) => i + 1);
+    } else {
+      setFinished(true);
+    }
+  };
+
   const handleAnswerSelect = async (question: any, option: string) => {
     if (!selected && !revisionMode) return;
     const isCorrect = option === question.correct_answer;
@@ -220,13 +231,12 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
       setScore((s) => s + 1);
       // Auto-advance after 1 second if not the last question
       setTimeout(() => {
-        const totalQuestions = revisionMode ? revisionQuestions.length : selected?.questions.length ?? 0;
-        if (currentIdx + 1 < totalQuestions) {
-          setCurrentIdx((i) => i + 1);
-        } else {
-          setFinished(true);
-        }
+        advanceToNextQuestion();
       }, 1000);
+    } else if (isLastQuestion) {
+      setTimeout(() => {
+        setFinished(true);
+      }, 0);
     }
   };
 
@@ -248,22 +258,33 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
             onAddFolder={() => handleAddFolder('revision')}
             onAssignItem={() => handleAssignItem('revision')}
           >
-            {/* Learnt Summary button */}
-            <button type="button" className="next-btn" onClick={() => { setShowSummary(true); setRevisionMode(false); setFinished(false); }}>
-              Learnt Summary
-            </button>
-            {/* Start Revision button */}
-            <button type="button" className="next-btn" onClick={() => { setShowRevisionSummary(true); setRevisionMode(false); setFinished(false); }}>
-              Start Revision
-            </button>
-          </CategorySection>
-          {/* Revision Summary view */}
-          {showRevisionSummary && (
-            <div className="revision-summary-card">
-              <h2>You have {dueCount} question{dueCount !== 1 ? 's' : ''} to revise.</h2>
-              <button type="button" className="start-now-btn" onClick={startRevisionFromSummary}>Start Revision Now</button>
+            <div className="revision-action-list">
+              <button
+                type="button"
+                className="next-btn"
+                onClick={() => {
+                  setShowSummary(true);
+                  setShowRevisionSummary(false);
+                  setRevisionMode(false);
+                  setFinished(false);
+                }}
+              >
+                Learnt Summary
+              </button>
+              <button
+                type="button"
+                className="next-btn"
+                onClick={() => {
+                  setShowRevisionSummary(true);
+                  setShowSummary(false);
+                  setRevisionMode(false);
+                  setFinished(false);
+                }}
+              >
+                Start Revision
+              </button>
             </div>
-          )}
+          </CategorySection>
         <CategorySection
           title="New Tests"
           onAddFolder={() => handleAddFolder('new_tests')}
@@ -283,7 +304,13 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
       </aside>
 
       <div className="tests-content">
-        {showSummary ? (
+        {showRevisionSummary ? (
+          <div className="revision-summary-card">
+            <h2>You have {dueCount} question{dueCount !== 1 ? 's' : ''} to revise.</h2>
+            <p className="revision-summary-copy">Start a revision round with all questions that are currently due.</p>
+            <button type="button" className="start-now-btn" onClick={startRevisionFromSummary}>Start Revision Now</button>
+          </div>
+        ) : showSummary ? (
           <div className="summary-table-wrapper">
             <h2>Learnt Summary</h2>
             <table className="summary-table">
@@ -313,11 +340,13 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
           <div className="test-question-container">
             {revisionQuestions.slice(currentIdx, currentIdx + 1).map((q) => (
               <AnswerQuestion
-                key={q.question_number}
+                key={`${q.question_number}-${q.question}`}
                 q={q}
                 answers={answers}
                 correctMap={correctMap}
                 handleAnswerSelect={handleAnswerSelect}
+                onNextQuestion={advanceToNextQuestion}
+                showNextButton={!!answers[q.question_number] && !finished && !isLastQuestion}
               />
             ))}
           </div>
@@ -338,11 +367,13 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
                 <div className="test-question-container">
                   {selected.questions.slice(currentIdx, currentIdx + 1).map((q) => (
                     <AnswerQuestion
-                      key={q.question_number}
+                      key={`${q.question_number}-${q.question}`}
                       q={q}
                       answers={answers}
                       correctMap={correctMap}
                       handleAnswerSelect={handleAnswerSelect}
+                      onNextQuestion={advanceToNextQuestion}
+                      showNextButton={!!answers[q.question_number] && !finished && !isLastQuestion}
                     />
                   ))}
                 </div>

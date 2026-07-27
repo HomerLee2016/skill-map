@@ -13,6 +13,8 @@ interface Props {
   answers: Record<number, string>;
   correctMap: Record<number, boolean>;
   handleAnswerSelect: (question: any, selectedOption: string) => void;
+  onNextQuestion?: () => void;
+  showNextButton?: boolean;
 }
 
 // Fisher-Yates shuffle returning a new array
@@ -25,9 +27,11 @@ function shuffleArray<T>(array: T[]): T[] {
   return arr;
 }
 
-const AnswerQuestion: React.FC<Props> = ({ q, answers, correctMap, handleAnswerSelect }) => {
-  // Shuffle once per question instance
-  const shuffledOptions = useMemo(() => shuffleArray(q.options), [q.question_number]);
+const AnswerQuestion: React.FC<Props> = ({ q, answers, correctMap, handleAnswerSelect, onNextQuestion, showNextButton }) => {
+  // Shuffle once per question instance, and recompute when the question content changes.
+  const shuffledOptions = useMemo(() => shuffleArray(q.options), [q.question, q.correct_answer, q.options.join('\u0000')]);
+  const hasAnswered = !!answers[q.question_number];
+  const isCorrectAnswer = hasAnswered && correctMap[q.question_number];
 
   return (
     <fieldset className="test-question">
@@ -53,6 +57,11 @@ const AnswerQuestion: React.FC<Props> = ({ q, answers, correctMap, handleAnswerS
           </div>
         );
       })}
+      {hasAnswered && showNextButton && onNextQuestion && !isCorrectAnswer && (
+        <button type="button" className="next-btn next-btn--inline" onClick={onNextQuestion}>
+          {isCorrectAnswer ? 'Continue' : 'Next question'}
+        </button>
+      )}
     </fieldset>
   );
 };

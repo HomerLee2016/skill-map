@@ -12,5 +12,6 @@ new_tests:
         - name: Numbers
           items:
             - test-01
+            - spanish-test-02
           children: []
   items: []

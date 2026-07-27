@@ -456,7 +456,19 @@ body, html, #root {
 }
 
 .tree-section-body {
-  padding-bottom: 8px;
+  padding: 8px 12px 10px 12px;
+}
+
+.revision-action-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.revision-action-list .next-btn {
+  width: 100%;
+  margin-top: 0;
+  text-align: center;
 }
 
 .tree-list {
@@ -700,7 +712,9 @@ body, html, #root {
 
 /* Next Question button */
 .next-btn {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 8px 16px;
   margin-top: 12px;
   font-size: 14px;
@@ -719,7 +733,51 @@ body, html, #root {
   transform: scale(0.98);
 }
 
+.next-btn--inline {
+  margin-top: 12px;
+  width: 100%;
+}
+
 /* Finish Test button */
+.summary-table-wrapper {
+  background: var(--panel-bg);
+  border: 1px solid var(--sidebar-border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: var(--panel-shadow);
+}
+
+.summary-table-wrapper h2 {
+  margin: 0 0 16px;
+  font-size: 20px;
+}
+
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.summary-table thead {
+  background: var(--sidebar-item-selected-bg);
+}
+
+.summary-table th,
+.summary-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--sidebar-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.summary-table tbody tr:nth-child(even) {
+  background: rgba(99, 102, 241, 0.04);
+}
+
+.summary-table tbody tr:hover {
+  background: rgba(79, 70, 229, 0.08);
+}
+
 .finish-btn {
   display: inline-block;
   padding: 8px 16px;
