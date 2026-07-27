@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   buildNewTestTree,
-  buildRevisionTestTree,
   getInitialTestsStructure,
   promptAddFolder,
   promptAssignItem,
   tests as availableTests,
   type StructureTree,
 } from './utils/contentCatalog';
-import type { TestResultPayload } from './types';
 import {
   CategorySection,
   ContentTreeSidebar,
@@ -71,16 +69,13 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const { expandKey, collapseKey, expandAll, collapseAll } = useExpandCollapseState();
   // New states for revision feature
   const [completedRows, setCompletedRows] = useState<any[]>([]);
-  const [revisionSelection, setRevisionSelection] = useState<Set<number>>(new Set());
   const [revisionMode, setRevisionMode] = useState(false);
   const [revisionQuestions, setRevisionQuestions] = useState<any[]>([]);
   const [showSummary, setShowSummary] = useState(false);
+  const [showRevisionSummary, setShowRevisionSummary] = useState(false);
+  const [dueCount, setDueCount] = useState(0);
 
 
-  const revisionTree = useMemo(
-    () => buildRevisionTestTree(structure.revision),
-    [structure.revision]
-  );
   const newTestsTree = useMemo(
     () => buildNewTestTree(structure.new_tests, structure.revision),
     [structure.new_tests, structure.revision]
@@ -140,36 +135,47 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
 
 
   // Toggle selection of a question for revision
-  const toggleRevisionSelection = (id: number) => {
-    setRevisionSelection((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) newSet.delete(id);
-      else newSet.add(id);
-      return newSet;
-    });
+  const startRevisionFromSummary = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/due-revision-questions`);
+      if (!res.ok) throw new Error('Failed to fetch due revision questions');
+      const { data } = await res.json();
+      const revQuestions = data.map((row: any) => ({
+        question_number: row.id,
+        question: row.question_name,
+        options: typeof row.options === 'string' ? JSON.parse(row.options) : row.options,
+        correct_answer: row.correct_answer,
+        proficiency: row.proficiency,
+      }));
+      setRevisionQuestions(revQuestions);
+      setRevisionMode(true);
+      setShowRevisionSummary(false);
+      setShowSummary(false);
+      setTotal(revQuestions.length);
+      setScore(0);
+      setCurrentIdx(0);
+      setFinished(false);
+      setAnswers({});
+      setCorrectMap({});
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  // Start revision test with selected questions
-  const startRevision = () => {
-    if (revisionSelection.size === 0) return;
-    const selected = completedRows.filter((row: any) => revisionSelection.has(row.id));
-    const revQuestions = selected.map((row: any) => ({
-      question_number: row.id,
-      question: row.question_name,
-      options: row.options,
-      correct_answer: row.correct_answer,
-      proficiency: row.proficiency,
-    }));
-    setRevisionQuestions(revQuestions);
-    setRevisionMode(true);
-    // Reset test state for revision
-    setTotal(revQuestions.length);
-    setScore(0);
-    setCurrentIdx(0);
-    setFinished(false);
-    setAnswers({});
-    setCorrectMap({});
-  };
+  useEffect(() => {
+    if (!showRevisionSummary) return;
+    const fetchDueCount = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/due-revision-questions`);
+        if (!res.ok) throw new Error('Failed to fetch due revision count');
+        const json = await res.json();
+        setDueCount(json.data.length);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    void fetchDueCount();
+  }, [showRevisionSummary]);
 
   const handleAddFolder = (section: 'revision' | 'new_tests') => {
     const nextSection = promptAddFolder(structure[section]);
@@ -190,7 +196,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   };
 
   const handleAnswerSelect = async (question: any, option: string) => {
-    if (!selected) return;
+    if (!selected && !revisionMode) return;
     const isCorrect = option === question.correct_answer;
     setAnswers((prev) => ({ ...prev, [question.question_number]: option }));
     setCorrectMap((prev) => ({ ...prev, [question.question_number]: isCorrect }));
@@ -203,7 +209,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
         correct: isCorrect ? 1 : 0,
         last_time: new Date().toISOString(),
         proficiency: question.proficiency,
-        quiz_title: selected?.title ?? '',
+        quiz_title: revisionMode ? 'Revision' : (selected?.title ?? ''),
       });
       // Refresh the Learnt Summary data after a successful save
       await fetchCompleted();
@@ -214,18 +220,13 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
       setScore((s) => s + 1);
       // Auto-advance after 1 second if not the last question
       setTimeout(() => {
-        if (selected && currentIdx + 1 < selected.questions.length) {
+        const totalQuestions = revisionMode ? revisionQuestions.length : selected?.questions.length ?? 0;
+        if (currentIdx + 1 < totalQuestions) {
           setCurrentIdx((i) => i + 1);
         } else {
           setFinished(true);
         }
       }, 1000);
-    }
-  };
-
-  const handleNext = () => {
-    if (selected && currentIdx + 1 < selected.questions.length) {
-      setCurrentIdx((i) => i + 1);
     }
   };
 
@@ -251,7 +252,18 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
             <button type="button" className="next-btn" onClick={() => { setShowSummary(true); setRevisionMode(false); setFinished(false); }}>
               Learnt Summary
             </button>
+            {/* Start Revision button */}
+            <button type="button" className="next-btn" onClick={() => { setShowRevisionSummary(true); setRevisionMode(false); setFinished(false); }}>
+              Start Revision
+            </button>
           </CategorySection>
+          {/* Revision Summary view */}
+          {showRevisionSummary && (
+            <div className="revision-summary-card">
+              <h2>You have {dueCount} question{dueCount !== 1 ? 's' : ''} to revise.</h2>
+              <button type="button" className="start-now-btn" onClick={startRevisionFromSummary}>Start Revision Now</button>
+            </div>
+          )}
         <CategorySection
           title="New Tests"
           onAddFolder={() => handleAddFolder('new_tests')}

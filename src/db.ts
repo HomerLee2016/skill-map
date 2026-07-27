@@ -2,9 +2,10 @@
 // SQLite DB setup using better-sqlite3 and drizzle-orm
 import Database from 'better-sqlite3';
 import { createHash } from 'crypto';
-import { eq } from 'drizzle-orm';
+import { eq, sql as drizzleSql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { applyRevisionColumnsMigration } from './db/migrations/20260727-add-revision-columns';
 
 // Initialize the database (file will be created in the project root)
 const sqlite = new Database('skill-map.db');
@@ -17,13 +18,16 @@ CREATE TABLE IF NOT EXISTS completed_questions (
   correct_answer TEXT NOT NULL,
   selected_answer TEXT,
   correct INTEGER,
-  last_time TEXT NOT NULL,
+  last_time TEXT NOT NULL DEFAULT (datetime('now')),
+  next_revision_time TEXT,
   proficiency TEXT,
   quiz_title TEXT,
   hash TEXT NOT NULL UNIQUE
 );
 `);
 export const db = drizzle(sqlite);
+
+await applyRevisionColumnsMigration(sqlite);
 
 // Table to store completed test questions and question metadata
 export const completed_questions = sqliteTable('completed_questions', {
@@ -34,6 +38,7 @@ export const completed_questions = sqliteTable('completed_questions', {
   selected_answer: text('selected_answer'),
   correct: integer('correct'),
   last_time: text('last_time').notNull(), // ISO timestamp string
+  next_revision_time: text('next_revision_time'),
   proficiency: text('proficiency'),
   quiz_title: text('quiz_title'),
   hash: text('hash').notNull().unique(),
@@ -73,6 +78,7 @@ export async function insertCompletedQuestion(entry: {
       selected_answer: entry.selected_answer ?? null,
       correct: entry.correct ?? 0,
       last_time: entry.last_time,
+      next_revision_time: entry.last_time, // initially same as last_time
       proficiency: entry.proficiency ?? null,
       quiz_title: entry.quiz_title,
       hash,
@@ -83,4 +89,12 @@ export async function insertCompletedQuestion(entry: {
 // Example function to fetch all completed questions for a given quiz
 export async function getCompletedQuestionsByQuiz(quizTitle: string) {
   return await db.select().from(completed_questions).where(eq(completed_questions.quiz_title, quizTitle)).all();
+}
+
+export async function getDueRevisionQuestions(now: string = new Date().toISOString()) {
+  return await db
+    .select()
+    .from(completed_questions)
+    .where(drizzleSql`${completed_questions.next_revision_time} <= ${now}`)
+    .all();
 }

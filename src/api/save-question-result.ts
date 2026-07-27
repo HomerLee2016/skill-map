@@ -1,5 +1,15 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
 import { insertCompletedQuestion } from '../db';
+
+interface NextApiRequest {
+  method?: string;
+  body?: any;
+}
+
+interface NextApiResponse {
+  setHeader: (name: string, value: string) => void;
+  status: (code: number) => NextApiResponse;
+  json: (body: any) => void;
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {

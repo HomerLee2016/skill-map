@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import YAML from 'yaml'
-import { insertCompletedQuestion } from './src/db'
 
 // https://vite.dev/config/
 function roadmapSavePlugin() {
