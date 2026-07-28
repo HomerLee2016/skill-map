@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import Markdown from 'react-markdown';
+import { LessonMarkdown } from './utils/lessonMarkdown';
 import {
   buildLessonTree,
   getInitialLessonStructure,
@@ -108,7 +108,7 @@ function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
       </aside>
       <article className="lessons-content markdown-body">
         {selected ? (
-          <Markdown>{selected.content}</Markdown>
+          <LessonMarkdown content={selected.content} />
         ) : (
           <p className="lessons-empty">Select a lesson from the sidebar.</p>
         )}

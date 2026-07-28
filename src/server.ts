@@ -63,6 +63,53 @@ app.get('/api/due-revision-questions', async (_req: Request, res: Response) => {
   }
 });
 
+app.get('/api/audio-proxy', async (req: Request, res: Response) => {
+  const rawUrl = typeof req.query.url === 'string' ? req.query.url : null;
+
+  if (!rawUrl) {
+    res.status(400).json({ ok: false, error: 'Missing url query parameter' });
+    return;
+  }
+
+  let targetUrl: URL;
+  try {
+    targetUrl = new URL(rawUrl);
+  } catch {
+    res.status(400).json({ ok: false, error: 'Invalid url query parameter' });
+    return;
+  }
+
+  if (!['http:', 'https:'].includes(targetUrl.protocol)) {
+    res.status(400).json({ ok: false, error: 'Only http(s) URLs are allowed' });
+    return;
+  }
+
+  try {
+    const upstream = await fetch(targetUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0',
+        Accept: 'audio/mpeg,audio/*,*/*;q=0.9',
+      },
+    });
+
+    if (!upstream.ok) {
+      res.status(upstream.status).send('Audio fetch failed');
+      return;
+    }
+
+    const contentType = upstream.headers.get('content-type') || 'audio/mpeg';
+    const buffer = Buffer.from(await upstream.arrayBuffer());
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Content-Length', buffer.length.toString());
+    res.send(buffer);
+  } catch (err) {
+    console.error('Audio proxy failed:', err);
+    res.status(502).json({ ok: false, error: 'Failed to fetch audio' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`API server listening on http://localhost:${PORT}`);
 });

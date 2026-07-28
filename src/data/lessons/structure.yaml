@@ -7,6 +7,7 @@ folders:
       - name: Beginner
         items:
           - spanish-01-demo-01
+          - spanish-02-greetings-01
 
 items:
   - getting-started
