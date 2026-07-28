@@ -23,6 +23,7 @@ app.post('/api/save-question-result', async (req: Request, res: Response) => {
       last_time,
       proficiency,
       quiz_title,
+      question_id,
     } = req.body;
     await insertCompletedQuestion({
       question_name,
@@ -33,6 +34,7 @@ app.post('/api/save-question-result', async (req: Request, res: Response) => {
       last_time,
       proficiency,
       quiz_title,
+      question_id,
     });
     res.status(200).json({ ok: true });
   } catch (err) {

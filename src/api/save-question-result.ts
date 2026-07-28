@@ -26,6 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       last_time,
       proficiency,
       quiz_title,
+      question_id,
     } = req.body;
     await insertCompletedQuestion({
       question_name,
@@ -36,6 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       last_time,
       proficiency,
       quiz_title,
+      question_id,
     });
     res.status(200).json({ ok: true });
   } catch (error) {

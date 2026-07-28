@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { CategorySection, ContentTreeSidebar, TreeGlobalActions } from './components/ContentTreeSidebar';
-import { useExpandCollapseState } from './hooks/useExpandCollapseState';
+import { CategorySection } from './components/ContentTreeSidebar';
 import AnswerQuestion from './components/AnswerQuestion';
-import { buildNewTestTree, getInitialTestsStructure, promptAddFolder, promptAssignItem, tests as availableTests, type StructureTree } from './utils/contentCatalog';
+import { getInitialTestsStructure } from './utils/contentCatalog';
+import { getNextProficiency, getDowngradedProficiency, normalizeProficiency } from './utils/revision';
 
 const API_BASE = 'http://localhost:5178';
 
@@ -15,6 +15,7 @@ async function saveQuestionResult(payload: {
   last_time: string;
   proficiency?: string;
   quiz_title: string;
+  question_id?: number;
 }) {
   const response = await fetch(`${API_BASE}/api/save-question-result`, {
     method: 'POST',
@@ -27,21 +28,9 @@ async function saveQuestionResult(payload: {
   }
 }
 
-async function saveTestsStructure(structure: { revision: StructureTree; new_tests: StructureTree }) {
-  const response = await fetch(`${API_BASE}/api/save-structure`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ kind: 'tests', structure }),
-  });
-  const result = await response.json().catch(() => null);
-  if (!response.ok || !result?.ok) {
-    throw new Error(result?.error || 'Failed to save test structure');
-  }
-}
-
 function Revision() {
-  const [structure, setStructure] = useState(getInitialTestsStructure);
-  const [structureError, setStructureError] = useState<string | null>(null);
+  useState(getInitialTestsStructure);
+  useState<string | null>(null);
   const [completedRows, setCompletedRows] = useState<any[]>([]);
   const [revisionMode, setRevisionMode] = useState(false);
   const [revisionQuestions, setRevisionQuestions] = useState<any[]>([]);
@@ -52,9 +41,7 @@ function Revision() {
   const [score, setScore] = useState(0);
   const [dueCount, setDueCount] = useState(0);
   const [showSummary, setShowSummary] = useState(true);
-  const { expandKey, collapseKey, expandAll, collapseAll } = useExpandCollapseState();
 
-  const newTestsTree = buildNewTestTree(structure.new_tests, structure.revision);
   const totalQuestions = revisionQuestions.length;
   const isLastQuestion = currentIdx + 1 >= totalQuestions;
 
@@ -84,34 +71,6 @@ function Revision() {
     void fetchCompleted();
     void fetchDueCount();
   }, []);
-
-  const persist = async (next: { revision: StructureTree; new_tests: StructureTree }) => {
-    try {
-      await saveTestsStructure(next);
-      setStructure(next);
-      setStructureError(null);
-    } catch (error) {
-      setStructureError(error instanceof Error ? error.message : 'Failed to save structure');
-    }
-  };
-
-  const handleAddFolder = (section: 'revision' | 'new_tests') => {
-    const nextSection = promptAddFolder(structure[section]);
-    if (nextSection) {
-      void persist({ ...structure, [section]: nextSection });
-    }
-  };
-
-  const handleAssignItem = (section: 'revision' | 'new_tests') => {
-    const nextSection = promptAssignItem(
-      availableTests.map(({ id, title }) => ({ id, title })),
-      structure[section],
-      'Test'
-    );
-    if (nextSection) {
-      void persist({ ...structure, [section]: nextSection });
-    }
-  };
 
   const startRevision = async () => {
     try {
@@ -148,6 +107,8 @@ function Revision() {
 
   const handleAnswerSelect = async (question: any, option: string) => {
     const isCorrect = option === question.correct_answer;
+    const currentProficiency = question.proficiency ?? '1.1';
+    const nextProficiency = isCorrect ? getNextProficiency(currentProficiency) : getDowngradedProficiency(currentProficiency);
     setAnswers((prev) => ({ ...prev, [question.question_number]: option }));
     setCorrectMap((prev) => ({ ...prev, [question.question_number]: isCorrect }));
 
@@ -159,8 +120,28 @@ function Revision() {
         selected_answer: option,
         correct: isCorrect ? 1 : 0,
         last_time: new Date().toISOString(),
-        proficiency: question.proficiency,
+        proficiency: currentProficiency,
         quiz_title: 'Revision',
+        question_id: question.question_number,
+      });
+
+      setCompletedRows((prev) => {
+        const optimisticRow = {
+          id: question.question_number,
+          question_name: question.question,
+          correct_answer: question.correct_answer,
+          quiz_title: 'Revision',
+          proficiency: nextProficiency,
+          last_time: new Date().toISOString(),
+          correct: isCorrect ? 1 : 0,
+        };
+
+        const exists = prev.some((row: any) => row.id === question.question_number);
+        if (exists) {
+          return prev.map((row: any) => (row.id === question.question_number ? { ...row, ...optimisticRow } : row));
+        }
+
+        return [optimisticRow, ...prev];
       });
       await fetchCompleted();
     } catch (error) {
@@ -185,11 +166,15 @@ function Revision() {
         <div className="tests-sidebar-header">
           <div className="tests-sidebar-title">Revision</div>
         </div>
-        {structureError && <p className="tree-error">{structureError}</p>}
-
         <CategorySection title="Revision Actions">
           <div className="revision-action-list">
-            <button type="button" className="next-btn" onClick={() => { setShowSummary(true); setRevisionMode(false); setFinished(false); }}>
+            <button type="button" className="next-btn" onClick={async () => {
+              setShowSummary(true);
+              setRevisionMode(false);
+              setFinished(false);
+              await fetchCompleted();
+              await fetchDueCount();
+            }}>
               Learnt Summary
             </button>
             <button type="button" className="next-btn" onClick={() => { void startRevision(); }}>
@@ -222,6 +207,7 @@ function Revision() {
                     <th>Question</th>
                     <th>Correct Answer</th>
                     <th>Proficiency</th>
+                    <th>Next Revision Time</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -231,7 +217,12 @@ function Revision() {
                       <td>{row.quiz_title}</td>
                       <td>{row.question_name}</td>
                       <td>{row.correct_answer}</td>
-                      <td>{row.proficiency}</td>
+                      <td>
+                        <span className="revision-proficiency-badge">
+                          {normalizeProficiency(row.proficiency)}
+                        </span>
+                      </td>
+                      <td>{row.next_revision_time}</td>
                     </tr>
                   ))}
                 </tbody>

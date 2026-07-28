@@ -6,6 +6,7 @@ import { eq, sql as drizzleSql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 import { applyRevisionColumnsMigration } from './db/migrations/20260727-add-revision-columns';
+import { DEFAULT_PROFICIENCY, getDowngradedProficiency, getNextProficiency, getNextRevisionTime, normalizeProficiency } from './utils/revision';
 
 // Initialize the database (file will be created in the project root)
 const sqlite = new Database('skill-map.db');
@@ -29,6 +30,15 @@ export const db = drizzle(sqlite);
 
 await applyRevisionColumnsMigration(sqlite);
 
+sqlite.prepare(`
+  UPDATE completed_questions
+  SET proficiency = CASE
+    WHEN trim(COALESCE(proficiency, '')) = '' THEN ?
+    ELSE proficiency
+  END
+  WHERE proficiency IS NULL OR trim(COALESCE(proficiency, '')) = ''
+`).run(DEFAULT_PROFICIENCY);
+
 // Table to store completed test questions and question metadata
 export const completed_questions = sqliteTable('completed_questions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -44,7 +54,7 @@ export const completed_questions = sqliteTable('completed_questions', {
   hash: text('hash').notNull().unique(),
 });
 
-// Example function to insert a completed question entry
+// Example function to insert or update a completed question entry
 export async function insertCompletedQuestion(entry: {
   question_name: string;
   options: string[];
@@ -54,21 +64,45 @@ export async function insertCompletedQuestion(entry: {
   quiz_title: string;
   selected_answer?: string;
   correct?: number;
+  question_id?: number;
 }) {
   const hash = createHash('sha256')
     .update(entry.question_name + JSON.stringify(entry.options))
     .digest('hex');
-  // Avoid duplicate entries
 
-  const exists = await db
-    .select()
-    .from(completed_questions)
-    .where(eq(completed_questions.hash, hash))
-    .get();
-  if (exists) {
-    console.log('Duplicate question detected, skipping insert');
+  const existing = entry.question_id != null
+    ? await db
+      .select()
+      .from(completed_questions)
+      .where(eq(completed_questions.id, entry.question_id))
+      .get()
+    : await db
+      .select()
+      .from(completed_questions)
+      .where(eq(completed_questions.hash, hash))
+      .get();
+
+  const isCorrect = entry.correct === 1;
+  const currentProficiency = normalizeProficiency(existing?.proficiency ?? entry.proficiency);
+  const resolvedProficiency = normalizeProficiency(isCorrect ? getNextProficiency(currentProficiency) : getDowngradedProficiency(currentProficiency));
+  const nextRevisionTime = getNextRevisionTime(entry.last_time, resolvedProficiency);
+
+  if (existing) {
+    await db
+      .update(completed_questions)
+      .set({
+        selected_answer: entry.selected_answer ?? null,
+        correct: entry.correct ?? 0,
+        last_time: entry.last_time,
+        next_revision_time: nextRevisionTime,
+        proficiency: resolvedProficiency,
+        quiz_title: entry.quiz_title,
+      })
+      .where(eq(completed_questions.id, existing.id))
+      .run();
     return;
   }
+
   await db
     .insert(completed_questions)
     .values({
@@ -78,8 +112,8 @@ export async function insertCompletedQuestion(entry: {
       selected_answer: entry.selected_answer ?? null,
       correct: entry.correct ?? 0,
       last_time: entry.last_time,
-      next_revision_time: entry.last_time, // initially same as last_time
-      proficiency: entry.proficiency ?? null,
+      next_revision_time: nextRevisionTime,
+      proficiency: resolvedProficiency,
       quiz_title: entry.quiz_title,
       hash,
     })

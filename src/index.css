@@ -803,6 +803,18 @@ body, html, #root {
   vertical-align: top;
 }
 
+.revision-proficiency-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.14);
+  color: var(--modal-save-bg);
+  font-weight: 700;
+}
+
 .summary-table tbody tr:nth-child(even) {
   background: rgba(99, 102, 241, 0.04);
 }
