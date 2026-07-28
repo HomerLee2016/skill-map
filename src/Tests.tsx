@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  addFolderToTree,
+  assignItemToTree,
   buildNewTestTree,
   getInitialTestsStructure,
-  promptAddFolder,
-  promptAssignItem,
+  listFolderPaths,
+  pathToSegments,
   tests as availableTests,
   type StructureTree,
 } from './utils/contentCatalog';
 import {
   CategorySection,
   ContentTreeSidebar,
+  TreeActionModal,
   TreeGlobalActions,
 } from './components/ContentTreeSidebar';
 import { useExpandCollapseState } from './hooks/useExpandCollapseState';
@@ -66,6 +69,10 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const [total, setTotal] = useState(0);
   const [structure, setStructure] = useState(getInitialTestsStructure);
   const [structureError, setStructureError] = useState<string | null>(null);
+  const [modalState, setModalState] = useState<{ open: boolean; mode: 'add-folder' | 'assign-item' }>({
+    open: false,
+    mode: 'add-folder',
+  });
   const { expandKey, collapseKey, expandAll, collapseAll } = useExpandCollapseState();
 
 
@@ -109,21 +116,29 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   };
 
   const handleAddFolder = (section: 'revision' | 'new_tests') => {
-    const nextSection = promptAddFolder(structure[section]);
-    if (nextSection) {
-      persist({ ...structure, [section]: nextSection });
-    }
+    setModalState({ open: true, mode: 'add-folder' });
+    setCurrentSection(section);
   };
 
   const handleAssignItem = (section: 'revision' | 'new_tests') => {
-    const nextSection = promptAssignItem(
-      availableTests.map(({ id, title }) => ({ id, title })),
-      structure[section],
-      'Test'
-    );
-    if (nextSection) {
-      persist({ ...structure, [section]: nextSection });
+    setModalState({ open: true, mode: 'assign-item' });
+    setCurrentSection(section);
+  };
+
+  const [currentSection, setCurrentSection] = useState<'revision' | 'new_tests'>('new_tests');
+
+  const handleModalSubmit = ({ folderName, itemId, parentPath }: { folderName?: string; itemId?: string; parentPath: string }) => {
+    const sectionTree = structure[currentSection];
+    if (modalState.mode === 'add-folder') {
+      if (!folderName?.trim()) return;
+      const nextSection = addFolderToTree(sectionTree, folderName, parentPath ? pathToSegments(parentPath) : []);
+      persist({ ...structure, [currentSection]: nextSection });
+      return;
     }
+
+    if (!itemId) return;
+    const nextSection = assignItemToTree(sectionTree, itemId, parentPath ? pathToSegments(parentPath) : []);
+    persist({ ...structure, [currentSection]: nextSection });
   };
 
   const totalQuestions = selected?.questions.length ?? 0;
@@ -180,6 +195,15 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
           Folders are stored in <code>src/data/tests/structure.yaml</code>
         </p>
         {structureError && <p className="tree-error">{structureError}</p>}
+        <TreeActionModal
+          isOpen={modalState.open}
+          mode={modalState.mode}
+          itemLabel="Test"
+          catalog={availableTests.map(({ id, title }) => ({ id, title }))}
+          folderPaths={listFolderPaths(structure[currentSection])}
+          onClose={() => setModalState((prev) => ({ ...prev, open: false }))}
+          onSubmit={handleModalSubmit}
+        />
         <CategorySection
           title="New Tests"
           onAddFolder={() => handleAddFolder('new_tests')}

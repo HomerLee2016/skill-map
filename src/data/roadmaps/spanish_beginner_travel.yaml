@@ -27,6 +27,10 @@
   y: 61
   finished: false
   description: Use common greetings, introductions, and polite phrases.
+  lessons:
+    - spanish-02-greetings-01
+  tests:
+    - spanish-test-02
   dependsOn:
     - spanish_beginner_travel
 - id: spanish_self_intro

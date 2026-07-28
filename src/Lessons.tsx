@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { LessonMarkdown } from './utils/lessonMarkdown';
 import {
+  addFolderToTree,
+  assignItemToTree,
   buildLessonTree,
   getInitialLessonStructure,
   lessons as availableLessons,
-  promptAddFolder,
-  promptAssignItem,
+  listFolderPaths,
+  pathToSegments,
   type StructureTree,
 } from './utils/contentCatalog';
 import {
   CategorySection,
   ContentTreeSidebar,
+  TreeActionModal,
   TreeGlobalActions,
 } from './components/ContentTreeSidebar';
 import { useExpandCollapseState } from './hooks/useExpandCollapseState';
@@ -36,6 +39,10 @@ function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
   const [activeId, setActiveId] = useState(selectedLessonId || availableLessons[0]?.id || '');
   const [structure, setStructure] = useState(getInitialLessonStructure);
   const [error, setError] = useState<string | null>(null);
+  const [modalState, setModalState] = useState<{ open: boolean; mode: 'add-folder' | 'assign-item' }>({
+    open: false,
+    mode: 'add-folder',
+  });
   const { expandKey, collapseKey, expandAll, collapseAll } = useExpandCollapseState();
 
   const tree = useMemo(() => buildLessonTree(structure), [structure]);
@@ -64,16 +71,23 @@ function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
   };
 
   const handleAddFolder = () => {
-    const next = promptAddFolder(structure);
-    if (next) persist(next);
+    setModalState({ open: true, mode: 'add-folder' });
   };
 
   const handleAssignItem = () => {
-    const next = promptAssignItem(
-      availableLessons.map(({ id, title }) => ({ id, title })),
-      structure,
-      'Lesson'
-    );
+    setModalState({ open: true, mode: 'assign-item' });
+  };
+
+  const handleModalSubmit = ({ folderName, itemId, parentPath }: { folderName?: string; itemId?: string; parentPath: string }) => {
+    if (modalState.mode === 'add-folder') {
+      if (!folderName?.trim()) return;
+      const next = addFolderToTree(structure, folderName, parentPath ? pathToSegments(parentPath) : []);
+      if (next) persist(next);
+      return;
+    }
+
+    if (!itemId) return;
+    const next = assignItemToTree(structure, itemId, parentPath ? pathToSegments(parentPath) : []);
     if (next) persist(next);
   };
 
@@ -85,6 +99,15 @@ function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
           onAddFolder={handleAddFolder}
           onAssignItem={handleAssignItem}
         >
+          <TreeActionModal
+            isOpen={modalState.open}
+            mode={modalState.mode}
+            itemLabel="Lesson"
+            catalog={availableLessons.map(({ id, title }) => ({ id, title }))}
+            folderPaths={listFolderPaths(structure)}
+            onClose={() => setModalState((prev) => ({ ...prev, open: false }))}
+            onSubmit={handleModalSubmit}
+          />
           <TreeGlobalActions onExpandAll={expandAll} onCollapseAll={collapseAll} />
           <p className="tree-structure-hint">
             Folders are stored in <code>src/data/lessons/structure.yaml</code>
