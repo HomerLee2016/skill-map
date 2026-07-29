@@ -5,7 +5,7 @@ import { createHash } from 'crypto';
 import { eq, sql as drizzleSql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
-import { getDowngradedProficiency, getNextProficiency, getNextRevisionTime, normalizeProficiency } from './utils/revision';
+import { getDowngradedProficiency, getNextProficiency, getNextRevisionTime, normalizeProficiency, shouldAdvanceRevision } from './utils/revision';
 
 // Initialize the database (file will be created in the project root)
 const sqlite = new Database('skill-map.db');
@@ -71,8 +71,15 @@ export async function insertCompletedQuestion(entry: {
 
   const isCorrect = entry.correct === 1;
   const currentProficiency = normalizeProficiency(existing?.proficiency ?? entry.proficiency);
-  const resolvedProficiency = normalizeProficiency(isCorrect ? getNextProficiency(currentProficiency) : getDowngradedProficiency(currentProficiency));
-  const nextRevisionTime = getNextRevisionTime(entry.last_time, resolvedProficiency);
+  const shouldAdvance = shouldAdvanceRevision(existing?.next_revision_time, entry.last_time);
+  const resolvedProficiency = normalizeProficiency(isCorrect && shouldAdvance
+    ? getNextProficiency(currentProficiency)
+    : isCorrect
+      ? currentProficiency
+      : getDowngradedProficiency(currentProficiency));
+  const nextRevisionTime = shouldAdvance
+    ? getNextRevisionTime(entry.last_time, resolvedProficiency)
+    : existing?.next_revision_time ?? getNextRevisionTime(entry.last_time, resolvedProficiency);
 
   if (existing) {
     await db

@@ -61,3 +61,11 @@ export function isQuestionDue(lastTime: string | null | undefined, currentProfic
   const nextRevisionTime = getNextRevisionTime(lastTime, currentProficiency);
   return new Date(nextRevisionTime).getTime() <= now.getTime();
 }
+
+export function shouldAdvanceRevision(existingNextRevisionTime: string | null | undefined, retakeTime: string): boolean {
+  if (!existingNextRevisionTime) {
+    return true;
+  }
+
+  return new Date(retakeTime).getTime() >= new Date(existingNextRevisionTime).getTime();
+}
