@@ -12,7 +12,7 @@ export function TreeGlobalActions({
     <div className="tree-global-actions">
       <button
         type="button"
-        className="tree-action-btn"
+        className="toolbar-btn toolbar-btn--full"
         title="Expand all folders"
         onClick={onExpandAll}
       >
@@ -20,7 +20,7 @@ export function TreeGlobalActions({
       </button>
       <button
         type="button"
-        className="tree-action-btn"
+        className="toolbar-btn toolbar-btn--full"
         title="Collapse all folders"
         onClick={onCollapseAll}
       >
@@ -393,10 +393,10 @@ export function TreeActionModal({
         )}
 
         <div className="modal-actions">
-          <button type="button" className="modal-btn-cancel" onClick={onClose}>
+          <button type="button" className="toolbar-btn" onClick={onClose}>
             Cancel
           </button>
-          <button type="button" className="modal-btn-save" onClick={handleSubmit} disabled={!canSubmit}>
+          <button type="button" className="toolbar-btn" onClick={handleSubmit} disabled={!canSubmit}>
             Save
           </button>
         </div>

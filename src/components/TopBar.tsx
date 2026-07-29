@@ -1,3 +1,4 @@
+import { useWorkspace } from '../contexts/WorkspaceContext';
 import type { PageId } from '../types';
 
 interface TopBarProps {
@@ -15,6 +16,8 @@ const NAV_ITEMS: { id: PageId; label: string }[] = [
 ];
 
 export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBarProps) {
+  const { selectWorkspace, isLoading, selectedDirectoryHandle } = useWorkspace();
+
   return (
     <header className="top-bar">
       <div className="top-bar-brand">Skill Map</div>
@@ -30,18 +33,23 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
           </button>
         ))}
       </nav>
-      <label className="top-bar-theme">
-        <span className="top-bar-theme-label">Dark mode</span>
-        <span className={darkMode ? 'toggle-track toggle-track--on' : 'toggle-track'}>
-          <input
-            type="checkbox"
-            className="toggle-input"
-            checked={darkMode}
-            onChange={(e) => setDarkMode(e.target.checked)}
-          />
-          <span className="toggle-knob" />
-        </span>
-      </label>
+      <div className="top-bar-actions">
+        <button type="button" className="toolbar-btn" onClick={() => { void selectWorkspace(); }}>
+          {isLoading ? 'Loading…' : selectedDirectoryHandle ? 'Workspace: Local' : 'Select Local Workspace'}
+        </button>
+        <label className="top-bar-theme">
+          <span className="top-bar-theme-label">Dark mode</span>
+          <span className={darkMode ? 'toggle-track toggle-track--on' : 'toggle-track'}>
+            <input
+              type="checkbox"
+              className="toggle-input"
+              checked={darkMode}
+              onChange={(e) => setDarkMode(e.target.checked)}
+            />
+            <span className="toggle-knob" />
+          </span>
+        </label>
+      </div>
     </header>
   );
 }

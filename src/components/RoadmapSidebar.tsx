@@ -48,8 +48,11 @@ export function RoadmapSidebar({
     <div className="sidebar">
       <div className="sidebar-header">
         <div className="sidebar-title">Roadmaps</div>
-        <button className="sidebar-save-btn" onClick={onSaveRoadmap}>
+        <button type="button" className="toolbar-btn toolbar-btn--full" onClick={onSaveRoadmap}>
           Save Roadmap
+        </button>
+        <button type="button" className="toolbar-btn toolbar-btn--full" onClick={onCreateRoadmap}>
+          + New Roadmap
         </button>
         <div className="sidebar-toggles">
           <ToggleSwitch checked={yamlVisible} onChange={setYamlVisible} label="Show YAML" />
@@ -68,9 +71,6 @@ export function RoadmapSidebar({
           {r.name}
         </button>
       ))}
-      <button className="sidebar-create-btn" onClick={onCreateRoadmap}>
-        + New Roadmap
-      </button>
     </div>
   );
 }

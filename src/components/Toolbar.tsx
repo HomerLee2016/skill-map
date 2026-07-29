@@ -18,7 +18,7 @@ export function Toolbar({
   return (
     <div className="toolbar">
       <button
-        className="toolbar-btn"
+        className="toolbar-btn toolbar-btn--full"
         onClick={onAutoAlign}
         title="Auto-align tree"
       >
@@ -26,7 +26,7 @@ export function Toolbar({
       </button>
 
       <button
-        className="toolbar-btn"
+        className="toolbar-btn toolbar-btn--full"
         onClick={() => setShowDetails(!showDetails)}
         title={showDetails ? 'Hide Details' : 'Show Details'}
       >
@@ -34,7 +34,7 @@ export function Toolbar({
       </button>
 
       <button
-        className="toolbar-btn"
+        className="toolbar-btn toolbar-btn--full"
         onClick={onAddNode}
         title="Add Skill Node"
       >
@@ -42,7 +42,7 @@ export function Toolbar({
       </button>
 
       <button
-        className="toolbar-btn"
+        className="toolbar-btn toolbar-btn--full"
         onClick={() => setTipsOpen(!tipsOpen)}
         title={tipsOpen ? 'Hide Tips' : 'Show Tips'}
       >

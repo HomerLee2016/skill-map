@@ -1,12 +1,40 @@
+import Dexie, { type Table } from 'dexie';
+
 export const MASTER_LEVELS = [
-  '1.1','1.2','1.3','1.4','1.5',
-  '2.1','2.2','2.3','2.4','2.5',
-  '3.1','3.2','3.3','3.4','3.5',
-  '4.1','4.2','4.3','4.4',
-  '5.1','5.2','5.3',
+  '1.1', '1.2', '1.3', '1.4', '1.5',
+  '2.1', '2.2', '2.3', '2.4', '2.5',
+  '3.1', '3.2', '3.3', '3.4', '3.5',
+  '4.1', '4.2', '4.3', '4.4',
+  '5.1', '5.2', '5.3',
 ] as const;
 
 export const DEFAULT_PROFICIENCY = '1.1' as const;
+
+export interface CompletedQuestionRecord {
+  id?: number;
+  question_name: string;
+  options: string[];
+  correct_answer: string;
+  selected_answer?: string | null;
+  correct?: number;
+  last_time: string;
+  next_revision_time?: string | null;
+  proficiency?: string | null;
+  quiz_title: string;
+  hash: string;
+}
+
+export interface CompletedQuestionInsert {
+  question_name: string;
+  options: string[];
+  correct_answer: string;
+  last_time: string;
+  proficiency?: string;
+  quiz_title: string;
+  selected_answer?: string;
+  correct?: number;
+  question_id?: number;
+}
 
 export function normalizeProficiency(proficiency: string | null | undefined): string {
   const trimmed = proficiency?.trim();
@@ -68,4 +96,103 @@ export function shouldAdvanceRevision(existingNextRevisionTime: string | null | 
   }
 
   return new Date(retakeTime).getTime() >= new Date(existingNextRevisionTime).getTime();
+}
+
+class RevisionDexieStore extends Dexie {
+  completed_questions!: Table<CompletedQuestionRecord, number>;
+
+  constructor() {
+    super('skill-map-revision-db');
+    this.version(1).stores({
+      completed_questions: '++id, hash, quiz_title, next_revision_time, last_time, proficiency',
+    });
+  }
+}
+
+export const revisionStore = new RevisionDexieStore();
+
+function createQuestionHash(questionName: string, options: string[]) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(`${questionName}:${options.join('|')}`);
+  return Array.from(data, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+export async function insertCompletedQuestion(entry: CompletedQuestionInsert): Promise<CompletedQuestionRecord> {
+  const hash = createQuestionHash(entry.question_name, entry.options);
+
+  const existing = entry.question_id != null
+    ? await revisionStore.completed_questions.get(entry.question_id)
+    : await revisionStore.completed_questions.where('hash').equals(hash).first();
+
+  const isCorrect = entry.correct === 1;
+  const currentProficiency = normalizeProficiency(existing?.proficiency ?? entry.proficiency);
+  const shouldAdvance = shouldAdvanceRevision(existing?.next_revision_time ?? null, entry.last_time);
+  const resolvedProficiency = normalizeProficiency(
+    isCorrect && shouldAdvance
+      ? getNextProficiency(currentProficiency)
+      : isCorrect
+        ? currentProficiency
+        : getDowngradedProficiency(currentProficiency)
+  );
+  const nextRevisionTime = shouldAdvance
+    ? getNextRevisionTime(entry.last_time, resolvedProficiency)
+    : existing?.next_revision_time ?? getNextRevisionTime(entry.last_time, resolvedProficiency);
+
+  const record: CompletedQuestionRecord = {
+    id: existing?.id,
+    question_name: entry.question_name,
+    options: entry.options,
+    correct_answer: entry.correct_answer,
+    selected_answer: entry.selected_answer ?? null,
+    correct: entry.correct ?? 0,
+    last_time: entry.last_time,
+    next_revision_time: nextRevisionTime,
+    proficiency: resolvedProficiency,
+    quiz_title: entry.quiz_title,
+    hash,
+  };
+
+  if (existing?.id != null) {
+    const updatedRecord = { ...record, id: existing.id } as CompletedQuestionRecord;
+    await revisionStore.completed_questions.put(updatedRecord);
+    return updatedRecord;
+  }
+
+  const newId = await revisionStore.completed_questions.add(record);
+  return { ...record, id: newId };
+}
+
+export async function getCompletedQuestionsByQuiz(quizTitle: string): Promise<CompletedQuestionRecord[]> {
+  return revisionStore.completed_questions.where('quiz_title').equals(quizTitle).toArray();
+}
+
+export async function getAllCompletedQuestions(): Promise<CompletedQuestionRecord[]> {
+  return revisionStore.completed_questions.orderBy('last_time').reverse().toArray();
+}
+
+export async function getDueRevisionQuestions(now: string = new Date().toISOString()): Promise<CompletedQuestionRecord[]> {
+  return revisionStore.completed_questions.where('next_revision_time').belowOrEqual(now).toArray();
+}
+
+export async function exportRevisionData(): Promise<string> {
+  const records = await getAllCompletedQuestions();
+  return JSON.stringify({
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    records,
+  }, null, 2);
+}
+
+export async function importRevisionData(json: string): Promise<number> {
+  const parsed = JSON.parse(json) as { records?: CompletedQuestionRecord[] };
+  const records = Array.isArray(parsed.records) ? parsed.records : [];
+
+  await revisionStore.transaction('rw', revisionStore.completed_questions, async () => {
+    await revisionStore.completed_questions.clear();
+    for (const record of records) {
+      await revisionStore.completed_questions.put(record);
+    }
+  });
+
+  return records.length;
 }

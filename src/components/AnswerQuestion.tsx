@@ -58,7 +58,7 @@ const AnswerQuestion: React.FC<Props> = ({ q, answers, correctMap, handleAnswerS
         );
       })}
       {hasAnswered && showNextButton && onNextQuestion && !isCorrectAnswer && (
-        <button type="button" className="next-btn next-btn--inline" onClick={onNextQuestion}>
+        <button type="button" className="toolbar-btn toolbar-btn--full" onClick={onNextQuestion}>
           {isCorrectAnswer ? 'Continue' : 'Next question'}
         </button>
       )}

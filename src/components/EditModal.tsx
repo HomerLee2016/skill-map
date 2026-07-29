@@ -217,10 +217,10 @@ export const EditModal: React.FC<EditModalProps> = ({
           </select>
         </label>
         <div className="modal-actions">
-          <button className="modal-btn-cancel" onClick={() => setEditingNodeId(null)}>
+          <button type="button" className="toolbar-btn" onClick={() => setEditingNodeId(null)}>
             Cancel
           </button>
-          <button className="modal-btn-save" onClick={onSave}>
+          <button type="button" className="toolbar-btn" onClick={onSave}>
             Save
           </button>
         </div>

@@ -230,19 +230,8 @@ body, html, #root {
 
 .start-now-btn {
   margin-top: 1rem;
-  border: none;
   border-radius: 999px;
   padding: 0.75rem 1.25rem;
-  font-weight: 600;
-  color: white;
-  background: linear-gradient(135deg, #4f46e5, #2563eb);
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.start-now-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
 }
 
 .app-layout {
@@ -329,6 +318,13 @@ body, html, #root {
   font-weight: 600;
 }
 
+.top-bar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
 .top-bar-theme {
   display: inline-flex;
   align-items: center;
@@ -340,6 +336,14 @@ body, html, #root {
 
 .top-bar-theme-label {
   color: var(--topbar-link);
+}
+
+.workspace-select-btn {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  background: var(--topbar-link-active-bg);
+  color: var(--topbar-link-active-text);
 }
 
 /* Lessons page */
@@ -433,25 +437,9 @@ body, html, #root {
 
 .tree-action-btn {
   flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
   padding: 6px 8px;
   font-size: 11px;
-  font-weight: 600;
   font-family: inherit;
-  border: 1px solid var(--sidebar-border);
-  border-radius: 6px;
-  background: var(--topbar-bg, #fff);
-  color: var(--lessons-text);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.tree-action-btn:hover {
-  background: var(--sidebar-item-selected-bg);
-  border-color: var(--sidebar-create-border);
 }
 
 .tree-header-actions {
@@ -502,6 +490,13 @@ body, html, #root {
   width: 100%;
   margin-top: 0;
   text-align: center;
+}
+
+.revision-action-list .upload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 .tree-list {
@@ -743,31 +738,32 @@ body, html, #root {
   font-weight: 600;
 }
 
-/* Next Question button */
-.next-btn {
+/* Shared button system */
+.toolbar-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 16px;
-  margin-top: 12px;
+  gap: 6px;
+  padding: 8px 12px;
   font-size: 14px;
   font-weight: 600;
-  background: var(--modal-save-bg);
-  color: var(--modal-save-color);
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
+  color: var(--toolbar-btn-color);
+  background: var(--toolbar-btn-bg);
+  transition: filter 0.2s ease, transform 0.1s ease, background 0.2s ease;
 }
-.next-btn:hover {
+
+.toolbar-btn:hover {
   filter: brightness(0.95);
 }
-.next-btn:active {
+
+.toolbar-btn:active {
   transform: scale(0.98);
 }
 
-.next-btn--inline {
-  margin-top: 12px;
+.toolbar-btn--full {
   width: 100%;
 }
 
@@ -783,6 +779,20 @@ body, html, #root {
 .summary-table-wrapper h2 {
   margin: 0 0 16px;
   font-size: 20px;
+}
+
+.summary-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel-bg);
+  gap: 8px;
+  padding: 0px 0px 20px;
+}
+
+.summary-table-header-buttons {
+  display: flex;
+  gap: 8px;
 }
 
 .summary-table {
@@ -823,25 +833,6 @@ body, html, #root {
   background: rgba(79, 70, 229, 0.08);
 }
 
-.finish-btn {
-  display: inline-block;
-  padding: 8px 16px;
-  margin-top: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  background: var(--modal-save-bg);
-  color: var(--modal-save-color);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
-}
-.finish-btn:hover {
-  filter: brightness(0.95);
-}
-.finish-btn:active {
-  transform: scale(0.98);
-}
 
 .tests-score {
   margin-top: 16px;
@@ -886,19 +877,6 @@ body, html, #root {
   box-sizing: border-box;
 }
 
-.toolbar-btn {
-  background: var(--toolbar-btn-bg);
-  border: none;
-  color: var(--toolbar-btn-color);
-  padding: 6px 12px;
-  cursor: pointer;
-  border-radius: 6px;
-  width: 100%;
-}
-
-.toolbar-btn:hover {
-  background: var(--toolbar-btn-hover-bg);
-}
 
 .toolbar .tips-copy {
   font-size: 11px;
@@ -919,7 +897,9 @@ body, html, #root {
 }
 
 .sidebar-header {
+  display: grid;
   padding: 12px 12px 8px;
+  gap: 8px;
   border-bottom: 1px solid var(--sidebar-border);
 }
 
@@ -931,14 +911,7 @@ body, html, #root {
 
 .sidebar-save-btn {
   width: 100%;
-  padding: 10px;
-  background: var(--sidebar-save-bg);
-  color: var(--sidebar-save-color);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
   margin-bottom: 10px;
-  font-weight: 700;
 }
 
 .sidebar-toggles {

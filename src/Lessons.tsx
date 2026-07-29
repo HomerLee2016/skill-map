@@ -3,13 +3,12 @@ import { LessonMarkdown } from './utils/lessonMarkdown';
 import {
   addFolderToTree,
   assignItemToTree,
-  buildLessonTree,
-  getInitialLessonStructure,
-  lessons as availableLessons,
   listFolderPaths,
   pathToSegments,
   type StructureTree,
 } from './utils/contentCatalog';
+import { useWorkspace } from './contexts/WorkspaceContext';
+import { resolveStructureTree } from './utils/folderStructure';
 import {
   CategorySection,
   ContentTreeSidebar,
@@ -24,20 +23,14 @@ interface LessonsProps {
 }
 
 async function saveLessonStructure(structure: StructureTree) {
-  const response = await fetch('/api/save-structure', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ kind: 'lessons', structure }),
-  });
-  const result = await response.json().catch(() => null);
-  if (!response.ok || !result?.ok) {
-    throw new Error(result?.error || 'Failed to save lesson structure');
-  }
+  return structure;
 }
 
 function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
+  const { workspace } = useWorkspace();
+  const availableLessons = workspace.lessons;
   const [activeId, setActiveId] = useState(selectedLessonId || availableLessons[0]?.id || '');
-  const [structure, setStructure] = useState(getInitialLessonStructure);
+  const [structure, setStructure] = useState<StructureTree>(workspace.lessonStructure);
   const [error, setError] = useState<string | null>(null);
   const [modalState, setModalState] = useState<{ open: boolean; mode: 'add-folder' | 'assign-item' }>({
     open: false,
@@ -45,13 +38,22 @@ function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
   });
   const { expandKey, collapseKey, expandAll, collapseAll } = useExpandCollapseState();
 
-  const tree = useMemo(() => buildLessonTree(structure), [structure]);
+  const tree = useMemo(() => resolveStructureTree(structure, availableLessons.map(({ id, title }) => ({ id, title })), { includeUngrouped: true }), [structure, availableLessons]);
+
+  useEffect(() => {
+    setStructure(workspace.lessonStructure);
+  }, [workspace.lessonStructure]);
 
   useEffect(() => {
     if (selectedLessonId) {
       setActiveId(selectedLessonId);
+      return;
     }
-  }, [selectedLessonId]);
+
+    if (!activeId && availableLessons[0]?.id) {
+      setActiveId(availableLessons[0].id);
+    }
+  }, [selectedLessonId, availableLessons, activeId]);
 
   const selected = availableLessons.find((lesson) => lesson.id === activeId);
 
@@ -62,7 +64,7 @@ function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
 
   const persist = async (next: StructureTree) => {
     try {
-      await saveLessonStructure(next);
+      void saveLessonStructure(next);
       setStructure(next);
       setError(null);
     } catch (err) {
@@ -94,25 +96,28 @@ function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
   return (
     <div className="lessons-page">
       <aside className="lessons-sidebar">
+        <div className="lessons-sidebar-header">
+          <div className="lessons-sidebar-title">Lessons</div>
+        </div>
+        <TreeGlobalActions onExpandAll={expandAll} onCollapseAll={collapseAll} />
+        <p className="tree-structure-hint">
+          Folders are stored in <code>src/data/lessons/structure.yaml</code>
+        </p>
+        {error && <p className="tree-error">{error}</p>}
+        <TreeActionModal
+          isOpen={modalState.open}
+          mode={modalState.mode}
+          itemLabel="Lesson"
+          catalog={availableLessons.map(({ id, title }) => ({ id, title }))}
+          folderPaths={listFolderPaths(structure)}
+          onClose={() => setModalState((prev) => ({ ...prev, open: false }))}
+          onSubmit={handleModalSubmit}
+        />
         <CategorySection
           title="Lessons"
           onAddFolder={handleAddFolder}
           onAssignItem={handleAssignItem}
         >
-          <TreeActionModal
-            isOpen={modalState.open}
-            mode={modalState.mode}
-            itemLabel="Lesson"
-            catalog={availableLessons.map(({ id, title }) => ({ id, title }))}
-            folderPaths={listFolderPaths(structure)}
-            onClose={() => setModalState((prev) => ({ ...prev, open: false }))}
-            onSubmit={handleModalSubmit}
-          />
-          <TreeGlobalActions onExpandAll={expandAll} onCollapseAll={collapseAll} />
-          <p className="tree-structure-hint">
-            Folders are stored in <code>src/data/lessons/structure.yaml</code>
-          </p>
-          {error && <p className="tree-error">{error}</p>}
           {availableLessons.length === 0 ? (
             <p className="lessons-empty">Add markdown files to <code>src/data/lessons/</code>.</p>
           ) : (

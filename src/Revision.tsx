@@ -1,10 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CategorySection } from './components/ContentTreeSidebar';
 import AnswerQuestion from './components/AnswerQuestion';
 import { getInitialTestsStructure } from './utils/contentCatalog';
-import { getNextProficiency, getDowngradedProficiency, normalizeProficiency } from './utils/revision';
-
-const API_BASE = 'http://localhost:5178';
+import {
+  exportRevisionData,
+  getAllCompletedQuestions,
+  getDueRevisionQuestions,
+  getDowngradedProficiency,
+  getNextProficiency,
+  importRevisionData,
+  insertCompletedQuestion,
+  normalizeProficiency,
+} from './utils/revision';
 
 async function saveQuestionResult(payload: {
   question_name: string;
@@ -17,18 +24,11 @@ async function saveQuestionResult(payload: {
   quiz_title: string;
   question_id?: number;
 }) {
-  const response = await fetch(`${API_BASE}/api/save-question-result`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(err || 'Failed to save question result');
-  }
+  await insertCompletedQuestion(payload);
 }
 
 function Revision() {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   useState(getInitialTestsStructure);
   useState<string | null>(null);
   const [completedRows, setCompletedRows] = useState<any[]>([]);
@@ -47,10 +47,8 @@ function Revision() {
 
   const fetchCompleted = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/completed-questions`);
-      if (!res.ok) throw new Error('Failed to fetch completed questions');
-      const json = await res.json();
-      setCompletedRows(json.data);
+      const data = await getAllCompletedQuestions();
+      setCompletedRows(data);
     } catch (error) {
       console.error(error);
     }
@@ -58,10 +56,8 @@ function Revision() {
 
   const fetchDueCount = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/due-revision-questions`);
-      if (!res.ok) throw new Error('Failed to fetch due revision count');
-      const json = await res.json();
-      setDueCount(json.data.length);
+      const data = await getDueRevisionQuestions();
+      setDueCount(data.length);
     } catch (error) {
       console.error(error);
     }
@@ -74,13 +70,11 @@ function Revision() {
 
   const startRevision = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/due-revision-questions`);
-      if (!res.ok) throw new Error('Failed to fetch due revision questions');
-      const { data } = await res.json();
+      const data = await getDueRevisionQuestions();
       const revQuestions = data.map((row: any) => ({
         question_number: row.id,
         question: row.question_name,
-        options: typeof row.options === 'string' ? JSON.parse(row.options) : row.options,
+        options: row.options,
         correct_answer: row.correct_answer,
         proficiency: row.proficiency,
       }));
@@ -168,7 +162,7 @@ function Revision() {
         </div>
         <CategorySection title="Revision Actions">
           <div className="revision-action-list">
-            <button type="button" className="next-btn" onClick={async () => {
+            <button type="button" className="toolbar-btn toolbar-btn--full" onClick={async () => {
               setShowSummary(true);
               setRevisionMode(false);
               setFinished(false);
@@ -177,7 +171,7 @@ function Revision() {
             }}>
               Learnt Summary
             </button>
-            <button type="button" className="next-btn" onClick={() => { void startRevision(); }}>
+            <button type="button" className="toolbar-btn toolbar-btn--full" onClick={() => { void startRevision(); }}>
               Start Revision
             </button>
           </div>
@@ -193,12 +187,64 @@ function Revision() {
                 <h1>Revision</h1>
                 <p>You have {dueCount} question{dueCount !== 1 ? 's' : ''} due for review.</p>
               </div>
-              <button type="button" className="start-now-btn" onClick={() => { void startRevision(); }}>
+              <button type="button" className="toolbar-btn" onClick={() => { void startRevision(); }}>
                 Start revision
               </button>
             </div>
             <div className="summary-table-wrapper">
-              <h2>Learnt Summary</h2>
+              <div className="summary-table-header">
+                <div>
+                  <h2>Learnt Summary</h2>
+                </div>
+                <div className="summary-table-header-buttons">
+                  <button
+                    type="button"
+                    className="toolbar-btn"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Import Revision Data
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="application/json"
+                    style={{ display: 'none' }}
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const text = await file.text();
+                        const imported = await importRevisionData(text);
+                        await fetchCompleted();
+                        await fetchDueCount();
+                        window.alert(`Imported ${imported} revision records.`);
+                      } catch (error) {
+                        console.error(error);
+                        window.alert('Failed to import revision data.');
+                      } finally {
+                        event.target.value = '';
+                      }
+                    }}
+                  />
+                  <button type="button" className="toolbar-btn" onClick={async () => {
+                    try {
+                      const data = await exportRevisionData();
+                      const blob = new Blob([data], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = 'revision-data.json';
+                      link.click();
+                      URL.revokeObjectURL(url);
+                    } catch (error) {
+                      console.error(error);
+                      window.alert('Failed to export revision data.');
+                    }
+                  }}>
+                    Export Revision Data
+                  </button>
+                </div>
+              </div>
               <table className="summary-table">
                 <thead>
                   <tr>

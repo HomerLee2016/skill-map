@@ -25,31 +25,8 @@ import { SkillNode } from './components/SkillNode';
 import { useAutoLayout } from './hooks/useAutoLayout';
 import { Toolbar } from './components/Toolbar';
 import { RoadmapSidebar } from './components/RoadmapSidebar';
-import { getLessonPickerOptions, getTestPickerOptions } from './utils/contentCatalog';
+import { useWorkspace } from './contexts/WorkspaceContext';
 
-const yamlModules = import.meta.glob('./data/roadmaps/*.yaml', { query: '?raw', eager: true });
-
-const initialRoadmaps: SavedRoadmap[] = Object.entries(yamlModules).map(([path, module]: [string, any]) => {
-  const yamlContent = module.default as string;
-  let label = 'Untitled Roadmap';
-  const id = path.split('/').pop()?.replace('.yaml', '') || 'untitled';
-  try {
-    const parsed = YAML.parse(yamlContent);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      const rootNode = parsed.find((n) => !n.dependsOn || n.dependsOn.length === 0) || parsed[0];
-      label = rootNode.label || label;
-    } else if (parsed) {
-      label = parsed.label || label;
-    }
-  } catch (e) {
-    console.error(`Error parsing dynamic roadmap label from ${path}`, e);
-  }
-  return {
-    id,
-    name: label,
-    yaml: yamlContent,
-  };
-});
 
 const nodeTypes = {
   skillNode: SkillNode,
@@ -62,15 +39,33 @@ interface RoadmapProps {
 }
 
 function Roadmap({ darkMode, onGoToLesson, onGoToTest }: RoadmapProps) {
-  const [roadmaps, setRoadmaps] = useState<SavedRoadmap[]>(initialRoadmaps);
-  const [selectedRoadmapId, setSelectedRoadmapId] = useState<string>(initialRoadmaps[0]?.id || 'untitled');
-  const [yamlText, setYamlText] = useState<string>(initialRoadmaps[0]?.yaml || '');
+  const { workspace } = useWorkspace();
+  const [roadmaps, setRoadmaps] = useState<SavedRoadmap[]>(() => workspace.roadmaps);
+  const [selectedRoadmapId, setSelectedRoadmapId] = useState<string>(() => workspace.roadmaps[0]?.id || 'untitled');
+  const [yamlText, setYamlText] = useState<string>(() => workspace.roadmaps[0]?.yaml || '');
   const [yamlVisible, setYamlVisible] = useState<boolean>(false);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [error, setError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState<boolean>(true);
   const [tipsOpen, setTipsOpen] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (workspace.roadmaps.length === 0) {
+      return;
+    }
+
+    setRoadmaps(workspace.roadmaps);
+    const nextId = workspace.roadmaps.some((roadmap) => roadmap.id === selectedRoadmapId)
+      ? selectedRoadmapId
+      : workspace.roadmaps[0]?.id || 'untitled';
+
+    setSelectedRoadmapId(nextId);
+    const selectedRoadmap = workspace.roadmaps.find((roadmap) => roadmap.id === nextId);
+    if (selectedRoadmap) {
+      setYamlText(selectedRoadmap.yaml);
+    }
+  }, [selectedRoadmapId, workspace.roadmaps]);
 
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -122,15 +117,6 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest }: RoadmapProps) {
 
   const saveRoadmap = async () => {
     try {
-      const response = await fetch('/api/save-roadmap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roadmapId: selectedRoadmapId, yaml: yamlText }),
-      });
-      const result = await response.json().catch(() => null);
-      if (!response.ok || !result?.ok) {
-        throw new Error(result?.error || 'Failed to save roadmap');
-      }
       setRoadmaps((prev) =>
         prev.map((r) => {
           if (r.id !== selectedRoadmapId) return r;
@@ -449,8 +435,8 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest }: RoadmapProps) {
         editSubTreeId={editSubTreeId}
         setEditSubTreeId={setEditSubTreeId}
         roadmaps={roadmaps}
-        availableLessons={getLessonPickerOptions()}
-        availableTests={getTestPickerOptions()}
+        availableLessons={workspace.lessons.map(({ id, title }) => ({ id, label: title, path: '' }))}
+        availableTests={workspace.tests.map(({ id, title }) => ({ id, label: title, path: '' }))}
         onGoToLesson={onGoToLesson}
         onGoToTest={onGoToTest}
         onSave={saveNodeEdits}

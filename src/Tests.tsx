@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   addFolderToTree,
   assignItemToTree,
-  buildNewTestTree,
-  getInitialTestsStructure,
   listFolderPaths,
   pathToSegments,
-  tests as availableTests,
   type StructureTree,
 } from './utils/contentCatalog';
+import { insertCompletedQuestion } from './utils/revision';
+import { useWorkspace } from './contexts/WorkspaceContext';
+import { collectTreeIds, resolveStructureTree } from './utils/folderStructure';
 import {
   CategorySection,
   ContentTreeSidebar,
@@ -24,15 +24,7 @@ interface TestsProps {
 }
 
 async function saveTestsStructure(structure: { revision: StructureTree; new_tests: StructureTree }) {
-  const response = await fetch(`/api/save-structure`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ kind: 'tests', structure }),
-  });
-  const result = await response.json().catch(() => null);
-  if (!response.ok || !result?.ok) {
-    throw new Error(result?.error || 'Failed to save test structure');
-  }
+  return structure;
 }
 
 async function saveQuestionResult(payload: {
@@ -45,19 +37,13 @@ async function saveQuestionResult(payload: {
   proficiency?: string;
   quiz_title: string;
 }) {
-  const response = await fetch(`/api/save-question-result`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(err || 'Failed to save question result');
-  }
+  await insertCompletedQuestion(payload);
 }
 
 
 function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
+  const { workspace } = useWorkspace();
+  const availableTests = workspace.tests;
   const [activeId, setActiveId] = useState(selectedTestId || availableTests[0]?.id || '');
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [correctMap, setCorrectMap] = useState<Record<number, boolean>>({});
@@ -65,7 +51,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const [finished, setFinished] = useState(false);
   const [score, setScore] = useState(0);
   const [total, setTotal] = useState(0);
-  const [structure, setStructure] = useState(getInitialTestsStructure);
+  const [structure, setStructure] = useState(workspace.testsStructure);
   const [structureError, setStructureError] = useState<string | null>(null);
   const [modalState, setModalState] = useState<{ open: boolean; mode: 'add-folder' | 'assign-item' }>({
     open: false,
@@ -74,16 +60,26 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const { expandKey, collapseKey, expandAll, collapseAll } = useExpandCollapseState();
 
 
-  const newTestsTree = useMemo(
-    () => buildNewTestTree(structure.new_tests, structure.revision),
-    [structure.new_tests, structure.revision]
-  );
+  const newTestsTree = useMemo(() => {
+    const catalog = availableTests.map(({ id, title }) => ({ id, title }));
+    const claimed = new Set([...collectTreeIds(structure.revision), ...collectTreeIds(structure.new_tests)]);
+    return resolveStructureTree(structure.new_tests, catalog, { includeUngrouped: true, claimedIds: claimed });
+  }, [availableTests, structure.new_tests, structure.revision]);
+
+  useEffect(() => {
+    setStructure(workspace.testsStructure);
+  }, [workspace.testsStructure]);
 
   useEffect(() => {
     if (selectedTestId) {
       setActiveId(selectedTestId);
+      return;
     }
-  }, [selectedTestId]);
+
+    if (!activeId && availableTests[0]?.id) {
+      setActiveId(availableTests[0].id);
+    }
+  }, [selectedTestId, availableTests, activeId]);
 
   const selected = availableTests.find((test) => test.id === activeId);
 
@@ -105,7 +101,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
 
   const persist = async (next: { revision: StructureTree; new_tests: StructureTree }) => {
     try {
-      await saveTestsStructure(next);
+      void saveTestsStructure(next);
       setStructure(next);
       setStructureError(null);
     } catch (err) {
