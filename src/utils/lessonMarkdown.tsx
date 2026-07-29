@@ -1,15 +1,14 @@
 import React from 'react';
 import Markdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
+import { getAudioSource } from './audioProxy';
 
 interface LessonMarkdownProps {
   content: string;
 }
 
 function AudioComponent(props: React.ComponentProps<'audio'>) {
-  const src = typeof props.src === 'string' && props.src.includes('translate.google.com/translate_tts')
-    ? `/api/audio-proxy?url=${encodeURIComponent(props.src)}`
-    : props.src;
+  const src = getAudioSource(props.src);
 
   return <audio {...props} src={src} preload="metadata" />;
 }
