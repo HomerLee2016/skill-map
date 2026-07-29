@@ -1,112 +1,88 @@
 # Skill Map
 
-An interactive, web-based tool for defining and visualizing educational roadmaps, skill trees, and structured learning paths using YAML.
+Skill Map is a React + TypeScript learning workspace for building study roadmaps, browsing structured lessons, taking quizzes, and reviewing past questions with a simple spaced-repetition flow.
 
-This project provides a workspace with a live YAML text editor, a roadmap sidebar, and an interactive, zoomable/pannable node graph powered by React Flow.
+The app is organized into four main views:
 
-## Features
+- Roadmap: visualize skill trees from YAML files, edit node details, and jump to lessons or tests from specific nodes.
+- Lessons: browse lesson content from Markdown files arranged in a folder-based tree.
+- Tests: run multiple-choice quizzes loaded from YAML test data and save results.
+- Revision: review previously answered questions and revisit ones that are due for repetition.
 
-- **YAML-Based Definition**: Define your skill trees and roadmap nodes hierarchically using simple and readable YAML structure.
-- **Live Visualization**: Real-time rendering of the node tree as you type.
-- **Roadmap Sidebar**: Browse available roadmaps from a dedicated sidebar with a `Roadmaps` header and a `Show YAML` toggle.
-- **Interactive Graph**: Pan, zoom, select, edit, and delete nodes in a responsive canvas powered by React Flow.
-- **Keyboard Delete**: Select a skill node and press `Delete` or `Backspace` to remove it.
-- **Syntax Highlighting & Error Detection**: Rich YAML code editing experience with error feedback when the YAML syntax is invalid or missing required properties (like `id` or `label`).
+## What the app includes
 
----
+- Interactive roadmap graph powered by React Flow
+- YAML editor for roadmap content with live parsing and error feedback
+- Progress tracking for roadmap completion
+- Folder-based lesson organization with Markdown content
+- Quiz-taking experience for test collections
+- Revision mode with persisted question history and proficiency-based review
+- Local API server for saving quiz and revision data
 
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
-Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
+- Node.js 18+ recommended
+- npm
 
-### Installation
+### Install dependencies
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/HomerLee2016/skill-map.git
-   cd skill-map
-   ```
+```bash
+npm install
+```
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+### Run the app locally
 
-### Development
+The development command starts both the Vite frontend and the local API server:
 
-Run the Vite development server:
 ```bash
 npm run dev
 ```
-Open your browser and navigate to `http://localhost:5173` to see the editor in action.
 
-### Using the App
+Then open:
 
-- Use the `Roadmaps` sidebar to switch between roadmap files or create a new one.
-- Toggle `Show YAML` in the sidebar to reveal or hide the YAML editor.
-- Click a node to select it, then press `Delete` to remove it.
-- Use the pencil icon on a node to edit its details.
+- Frontend: http://localhost:5173
+- API server: http://localhost:5178
 
-### Building for Production
+## Available scripts
 
-Compile TypeScript and build the static application bundle:
-```bash
-npm run build
-```
-You can preview the built production app locally using:
-```bash
-npm run preview
-```
+- `npm run dev` - start the frontend and API server together
+- `npm run build` - build the production bundle
+- `npm run preview` - preview the production build locally
+- `npm run lint` - run Oxlint
+- `npm run api` - start the Express API server only
 
-### Linting
+## Project structure
 
-Lint code using Oxlint:
-```bash
-npm run lint
-```
+- `src/App.tsx` - top-level page routing and navigation
+- `src/Roadmap.tsx` - roadmap editor and graph view
+- `src/Lessons.tsx` - lesson browser and content tree
+- `src/Tests.tsx` - quiz UI and result saving
+- `src/Revision.tsx` - revision review workflow
+- `src/server.ts` - local API endpoints for quiz persistence
+- `src/data/` - roadmap, lesson, and test content files
+- `src/db/` - database schema and migration helpers
 
----
+## Content formats
 
-## Roadmap YAML Schema
+### Roadmaps
 
-The application parses YAML content into a hierarchical structure. The root element and all children must follow this format:
+Roadmap data is stored in YAML files under `src/data/roadmaps/`. Each roadmap can contain nodes with fields such as `id`, `label`, `description`, `children`, and optional metadata used by the UI.
 
-| Field | Type | Required | Description |
-| :--- | :--- | :--- | :--- |
-| `id` | `string` | Yes | Unique identifier for the node. |
-| `label` | `string` | Yes | Display text for the node in the diagram. |
-| `description` | `string` | No | Additional context about the skill. |
-| `children` | `RoadmapNode[]` | No | An array of nested child skills/sub-skills. |
+### Lessons
 
-### Example YAML
+Lessons are Markdown files under `src/data/lessons/` and are organized through `src/data/lessons/structure.yaml`.
 
-```yaml
-id: calculus
-label: Calculus Roadmap
-description: Complete guide to mastering Calculus
-children:
-  - id: algebra
-    label: Basic Algebra
-  - id: limits
-    label: Limits
-    children:
-      - id: sandwich
-        label: Sandwich Theorem
-  - id: derivatives
-    label: Derivatives
-  - id: integrals
-    label: Integrals
-```
+### Tests
 
----
+Tests are defined in YAML files under `src/data/tests/` and are organized through `src/data/tests/structure.yaml`.
 
-## Tech Stack
+## Tech stack
 
-- **Framework**: [React 19](https://react.dev/) with [TypeScript](https://www.typescriptlang.org/)
-- **Bundler & Build Tool**: [Vite 8](https://vite.dev/)
-- **Interactive Graph**: [React Flow 11](https://reactflow.dev/)
-- **Code Editor**: [@uiw/react-textarea-code-editor](https://github.com/uiwjs/react-textarea-code-editor)
-- **YAML Parser**: [yaml](https://github.com/eemeli/yaml)
-- **Linter**: [Oxlint](https://oxc.rs/docs/guide/usage/linter)
+- React 19 + TypeScript
+- Vite 8
+- React Flow for interactive graphs
+- React Markdown for lesson rendering
+- Express + Drizzle ORM + better-sqlite3 for the local API and persistence layer
+- YAML for roadmap and test content parsing
