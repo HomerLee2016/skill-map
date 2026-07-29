@@ -5,8 +5,7 @@ import { createHash } from 'crypto';
 import { eq, sql as drizzleSql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
-import { applyRevisionColumnsMigration } from './db/migrations/20260727-add-revision-columns';
-import { DEFAULT_PROFICIENCY, getDowngradedProficiency, getNextProficiency, getNextRevisionTime, normalizeProficiency } from './utils/revision';
+import { getDowngradedProficiency, getNextProficiency, getNextRevisionTime, normalizeProficiency } from './utils/revision';
 
 // Initialize the database (file will be created in the project root)
 const sqlite = new Database('skill-map.db');
@@ -28,18 +27,6 @@ CREATE TABLE IF NOT EXISTS completed_questions (
 `);
 export const db = drizzle(sqlite);
 
-await applyRevisionColumnsMigration(sqlite);
-
-sqlite.prepare(`
-  UPDATE completed_questions
-  SET proficiency = CASE
-    WHEN trim(COALESCE(proficiency, '')) = '' THEN ?
-    ELSE proficiency
-  END
-  WHERE proficiency IS NULL OR trim(COALESCE(proficiency, '')) = ''
-`).run(DEFAULT_PROFICIENCY);
-
-// Table to store completed test questions and question metadata
 export const completed_questions = sqliteTable('completed_questions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   question_name: text('question_name').notNull(),
@@ -96,7 +83,6 @@ export async function insertCompletedQuestion(entry: {
         last_time: entry.last_time,
         next_revision_time: nextRevisionTime,
         proficiency: resolvedProficiency,
-        quiz_title: entry.quiz_title,
       })
       .where(eq(completed_questions.id, existing.id))
       .run();

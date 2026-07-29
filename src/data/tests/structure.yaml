@@ -10,8 +10,12 @@ new_tests:
       items: []
       children:
         - name: Numbers
+          items: []
+          children: []
+        - name: Beginner
           items:
             - test-01
             - spanish-test-02
+            - spanish-04-spanish-travel-survival-01
           children: []
   items: []

@@ -1,0 +1,122 @@
+quiz_title: "Spanish Travel Survival Phrases"
+questions:
+  - question_number: 1
+    question: "How do you say 'I need help' in Spanish?"
+    options:
+      - "Necesito ayuda"
+      - "No entiendo"
+      - "La cuenta, por favor"
+      - "Buenas noches"
+    correct_answer: "Necesito ayuda"
+  - question_number: 2
+    question: "How do you politely ask 'Excuse me, can you help me?' in Spanish?"
+    options:
+      - "¿Cómo te llamas?"
+      - "Disculpe, ¿me puede ayudar?"
+      - "Hasta luego"
+      - "¿De dónde eres?"
+    correct_answer: "Disculpe, ¿me puede ayudar?"
+  - question_number: 3
+    question: "What is the correct Spanish phrase for 'Where is the bathroom?'"
+    options:
+      - "¿Dónde está el baño?"
+      - "¿Cuánto cuesta el baño?"
+      - "¿Dónde vives?"
+      - "¿Qué hora es?"
+    correct_answer: "¿Dónde está el baño?"
+  - question_number: 4
+    question: "How do you ask 'Do you speak English?' in Spanish?"
+    options:
+      - "¿Habla español?"
+      - "¿Cómo está usted?"
+      - "¿Habla inglés?"
+      - "¿De dónde es?"
+    correct_answer: "¿Habla inglés?"
+  - question_number: 5
+    question: "What does 'No entiendo' mean in English?"
+    options:
+      - "I don't know"
+      - "I don't understand"
+      - "I don't want to"
+      - "I'm not ready"
+    correct_answer: "I don't understand"
+  - question_number: 6
+    question: "How do you ask someone to speak more slowly in Spanish?"
+    options:
+      - "¿Puede repetir, por favor?"
+      - "¿Puede hablar más despacio, por favor?"
+      - "¿Dónde está la parada?"
+      - "¿Puedo pagar con tarjeta?"
+    correct_answer: "¿Puede hablar más despacio, por favor?"
+  - question_number: 7
+    question: "How do you ask 'Can you repeat that, please?'"
+    options:
+      - "¿Puede repetir, por favor?"
+      - "¿Cuánto cuesta?"
+      - "¿Tiene cambio?"
+      - "Muchas gracias"
+    correct_answer: "¿Puede repetir, por favor?"
+  - question_number: 8
+    question: "What is the Spanish phrase for 'Where is...?'"
+    options:
+      - "¿Cómo está...?"
+      - "¿Dónde está...?"
+      - "¿Quién es...?"
+      - "¿Por qué es...?"
+    correct_answer: "¿Dónde está...?"
+  - question_number: 9
+    question: "What does '¿Está cerca o lejos?' mean?"
+    options:
+      - "Is it open or closed?"
+      - "Is it near or far?"
+      - "Is it cheap or expensive?"
+      - "Is it good or bad?"
+    correct_answer: "Is it near or far?"
+  - question_number: 10
+    question: "How do you ask 'How much does it cost?' in Spanish?"
+    options:
+      - "¿Cuánto cuesta?"
+      - "¿Qué es esto?"
+      - "¿Dónde estamos?"
+      - "¿Tiene un menú?"
+    correct_answer: "¿Cuánto cuesta?"
+  - question_number: 11
+    question: "How do you ask 'Can I pay by card?' in Spanish?"
+    options:
+      - "¿Puedo pagar en efectivo?"
+      - "¿Puedo pagar con tarjeta?"
+      - "¿Dónde está el cajero?"
+      - "¿Tiene cambio?"
+    correct_answer: "¿Puedo pagar con tarjeta?"
+  - question_number: 12
+    question: "What is the standard phrase to ask for the check/bill at a restaurant?"
+    options:
+      - "La cuenta, por favor"
+      - "El menú, por favor"
+      - "La carta, gracias"
+      - "Buen provecho"
+    correct_answer: "La cuenta, por favor"
+  - question_number: 13
+    question: "How do you say 'I would like...' polite style in Spanish?"
+    options:
+      - "Yo quiero..."
+      - "Me gustaría..."
+      - "Tengo..."
+      - "Necesito..."
+    correct_answer: "Me gustaría..."
+  - question_number: 14
+    question: "How do you ask a shopkeeper 'Do you have...?' in Spanish?"
+    options:
+      - "¿Tienes hambre?"
+      - "¿Tiene...?"
+      - "¿Está bien?"
+      - "¿Cómo va?"
+    correct_answer: "¿Tiene...?"
+  - question_number: 15
+    question: "Which of the following phrases is used when you are lost and need to find a place?"
+    options:
+      - "¿Dónde está...?"
+      - "De nada"
+      - "Igualmente"
+      - "Mucho gusto"
+    correct_answer: "¿Dónde está...?"

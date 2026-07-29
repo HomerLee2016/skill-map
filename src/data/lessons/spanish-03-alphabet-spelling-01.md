@@ -32,35 +32,140 @@ Here are key phrases to ask someone how to spell a word or name:
 
 Listen to each letter name in Spanish to help you spell words aloud:
 
-| Letter | Spanish Name | Pronunciation Audio |
-| :--- | :--- | :--- |
-| **A** | a | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=a" type="audio/mpeg"></audio> |
-| **B** | be | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=be" type="audio/mpeg"></audio> |
-| **C** | ce | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=ce" type="audio/mpeg"></audio> |
-| **D** | de | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=de" type="audio/mpeg"></audio> |
-| **E** | e | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=e" type="audio/mpeg"></audio> |
-| **F** | efe | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=efe" type="audio/mpeg"></audio> |
-| **G** | ge | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=ge" type="audio/mpeg"></audio> |
-| **H** | hache | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=hache" type="audio/mpeg"></audio> |
-| **I** | i | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=i" type="audio/mpeg"></audio> |
-| **J** | jota | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=jota" type="audio/mpeg"></audio> |
-| **K** | ka | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=ka" type="audio/mpeg"></audio> |
-| **L** | ele | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=ele" type="audio/mpeg"></audio> |
-| **M** | eme | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=eme" type="audio/mpeg"></audio> |
-| **N** | ene | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=ene" type="audio/mpeg"></audio> |
-| **Ñ** | eñe | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=e%C3%B1e" type="audio/mpeg"></audio> |
-| **O** | o | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=o" type="audio/mpeg"></audio> |
-| **P** | pe | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=pe" type="audio/mpeg"></audio> |
-| **Q** | cu | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=cu" type="audio/mpeg"></audio> |
-| **R** | ere | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=ere" type="audio/mpeg"></audio> |
-| **S** | ese | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=ese" type="audio/mpeg"></audio> |
-| **T** | te | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=te" type="audio/mpeg"></audio> |
-| **U** | u | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=u" type="audio/mpeg"></audio> |
-| **V** | uve | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=uve" type="audio/mpeg"></audio> |
-| **W** | uve doble | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=uve%20doble" type="audio/mpeg"></audio> |
-| **X** | equis | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=equis" type="audio/mpeg"></audio> |
-| **Y** | i griega | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=i%20griega" type="audio/mpeg"></audio> |
-| **Z** | zeta | <audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=zeta" type="audio/mpeg"></audio> |
+* **A** (a)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=a" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **B** (be)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=be" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **C** (ce)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=ce" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **D** (de)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=de" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **E** (e)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=e" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **F** (efe)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=efe" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **G** (ge)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=ge" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **H** (hache)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=hache" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **I** (i)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=i" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **J** (jota)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=jota" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **K** (ka)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=ka" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **L** (ele)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=ele" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **M** (eme)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=eme" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **N** (ene)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=ene" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **Ñ** (eñe)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=e%C3%B1e" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **O** (o)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=o" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **P** (pe)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=pe" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **Q** (cu)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=cu" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **R** (ere)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=ere" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **S** (ese)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=ese" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **T** (te)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=te" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **U** (u)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=u" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **V** (uve)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=uve" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **W** (uve doble)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=uve%20doble" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **X** (equis)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=equis" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **Y** (i griega)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=i%20griega" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+* **Z** (zeta)
+<audio controls src="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=zeta" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
 
 ---
 

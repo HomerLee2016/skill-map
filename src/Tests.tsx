@@ -23,10 +23,8 @@ interface TestsProps {
   onSelectedTestIdChange?: (id: string) => void;
 }
 
-const API_BASE = 'http://localhost:5178';
-
 async function saveTestsStructure(structure: { revision: StructureTree; new_tests: StructureTree }) {
-  const response = await fetch(`${API_BASE}/api/save-structure`, {
+  const response = await fetch(`/api/save-structure`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ kind: 'tests', structure }),
@@ -47,7 +45,7 @@ async function saveQuestionResult(payload: {
   proficiency?: string;
   quiz_title: string;
 }) {
-  const response = await fetch(`${API_BASE}/api/save-question-result`, {
+  const response = await fetch(`/api/save-question-result`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

@@ -1,13 +1,13 @@
 - id: spanish_beginner_travel
   label: "Spanish for Beginners: Travel Survival"
-  x: 197
+  x: 195
   y: -318
-  finished: false
+  finished: true
   description: Build a practical Spanish toolkit for travel, basics, and simple
     everyday use.
 - id: spanish_pronunciation
   label: Pronunciation Basics
-  x: -117
+  x: -119
   y: 80
   finished: false
   description: Learn vowel sounds, stress, and common letter pairs.
@@ -15,17 +15,17 @@
     - spanish_beginner_travel
 - id: spanish_script_spelling
   label: Alphabet and Spelling
-  x: -590
+  x: -592
   y: 63
-  finished: false
+  finished: true
   description: Spell names, ask how words are written, and sound out words.
   dependsOn:
     - spanish_beginner_travel
 - id: spanish_greetings
   label: Greetings and Politeness
-  x: 465
+  x: 463
   y: 61
-  finished: false
+  finished: true
   description: Use common greetings, introductions, and polite phrases.
   lessons:
     - spanish-02-greetings-01
@@ -35,7 +35,7 @@
     - spanish_beginner_travel
 - id: spanish_self_intro
   label: Self-Introduction
-  x: 1064
+  x: 1062
   y: 63
   finished: false
   description: Say who you are, where you are from, and what you need.
@@ -43,9 +43,9 @@
     - spanish_beginner_travel
 - id: spanish_numbers
   label: Numbers and Counting
-  x: -201
+  x: -203
   y: 270
-  finished: false
+  finished: true
   description: Count items and recognize simple numbers aloud.
   lessons:
     - spanish-01-demo-01
@@ -55,7 +55,7 @@
     - spanish_pronunciation
 - id: spanish_time
   label: Time and Dates
-  x: -521
+  x: -523
   y: 448
   finished: false
   description: Ask for the time and understand simple schedules.
@@ -63,7 +63,7 @@
     - spanish_numbers
 - id: spanish_prices
   label: Prices and Money
-  x: -3
+  x: -5
   y: 437
   finished: false
   description: Understand fares, costs, and basic payment language.
@@ -71,7 +71,7 @@
     - spanish_numbers
 - id: spanish_core_verbs
   label: Core Verbs and Sentence Patterns
-  x: 317
+  x: 315
   y: 245
   finished: false
   description: Learn a small set of useful verbs and simple sentence shapes.
@@ -79,7 +79,7 @@
     - spanish_greetings
 - id: spanish_survival_phrases
   label: Travel Survival Phrases
-  x: 764
+  x: 762
   y: 294
   finished: false
   description: Ask for help, confirm details, and manage basic interactions.
@@ -87,7 +87,7 @@
     - spanish_greetings
 - id: spanish_polite_requests
   label: Polite Requests
-  x: 1223
+  x: 1221
   y: 516
   finished: false
   description: Make simple requests using polite language.
@@ -95,7 +95,7 @@
     - spanish_survival_phrases
 - id: spanish_direction_words
   label: Direction Words
-  x: 793
+  x: 791
   y: 524
   finished: false
   description: Learn left, right, straight, near, and far language.
@@ -103,7 +103,7 @@
     - spanish_survival_phrases
 - id: spanish_transport
   label: Transport and Directions
-  x: -707
+  x: -709
   y: 666
   finished: false
   description: Navigate stations, routes, and simple direction language.
@@ -111,7 +111,7 @@
     - spanish_time
 - id: spanish_station_vocab
   label: Station and Ticket Vocabulary
-  x: -940
+  x: -942
   y: 867
   finished: false
   description: Recognize platform, ticket, exit, and transfer words.
@@ -119,7 +119,7 @@
     - spanish_transport
 - id: spanish_food_ordering
   label: Food and Ordering
-  x: 93
+  x: 91
   y: 676
   finished: false
   description: Order food, ask for the bill, and handle menu basics.
@@ -127,7 +127,7 @@
     - spanish_prices
 - id: spanish_cafe_basics
   label: Cafe and Convenience Store Use
-  x: 127
+  x: 125
   y: 934
   finished: false
   description: Buy drinks, snacks, and small travel items.
@@ -135,7 +135,7 @@
     - spanish_food_ordering
 - id: spanish_hotel_checkin
   label: Hotel Check-In
-  x: -301
+  x: -303
   y: 672
   finished: false
   description: Check in, confirm reservations, and ask simple hotel questions.
@@ -143,7 +143,7 @@
     - spanish_time
 - id: spanish_shopping
   label: Shopping and Sizes
-  x: 498
+  x: 496
   y: 674
   finished: false
   description: Ask about sizes, colors, and basic store interactions.
@@ -151,7 +151,7 @@
     - spanish_prices
 - id: spanish_emergency
   label: Emergencies and Help
-  x: -505
+  x: -507
   y: 827
   finished: false
   description: Explain urgent needs and get assistance in simple language.
@@ -159,7 +159,7 @@
     - spanish_transport
 - id: spanish_medical
   label: Medical Basics
-  x: -916
+  x: -918
   y: 1112
   finished: false
   description: Explain pain, symptoms, and simple medical needs.
@@ -167,7 +167,7 @@
     - spanish_emergency
 - id: spanish_lost_and_found
   label: Lost and Found
-  x: -541
+  x: -543
   y: 1108
   finished: false
   description: Ask about lost items and describe where you last saw them.
@@ -175,7 +175,7 @@
     - spanish_emergency
 - id: spanish_review_loop
   label: Survival Practice Loop
-  x: -168
+  x: -170
   y: 1108
   finished: false
   description: Rehearse the most useful phrases until they feel automatic.
