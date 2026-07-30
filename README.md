@@ -11,13 +11,12 @@ The app is organized into four main views:
 
 ## What the app includes
 
-- Interactive roadmap graph powered by React Flow
-- YAML editor for roadmap content with live parsing and error feedback
-- Progress tracking for roadmap completion
-- Folder-based lesson organization with Markdown content
-- Quiz-taking experience for test collections
-- Revision mode with persisted question history and proficiency-based review
-- Local API server for saving quiz and revision data
+- A workspace-based learning experience where you can open a local folder and load your own lessons, tests, and roadmaps.
+- An interactive roadmap editor powered by React Flow with node details, progress states, and quick links into lessons or tests.
+- A lesson browser that loads Markdown content from your selected workspace.
+- A test runner with structured folders, multiple-choice questions, and answer tracking.
+- A revision page for spaced-repetition review, including import/export of revision data and automatic backup files.
+- A light-weight local-first setup that uses the browser's file system access features instead of a separate backend service.
 
 ## Getting started
 
@@ -25,16 +24,34 @@ The app is organized into four main views:
 
 - Node.js 18+ recommended
 - npm
+- A modern browser with support for the File System Access API
 
-### Install dependencies
+### Setup guide for non-technical users
+
+You do not need to write code to get started. Follow these steps:
+
+1. Install Node.js 18+ and VS Code on your computer.
+2. Open this project folder in VS Code.
+3. Open the built-in terminal in VS Code and run:
 
 ```bash
 npm install
 ```
 
+4. Start the app with:
+
+```bash
+npm run dev
+```
+
+5. When the terminal shows the local address, open it in your browser.
+6. Click the workspace button in the top bar and choose a folder on your computer.
+7. Inside that folder, create or edit subfolders named `lessons`, `tests`, and `roadmaps` and add your own Markdown and YAML files.
+8. If you want to start from examples, the built-in demo content is available under `src/data/` and can be copied into your own workspace.
+
 ### Run the app locally
 
-The development command starts both the Vite frontend and the local API server:
+The development command starts the Vite frontend:
 
 ```bash
 npm run dev
@@ -43,40 +60,43 @@ npm run dev
 Then open:
 
 - Frontend: http://localhost:5173
-- API server: http://localhost:5178
 
 ## Available scripts
 
-- `npm run dev` - start the frontend and API server together
+- `npm run dev` - start the Vite development server
 - `npm run build` - build the production bundle
 - `npm run preview` - preview the production build locally
 - `npm run lint` - run Oxlint
-- `npm run api` - start the Express API server only
 
 ## Project structure
 
 - `src/App.tsx` - top-level page routing and navigation
 - `src/Roadmap.tsx` - roadmap editor and graph view
 - `src/Lessons.tsx` - lesson browser and content tree
-- `src/Tests.tsx` - quiz UI and result saving
-- `src/Revision.tsx` - revision review workflow
-- `src/server.ts` - local API endpoints for quiz persistence
-- `src/data/` - roadmap, lesson, and test content files
-- `src/db/` - database schema and migration helpers
+- `src/Tests.tsx` - quiz UI, folder organization, and answer handling
+- `src/Revision.tsx` - revision workflow, import/export, and backup support
+- `src/contexts/WorkspaceContext.tsx` - workspace selection and loading logic
+- `src/services/workspace.ts` - loading lessons, tests, and roadmaps from the selected workspace
+- `src/data/` - built-in demo content for roadmaps, lessons, and tests
+- `src/utils/` - helpers for parsing YAML, folder structures, revision state, and persistence
 
-## Content formats
+## Workspace content format
 
 ### Roadmaps
 
-Roadmap data is stored in YAML files under `src/data/roadmaps/`. Each roadmap can contain nodes with fields such as `id`, `label`, `description`, `children`, and optional metadata used by the UI.
+Roadmap data is stored in YAML files inside your workspace's `roadmaps/` folder. Each file can define a roadmap graph with nodes that include fields such as `id`, `label`, `description`, `children`, and optional metadata used by the UI.
 
 ### Lessons
 
-Lessons are Markdown files under `src/data/lessons/` and are organized through `src/data/lessons/structure.yaml`.
+Lessons are Markdown files inside your workspace's `lessons/` folder. They can be grouped with a `structure.yaml` file to define the lesson tree shown in the sidebar.
 
 ### Tests
 
-Tests are defined in YAML files under `src/data/tests/` and are organized through `src/data/tests/structure.yaml`.
+Tests are defined in YAML files inside your workspace's `tests/` folder. A `structure.yaml` file can be used to organize tests into folders for the test browser.
+
+### Revision data
+
+When you review questions, the app stores progress in the browser and can export revision data as JSON. It can also create a backup copy inside a `revision/` folder in the selected workspace.
 
 ## Tech stack
 
