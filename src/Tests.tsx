@@ -199,7 +199,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
           onSubmit={handleModalSubmit}
         />
         <CategorySection
-          title="New Tests"
+          title="Tests"
           onAddFolder={() => handleAddFolder('new_tests')}
           onAssignItem={() => handleAssignItem('new_tests')}
         >

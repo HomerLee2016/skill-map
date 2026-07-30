@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CategorySection } from './components/ContentTreeSidebar';
 import AnswerQuestion from './components/AnswerQuestion';
+import { useWorkspace } from './contexts/WorkspaceContext';
 import { getInitialTestsStructure } from './utils/contentCatalog';
 import {
   exportRevisionData,
@@ -29,6 +30,7 @@ async function saveQuestionResult(payload: {
 
 function Revision() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { selectedDirectoryHandle } = useWorkspace();
   useState(getInitialTestsStructure);
   useState<string | null>(null);
   const [completedRows, setCompletedRows] = useState<any[]>([]);
@@ -41,6 +43,7 @@ function Revision() {
   const [score, setScore] = useState(0);
   const [dueCount, setDueCount] = useState(0);
   const [showSummary, setShowSummary] = useState(true);
+  const [backupCompleted, setBackupCompleted] = useState(false);
 
   const totalQuestions = revisionQuestions.length;
   const isLastQuestion = currentIdx + 1 >= totalQuestions;
@@ -58,8 +61,10 @@ function Revision() {
     try {
       const data = await getDueRevisionQuestions();
       setDueCount(data.length);
+      return data.length;
     } catch (error) {
       console.error(error);
+      return 0;
     }
   };
 
@@ -67,6 +72,27 @@ function Revision() {
     void fetchCompleted();
     void fetchDueCount();
   }, []);
+
+  const saveRevisionBackup = async () => {
+    if (!selectedDirectoryHandle || backupCompleted) {
+      return;
+    }
+
+    try {
+      const data = await exportRevisionData();
+      const revisionDirectory = await selectedDirectoryHandle.getDirectoryHandle('revision', { create: true });
+      const now = new Date();
+      const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+      const fileName = `revision-data-${timestamp}.json`;
+      const fileHandle = await revisionDirectory.getFileHandle(fileName, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(data);
+      await writable.close();
+      setBackupCompleted(true);
+    } catch (error) {
+      console.error('Failed to save revision backup', error);
+    }
+  };
 
   const startRevision = async () => {
     try {
@@ -86,6 +112,7 @@ function Revision() {
       setScore(0);
       setAnswers({});
       setCorrectMap({});
+      setBackupCompleted(false);
     } catch (error) {
       console.error(error);
     }
@@ -138,6 +165,10 @@ function Revision() {
         return [optimisticRow, ...prev];
       });
       await fetchCompleted();
+      const nextDueCount = await fetchDueCount();
+      if (!backupCompleted && nextDueCount === 0) {
+        await saveRevisionBackup();
+      }
     } catch (error) {
       console.error('Failed to save question result', error);
     }

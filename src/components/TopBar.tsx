@@ -16,7 +16,7 @@ const NAV_ITEMS: { id: PageId; label: string }[] = [
 ];
 
 export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBarProps) {
-  const { selectWorkspace, isLoading, selectedDirectoryHandle } = useWorkspace();
+  const { selectWorkspace, isLoading, selectedDirectoryHandle, workspaceSelectionLabel } = useWorkspace();
 
   return (
     <header className="top-bar">
@@ -34,8 +34,11 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
         ))}
       </nav>
       <div className="top-bar-actions">
+        <div className="top-bar-workspace-pill">
+          <span className="top-bar-workspace-label">{workspaceSelectionLabel}</span>
+        </div>
         <button type="button" className="toolbar-btn" onClick={() => { void selectWorkspace(); }}>
-          {isLoading ? 'Loading…' : selectedDirectoryHandle ? 'Workspace: Local' : 'Select Local Workspace'}
+          {isLoading ? 'Loading…' : selectedDirectoryHandle ? 'Change Workspace' : 'Select Local Workspace'}
         </button>
         <label className="top-bar-theme">
           <span className="top-bar-theme-label">Dark mode</span>
