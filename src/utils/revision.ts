@@ -98,18 +98,44 @@ export function shouldAdvanceRevision(existingNextRevisionTime: string | null | 
   return new Date(retakeTime).getTime() >= new Date(existingNextRevisionTime).getTime();
 }
 
+function simpleHash(input: string): string {
+  let hash = 0;
+  for (let index = 0; index < input.length; index += 1) {
+    hash = (hash << 5) - hash + input.charCodeAt(index);
+    hash |= 0;
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+export function deriveWorkspaceStorageKey(workspacePath: string | null | undefined): string {
+  const normalized = (workspacePath ?? '').trim().toLowerCase();
+  const seed = normalized || 'default-workspace';
+  return `workspace-${simpleHash(seed)}`;
+}
+
 class RevisionDexieStore extends Dexie {
   completed_questions!: Table<CompletedQuestionRecord, number>;
 
-  constructor() {
-    super('skill-map-revision-db');
+  constructor(storageKey: string) {
+    super(`skill-map-revision-db-${storageKey}`);
     this.version(1).stores({
       completed_questions: '++id, hash, quiz_title, next_revision_time, last_time, proficiency',
     });
   }
 }
 
-export const revisionStore = new RevisionDexieStore();
+let activeWorkspaceStorageKey = deriveWorkspaceStorageKey(null);
+export let revisionStore = new RevisionDexieStore(activeWorkspaceStorageKey);
+
+export function setActiveWorkspaceStorageKey(workspacePath: string | null | undefined): void {
+  const nextStorageKey = deriveWorkspaceStorageKey(workspacePath);
+  if (nextStorageKey === activeWorkspaceStorageKey) {
+    return;
+  }
+
+  activeWorkspaceStorageKey = nextStorageKey;
+  revisionStore = new RevisionDexieStore(nextStorageKey);
+}
 
 function createQuestionHash(questionName: string, options: string[]) {
   const encoder = new TextEncoder();

@@ -39,7 +39,7 @@ interface RoadmapProps {
 }
 
 function Roadmap({ darkMode, onGoToLesson, onGoToTest }: RoadmapProps) {
-  const { workspace } = useWorkspace();
+  const { workspace, workspaceVersion } = useWorkspace();
   const [roadmaps, setRoadmaps] = useState<SavedRoadmap[]>(() => workspace.roadmaps);
   const [selectedRoadmapId, setSelectedRoadmapId] = useState<string>(() => workspace.roadmaps[0]?.id || 'untitled');
   const [yamlText, setYamlText] = useState<string>(() => workspace.roadmaps[0]?.yaml || '');
@@ -52,6 +52,9 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest }: RoadmapProps) {
 
   useEffect(() => {
     if (workspace.roadmaps.length === 0) {
+      setRoadmaps([]);
+      setSelectedRoadmapId('untitled');
+      setYamlText('');
       return;
     }
 
@@ -65,7 +68,7 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest }: RoadmapProps) {
     if (selectedRoadmap) {
       setYamlText(selectedRoadmap.yaml);
     }
-  }, [selectedRoadmapId, workspace.roadmaps]);
+  }, [selectedRoadmapId, workspace.roadmaps, workspaceVersion]);
 
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');

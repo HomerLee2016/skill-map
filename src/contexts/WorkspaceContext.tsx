@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { createDefaultWorkspaceContent, loadWorkspaceContent, type WorkspaceContent } from '../services/workspace';
+import { setActiveWorkspaceStorageKey } from '../utils/revision';
 import {
   persistWorkspaceHandle,
   readPersistedWorkspaceHandle,
@@ -12,6 +13,7 @@ interface WorkspaceContextValue {
   isLoading: boolean;
   selectedDirectoryHandle: FileSystemDirectoryHandle | null;
   workspaceSelectionLabel: string;
+  workspaceVersion: number;
   selectWorkspace: () => Promise<void>;
   refreshWorkspace: () => Promise<void>;
 }
@@ -23,12 +25,17 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDirectoryHandle, setSelectedDirectoryHandle] = useState<FileSystemDirectoryHandle | null>(null);
   const [workspaceSelectionLabel, setWorkspaceSelectionLabel] = useState<string>('Default workspace');
+  const [workspaceVersion, setWorkspaceVersion] = useState(0);
 
   const loadWorkspaceForHandle = async (handle: FileSystemDirectoryHandle | null) => {
+    const workspaceIdentity = handle?.name ?? null;
+    setActiveWorkspaceStorageKey(workspaceIdentity);
+
     setIsLoading(true);
     try {
       const nextWorkspace = await loadWorkspaceContent(handle);
       setWorkspace(nextWorkspace);
+      setWorkspaceVersion((value) => value + 1);
     } finally {
       setIsLoading(false);
     }
@@ -97,9 +104,10 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     isLoading,
     selectedDirectoryHandle,
     workspaceSelectionLabel,
+    workspaceVersion,
     selectWorkspace,
     refreshWorkspace,
-  }), [workspace, isLoading, selectedDirectoryHandle, workspaceSelectionLabel]);
+  }), [workspace, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

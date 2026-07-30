@@ -42,7 +42,7 @@ async function saveQuestionResult(payload: {
 
 
 function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
-  const { workspace } = useWorkspace();
+  const { workspace, workspaceVersion } = useWorkspace();
   const availableTests = workspace.tests;
   const [activeId, setActiveId] = useState(selectedTestId || availableTests[0]?.id || '');
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -76,10 +76,8 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
       return;
     }
 
-    if (!activeId && availableTests[0]?.id) {
-      setActiveId(availableTests[0].id);
-    }
-  }, [selectedTestId, availableTests, activeId]);
+    setActiveId(availableTests[0]?.id || '');
+  }, [selectedTestId, availableTests, workspaceVersion]);
 
   const selected = availableTests.find((test) => test.id === activeId);
 

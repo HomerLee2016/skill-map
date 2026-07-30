@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DEFAULT_PROFICIENCY, getDowngradedProficiency, getNextProficiency, getNextRevisionTime, isQuestionDue, normalizeProficiency, shouldAdvanceRevision } from './revision';
+import { DEFAULT_PROFICIENCY, deriveWorkspaceStorageKey, getDowngradedProficiency, getNextProficiency, getNextRevisionTime, isQuestionDue, normalizeProficiency, shouldAdvanceRevision } from './revision';
 
 test('advances proficiency correctly for correct answers and caps at the top', () => {
   assert.equal(getNextProficiency('1.5'), '2.1');
@@ -31,4 +31,14 @@ test('does not advance revision state before the existing next revision window h
   assert.equal(shouldAdvanceRevision(existingNextRevisionTime, retakeAt), false);
   assert.equal(shouldAdvanceRevision(null, retakeAt), true);
   assert.equal(shouldAdvanceRevision(existingNextRevisionTime, existingNextRevisionTime), true);
+});
+
+test('derives deterministic storage keys for different workspace paths', () => {
+  const first = deriveWorkspaceStorageKey('C:/Users/demo/workspaces/spanish');
+  const second = deriveWorkspaceStorageKey('C:/Users/demo/workspaces/spanish');
+  const third = deriveWorkspaceStorageKey('C:/Users/demo/workspaces/french');
+
+  assert.equal(first, second);
+  assert.notEqual(first, third);
+  assert.match(first, /^workspace-/);
 });

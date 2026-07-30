@@ -1,17 +1,23 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TopBar } from './components/TopBar';
 import Roadmap from './Roadmap';
 import Lessons from './Lessons';
 import Tests from './Tests';
 import Revision from './Revision';
-import { WorkspaceProvider } from './contexts/WorkspaceContext';
+import { useWorkspace, WorkspaceProvider } from './contexts/WorkspaceContext';
 import type { PageId } from './types';
 
-function App() {
+function AppContent() {
+  const { workspaceVersion } = useWorkspace();
   const [page, setPage] = useState<PageId>('roadmap');
   const [darkMode, setDarkMode] = useState(true);
   const [selectedLessonId, setSelectedLessonId] = useState<string | undefined>();
   const [selectedTestId, setSelectedTestId] = useState<string | undefined>();
+
+  useEffect(() => {
+    setSelectedLessonId(undefined);
+    setSelectedTestId(undefined);
+  }, [workspaceVersion]);
 
   const goToLesson = (lessonId: string) => {
     setSelectedLessonId(lessonId);
@@ -24,7 +30,6 @@ function App() {
   };
 
   return (
-    <WorkspaceProvider>
       <div className={darkMode ? 'app-layout app-shell-dark' : 'app-layout app-shell-light'}>
         <TopBar
           currentPage={page}
@@ -62,6 +67,13 @@ function App() {
           </div>
         </main>
       </div>
+  );
+}
+
+function App() {
+  return (
+    <WorkspaceProvider>
+      <AppContent />
     </WorkspaceProvider>
   );
 }

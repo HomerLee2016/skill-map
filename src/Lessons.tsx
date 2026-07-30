@@ -27,7 +27,7 @@ async function saveLessonStructure(structure: StructureTree) {
 }
 
 function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
-  const { workspace } = useWorkspace();
+  const { workspace, workspaceVersion } = useWorkspace();
   const availableLessons = workspace.lessons;
   const [activeId, setActiveId] = useState(selectedLessonId || availableLessons[0]?.id || '');
   const [structure, setStructure] = useState<StructureTree>(workspace.lessonStructure);
@@ -50,10 +50,8 @@ function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
       return;
     }
 
-    if (!activeId && availableLessons[0]?.id) {
-      setActiveId(availableLessons[0].id);
-    }
-  }, [selectedLessonId, availableLessons, activeId]);
+    setActiveId(availableLessons[0]?.id || '');
+  }, [selectedLessonId, availableLessons, workspaceVersion]);
 
   const selected = availableLessons.find((lesson) => lesson.id === activeId);
 

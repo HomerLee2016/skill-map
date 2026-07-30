@@ -30,7 +30,7 @@ async function saveQuestionResult(payload: {
 
 function Revision() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const { selectedDirectoryHandle } = useWorkspace();
+  const { selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion } = useWorkspace();
   useState(getInitialTestsStructure);
   useState<string | null>(null);
   const [completedRows, setCompletedRows] = useState<any[]>([]);
@@ -69,9 +69,22 @@ function Revision() {
   };
 
   useEffect(() => {
+    setCompletedRows([]);
+    setRevisionQuestions([]);
+    setAnswers({});
+    setCorrectMap({});
+    setCurrentIdx(0);
+    setFinished(false);
+    setScore(0);
+    setDueCount(0);
+    setShowSummary(true);
+    setBackupCompleted(false);
+  }, [workspaceVersion]);
+
+  useEffect(() => {
     void fetchCompleted();
     void fetchDueCount();
-  }, []);
+  }, [workspaceVersion, selectedDirectoryHandle?.name, workspaceSelectionLabel]);
 
   const saveRevisionBackup = async () => {
     if (!selectedDirectoryHandle || backupCompleted) {
