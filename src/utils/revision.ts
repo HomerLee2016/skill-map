@@ -174,7 +174,7 @@ export async function insertCompletedQuestion(entry: CompletedQuestionInsert): P
     last_time: entry.last_time,
     next_revision_time: nextRevisionTime,
     proficiency: resolvedProficiency,
-    quiz_title: entry.quiz_title,
+    quiz_title: existing?.quiz_title ?? entry.quiz_title,
     hash,
   };
 

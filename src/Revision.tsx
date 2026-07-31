@@ -116,6 +116,7 @@ function Revision() {
         options: row.options,
         correct_answer: row.correct_answer,
         proficiency: row.proficiency,
+        quiz_title: row.quiz_title,
       }));
       setRevisionQuestions(revQuestions);
       setRevisionMode(true);
@@ -155,7 +156,7 @@ function Revision() {
         correct: isCorrect ? 1 : 0,
         last_time: new Date().toISOString(),
         proficiency: currentProficiency,
-        quiz_title: 'Revision',
+        quiz_title: question.quiz_title ?? 'Revision',
         question_id: question.question_number,
       });
 
@@ -164,7 +165,7 @@ function Revision() {
           id: question.question_number,
           question_name: question.question,
           correct_answer: question.correct_answer,
-          quiz_title: 'Revision',
+          quiz_title: question.quiz_title ?? 'Revision',
           proficiency: nextProficiency,
           last_time: new Date().toISOString(),
           correct: isCorrect ? 1 : 0,
