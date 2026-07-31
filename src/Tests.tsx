@@ -17,6 +17,8 @@ import {
 } from './components/ContentTreeSidebar';
 import { useExpandCollapseState } from './hooks/useExpandCollapseState';
 import AnswerQuestion from './components/AnswerQuestion';
+import QuestionTracker, { getFirstUnansweredQuestionIndex } from './components/QuestionTracker';
+import { writeWorkspaceStructureFile } from './services/workspaceStructurePersistence';
 
 interface TestsProps {
   selectedTestId?: string;
@@ -42,7 +44,7 @@ async function saveQuestionResult(payload: {
 
 
 function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
-  const { workspace, workspaceVersion } = useWorkspace();
+  const { workspace, workspaceVersion, selectedDirectoryHandle } = useWorkspace();
   const availableTests = workspace.tests;
   const [activeId, setActiveId] = useState(selectedTestId || availableTests[0]?.id || '');
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -99,7 +101,8 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
 
   const persist = async (next: { revision: StructureTree; new_tests: StructureTree }) => {
     try {
-      void saveTestsStructure(next);
+      await saveTestsStructure(next);
+      await writeWorkspaceStructureFile(selectedDirectoryHandle, 'tests', next);
       setStructure(next);
       setStructureError(null);
     } catch (err) {
@@ -136,6 +139,11 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const totalQuestions = selected?.questions.length ?? 0;
   const isLastQuestion = currentIdx + 1 >= totalQuestions;
 
+  const jumpToQuestion = (index: number) => {
+    if (!selected || index < 0 || index >= totalQuestions) return;
+    setCurrentIdx(index);
+  };
+
   const advanceToNextQuestion = () => {
     if (currentIdx + 1 < totalQuestions) {
       setCurrentIdx((i) => i + 1);
@@ -147,7 +155,8 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const handleAnswerSelect = async (question: any, option: string) => {
     if (!selected) return;
     const isCorrect = option === question.correct_answer;
-    setAnswers((prev) => ({ ...prev, [question.question_number]: option }));
+    const nextAnswers = { ...answers, [question.question_number]: option };
+    setAnswers(nextAnswers);
     setCorrectMap((prev) => ({ ...prev, [question.question_number]: isCorrect }));
     try {
       await saveQuestionResult({
@@ -163,17 +172,42 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
     } catch (e) {
       console.error('Failed to save question result', e);
     }
+
+    const firstUnansweredIndex = getFirstUnansweredQuestionIndex(totalQuestions, nextAnswers);
+    if (firstUnansweredIndex === -1) {
+      setFinished(true);
+      return;
+    }
+
     if (isCorrect) {
       setScore((s) => s + 1);
-      // Auto-advance after 1 second if not the last question
       setTimeout(() => {
-        advanceToNextQuestion();
+        if (isLastQuestion) {
+          handleFinishTest(nextAnswers);
+        } else {
+          advanceToNextQuestion();
+        }
       }, 1000);
     } else if (isLastQuestion) {
       setTimeout(() => {
-        setFinished(true);
+        handleFinishTest(nextAnswers);
       }, 0);
     }
+  };
+
+  const handleFinishTest = (nextAnswers: Record<number, string> = answers) => {
+    if (!selected) return;
+
+    const firstUnansweredIndex = getFirstUnansweredQuestionIndex(totalQuestions, nextAnswers);
+    if (firstUnansweredIndex >= 0) {
+      const shouldGoBack = window.confirm(`You still have unanswered questions. Go back to question ${firstUnansweredIndex + 1}?`);
+      if (shouldGoBack) {
+        setCurrentIdx(firstUnansweredIndex);
+        return;
+      }
+    }
+
+    setFinished(true);
   };
 
   return (
@@ -229,19 +263,29 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
                   <p>Finished! Score: {score} / {total}</p>
                 </div>
               ) : (
-                <div className="test-question-container">
-                  {selected.questions.slice(currentIdx, currentIdx + 1).map((q) => (
-                    <AnswerQuestion
-                      key={`${q.question_number}-${q.question}`}
-                      q={q}
-                      answers={answers}
-                      correctMap={correctMap}
-                      handleAnswerSelect={handleAnswerSelect}
-                      onNextQuestion={advanceToNextQuestion}
-                      showNextButton={!!answers[q.question_number] && !finished && !isLastQuestion}
-                    />
-                  ))}
-                </div>
+                <>
+                  <QuestionTracker
+                    totalQuestions={totalQuestions}
+                    answers={answers}
+                    correctMap={correctMap}
+                    currentIndex={currentIdx}
+                    onSelectQuestion={jumpToQuestion}
+                    questionNumbers={selected.questions.map((question) => question.question_number)}
+                  />
+                  <div className="test-question-container">
+                    {selected.questions.slice(currentIdx, currentIdx + 1).map((q) => (
+                      <AnswerQuestion
+                        key={`${q.question_number}-${q.question}`}
+                        q={q}
+                        answers={answers}
+                        correctMap={correctMap}
+                        handleAnswerSelect={handleAnswerSelect}
+                        onNextQuestion={advanceToNextQuestion}
+                        showNextButton={!!answers[q.question_number] && !finished && !isLastQuestion}
+                      />
+                    ))}
+                  </div>
+                </>
               )}
           </>
         )}

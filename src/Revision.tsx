@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CategorySection } from './components/ContentTreeSidebar';
 import AnswerQuestion from './components/AnswerQuestion';
+import QuestionTracker from './components/QuestionTracker';
 import { useWorkspace } from './contexts/WorkspaceContext';
 import { getInitialTestsStructure } from './utils/contentCatalog';
 import {
@@ -110,8 +111,10 @@ function Revision() {
   const startRevision = async () => {
     try {
       const data = await getDueRevisionQuestions();
-      const revQuestions = data.map((row: any) => ({
-        question_number: row.id,
+      const revQuestions = data.map((row: any, index: number) => ({
+        record_id: row.id,
+        question_number: index + 1,
+        displayQuestionNumber: index + 1,
         question: row.question_name,
         options: row.options,
         correct_answer: row.correct_answer,
@@ -144,6 +147,8 @@ function Revision() {
     const isCorrect = option === question.correct_answer;
     const currentProficiency = question.proficiency ?? '1.1';
     const nextProficiency = isCorrect ? getNextProficiency(currentProficiency) : getDowngradedProficiency(currentProficiency);
+    const existingRow = completedRows.find((row: any) => row.id === question.record_id);
+    const quizTitle = existingRow?.quiz_title || question.quiz_title || 'Revision';
     setAnswers((prev) => ({ ...prev, [question.question_number]: option }));
     setCorrectMap((prev) => ({ ...prev, [question.question_number]: isCorrect }));
 
@@ -156,24 +161,24 @@ function Revision() {
         correct: isCorrect ? 1 : 0,
         last_time: new Date().toISOString(),
         proficiency: currentProficiency,
-        quiz_title: question.quiz_title ?? 'Revision',
-        question_id: question.question_number,
+        quiz_title: quizTitle,
+        question_id: question.record_id,
       });
 
       setCompletedRows((prev) => {
         const optimisticRow = {
-          id: question.question_number,
+          id: question.record_id,
           question_name: question.question,
           correct_answer: question.correct_answer,
-          quiz_title: question.quiz_title ?? 'Revision',
+          quiz_title: quizTitle,
           proficiency: nextProficiency,
           last_time: new Date().toISOString(),
           correct: isCorrect ? 1 : 0,
         };
 
-        const exists = prev.some((row: any) => row.id === question.question_number);
+        const exists = prev.some((row: any) => row.id === question.record_id);
         if (exists) {
-          return prev.map((row: any) => (row.id === question.question_number ? { ...row, ...optimisticRow } : row));
+          return prev.map((row: any) => (row.id === question.record_id ? { ...row, ...optimisticRow } : row));
         }
 
         return [optimisticRow, ...prev];
@@ -322,21 +327,38 @@ function Revision() {
           </div>
         ) : revisionMode ? (
           <div className="test-question-container">
-            {revisionQuestions.slice(currentIdx, currentIdx + 1).map((q) => (
-              <AnswerQuestion
-                key={`${q.question_number}-${q.question}`}
-                q={q}
-                answers={answers}
-                correctMap={correctMap}
-                handleAnswerSelect={handleAnswerSelect}
-                onNextQuestion={advanceToNextQuestion}
-                showNextButton={!!answers[q.question_number] && !finished && !isLastQuestion}
-              />
-            ))}
-            {finished && (
+            {revisionQuestions.length === 0 ? (
               <div className="tests-score">
-                <p>Finished! Score: {score} / {totalQuestions}</p>
+                <p>No questions are due for review right now. Come back later.</p>
               </div>
+            ) : (
+              <>
+                <QuestionTracker
+                  totalQuestions={revisionQuestions.length}
+                  answers={answers}
+                  correctMap={correctMap}
+                  currentIndex={currentIdx}
+                  limit={15}
+                  disabled
+                  questionNumbers={revisionQuestions.map((question) => question.displayQuestionNumber ?? question.question_number)}
+                />
+                {revisionQuestions.slice(currentIdx, currentIdx + 1).map((q) => (
+                  <AnswerQuestion
+                    key={`${q.question_number}-${q.question}`}
+                    q={q}
+                    answers={answers}
+                    correctMap={correctMap}
+                    handleAnswerSelect={handleAnswerSelect}
+                    onNextQuestion={advanceToNextQuestion}
+                    showNextButton={!!answers[q.question_number] && !finished && !isLastQuestion}
+                  />
+                ))}
+                {finished && (
+                  <div className="tests-score">
+                    <p>Finished! Score: {score} / {totalQuestions}</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         ) : null}

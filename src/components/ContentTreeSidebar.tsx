@@ -12,7 +12,7 @@ export function TreeGlobalActions({
     <div className="tree-global-actions">
       <button
         type="button"
-        className="toolbar-btn toolbar-btn--full"
+        className="tree-global-actions-btn"
         title="Expand all folders"
         onClick={onExpandAll}
       >
@@ -20,7 +20,7 @@ export function TreeGlobalActions({
       </button>
       <button
         type="button"
-        className="toolbar-btn toolbar-btn--full"
+        className="tree-global-actions-btn"
         title="Collapse all folders"
         onClick={onCollapseAll}
       >

@@ -6,6 +6,7 @@ interface Question {
   question: string;
   options: string[];
   correct_answer: string;
+  displayQuestionNumber?: number;
 }
 
 interface Props {
@@ -30,12 +31,13 @@ function shuffleArray<T>(array: T[]): T[] {
 const AnswerQuestion: React.FC<Props> = ({ q, answers, correctMap, handleAnswerSelect, onNextQuestion, showNextButton }) => {
   // Shuffle once per question instance, and recompute when the question content changes.
   const shuffledOptions = useMemo(() => shuffleArray(q.options), [q.question, q.correct_answer, q.options.join('\u0000')]);
+  const questionLabel = q.displayQuestionNumber ?? q.question_number;
   const hasAnswered = !!answers[q.question_number];
   const isCorrectAnswer = hasAnswered && correctMap[q.question_number];
 
   return (
     <fieldset className="test-question">
-      <legend>{q.question_number}. {q.question}</legend>
+      <legend>{questionLabel}. {q.question}</legend>
       {shuffledOptions.map((opt) => {
         const chosen = answers[q.question_number] === opt;
         const isCorrect = correctMap[q.question_number];

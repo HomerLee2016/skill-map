@@ -1,6 +1,6 @@
 import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
-import { getLessonById, getTestById } from '../utils/contentCatalog';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 
 interface SkillNodeData {
   label: string;
@@ -20,6 +20,7 @@ interface SkillNodeData {
 }
 
 export function SkillNode({ id, data, selected }: NodeProps<SkillNodeData>) {
+  const { workspace } = useWorkspace();
   const className = [
     'skill-node',
     selected ? 'skill-node--selected' : '',
@@ -29,10 +30,10 @@ export function SkillNode({ id, data, selected }: NodeProps<SkillNodeData>) {
     .join(' ');
 
   const linkedLessons = (data.lessons || [])
-    .map((lessonId) => getLessonById(lessonId))
+    .map((lessonId) => workspace.lessons.find((lesson) => lesson.id === lessonId))
     .filter(Boolean);
   const linkedTests = (data.tests || [])
-    .map((testId) => getTestById(testId))
+    .map((testId) => workspace.tests.find((test) => test.id === testId))
     .filter(Boolean);
 
   return (

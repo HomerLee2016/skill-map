@@ -9,6 +9,7 @@ import {
 } from './utils/contentCatalog';
 import { useWorkspace } from './contexts/WorkspaceContext';
 import { resolveStructureTree } from './utils/folderStructure';
+import { writeWorkspaceStructureFile } from './services/workspaceStructurePersistence';
 import {
   CategorySection,
   ContentTreeSidebar,
@@ -27,7 +28,7 @@ async function saveLessonStructure(structure: StructureTree) {
 }
 
 function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
-  const { workspace, workspaceVersion } = useWorkspace();
+  const { workspace, workspaceVersion, selectedDirectoryHandle } = useWorkspace();
   const availableLessons = workspace.lessons;
   const [activeId, setActiveId] = useState(selectedLessonId || availableLessons[0]?.id || '');
   const [structure, setStructure] = useState<StructureTree>(workspace.lessonStructure);
@@ -62,7 +63,8 @@ function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
 
   const persist = async (next: StructureTree) => {
     try {
-      void saveLessonStructure(next);
+      await saveLessonStructure(next);
+      await writeWorkspaceStructureFile(selectedDirectoryHandle, 'lessons', next);
       setStructure(next);
       setError(null);
     } catch (err) {
