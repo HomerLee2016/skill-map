@@ -26,6 +26,7 @@ import { useAutoLayout } from './hooks/useAutoLayout';
 import { Toolbar } from './components/Toolbar';
 import { RoadmapSidebar } from './components/RoadmapSidebar';
 import { useWorkspace } from './contexts/WorkspaceContext';
+import { writeWorkspaceRoadmapFile } from './services/workspaceRoadmapPersistence';
 
 
 const nodeTypes = {
@@ -39,7 +40,7 @@ interface RoadmapProps {
 }
 
 function Roadmap({ darkMode, onGoToLesson, onGoToTest }: RoadmapProps) {
-  const { workspace, workspaceVersion } = useWorkspace();
+  const { workspace, workspaceVersion, selectedDirectoryHandle } = useWorkspace();
   const [roadmaps, setRoadmaps] = useState<SavedRoadmap[]>(() => workspace.roadmaps);
   const [selectedRoadmapId, setSelectedRoadmapId] = useState<string>(() => workspace.roadmaps[0]?.id || 'untitled');
   const [yamlText, setYamlText] = useState<string>(() => workspace.roadmaps[0]?.yaml || '');
@@ -120,22 +121,35 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest }: RoadmapProps) {
 
   const saveRoadmap = async () => {
     try {
-      setRoadmaps((prev) =>
-        prev.map((r) => {
-          if (r.id !== selectedRoadmapId) return r;
-          let newLabel = r.name;
-          try {
-            const parsed = YAML.parse(yamlText);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              const rootNode = parsed.find((n: any) => !n.dependsOn || n.dependsOn.length === 0) || parsed[0];
-              newLabel = rootNode.label || newLabel;
-            } else if (parsed && typeof parsed === 'object' && parsed.label) {
-              newLabel = parsed.label;
-            }
-          } catch {}
-          return { ...r, name: newLabel, yaml: yamlText };
-        })
-      );
+      const currentRoadmap = roadmaps.find((roadmap) => roadmap.id === selectedRoadmapId);
+      if (!currentRoadmap) {
+        setError('No roadmap selected');
+        return;
+      }
+
+      let newLabel = currentRoadmap.name;
+      try {
+        const parsed = YAML.parse(yamlText);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const rootNode = parsed.find((node: any) => !node.dependsOn || node.dependsOn.length === 0) || parsed[0];
+          newLabel = rootNode.label || newLabel;
+        } else if (parsed && typeof parsed === 'object' && parsed.label) {
+          newLabel = parsed.label;
+        }
+      } catch {}
+
+      const nextRoadmap: SavedRoadmap = {
+        ...currentRoadmap,
+        name: newLabel,
+        yaml: yamlText,
+      };
+
+      setRoadmaps((prev) => prev.map((roadmap) => (roadmap.id === selectedRoadmapId ? nextRoadmap : roadmap)));
+      const persisted = await writeWorkspaceRoadmapFile(selectedDirectoryHandle, nextRoadmap);
+      if (!persisted) {
+        throw new Error('Failed to save roadmap to workspace');
+      }
+      setError(null);
     } catch (error) {
       console.error(error);
       setError(error instanceof Error ? error.message : 'Failed to save roadmap');

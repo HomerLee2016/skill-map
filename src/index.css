@@ -749,12 +749,66 @@ body, html, #root {
   border-radius: 8px;
   padding: 12px 16px;
   margin: 0;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
-.test-question legend {
+.test-question__legend {
   font-weight: 600;
   padding: 0 4px;
   margin-bottom: 8px;
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.test-question__number {
+  font-weight: 700;
+}
+
+.test-question__prompt {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--tests-text);
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.test-question__explanation {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--modal-save-bg);
+  background: color-mix(in srgb, var(--panel-bg) 88%, white 12%);
+  border-radius: 6px;
+  color: var(--tests-text);
+  white-space: pre-wrap;
+  line-height: 1.6;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.test-question__explanation-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--modal-save-bg);
+}
+
+.test-question__explanation-body {
+  font-size: 0.95rem;
+  color: var(--tests-muted);
+}
+
+.test-question__next-button {
+  margin-top: 14px;
 }
 
 .option-box {

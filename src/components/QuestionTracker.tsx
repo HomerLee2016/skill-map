@@ -9,6 +9,15 @@ interface QuestionTrackerProps {
   limit?: number;
   disabled?: boolean;
   questionNumbers?: number[];
+  slidingWindow?: boolean;
+}
+
+interface VisibleQuestionTrackerItemsArgs {
+  totalQuestions: number;
+  currentIndex?: number;
+  limit?: number;
+  questionNumbers?: number[];
+  slidingWindow?: boolean;
 }
 
 export function getQuestionTrackerStatus(
@@ -37,24 +46,43 @@ export function getFirstUnansweredQuestionIndex(
   return -1;
 }
 
-function QuestionTracker({
+export function getVisibleQuestionTrackerItems({
   totalQuestions,
-  answers,
-  correctMap,
-  onSelectQuestion,
   currentIndex,
   limit,
-  disabled = false,
   questionNumbers,
-}: QuestionTrackerProps) {
+  slidingWindow = false,
+}: VisibleQuestionTrackerItemsArgs) {
   const questionCount = Math.max(totalQuestions, 0);
+
+  if (slidingWindow) {
+    const effectiveLimit = typeof limit === 'number' ? limit : 15;
+    const reachedCount = Math.min(Math.max((currentIndex ?? 0) + 1, 0), questionCount);
+    const visibleCount = Math.min(reachedCount, effectiveLimit);
+    const startIndex = Math.max(reachedCount - visibleCount, 0);
+
+    return Array.from({ length: visibleCount }, (_, offset) => {
+      const actualIndex = startIndex + offset;
+      const questionNumber = questionNumbers?.[actualIndex] ?? actualIndex + 1;
+      const status = getQuestionTrackerStatus(questionNumber, {}, {});
+      const isCurrent = currentIndex === actualIndex;
+
+      return {
+        id: actualIndex,
+        label: questionNumber,
+        status,
+        isCurrent,
+      };
+    });
+  }
+
   const visibleCount = typeof limit === 'number' ? Math.min(questionCount, limit) : questionCount;
   const startIndex = Math.max(questionCount - visibleCount, 0);
 
-  const items = Array.from({ length: visibleCount }, (_, offset) => {
+  return Array.from({ length: visibleCount }, (_, offset) => {
     const actualIndex = startIndex + offset;
     const questionNumber = questionNumbers?.[actualIndex] ?? actualIndex + 1;
-    const status = getQuestionTrackerStatus(questionNumber, answers, correctMap);
+    const status = getQuestionTrackerStatus(questionNumber, {}, {});
     const isCurrent = currentIndex === actualIndex;
 
     return {
@@ -64,6 +92,29 @@ function QuestionTracker({
       isCurrent,
     };
   });
+}
+
+function QuestionTracker({
+  totalQuestions,
+  answers,
+  correctMap,
+  onSelectQuestion,
+  currentIndex,
+  limit,
+  disabled = false,
+  questionNumbers,
+  slidingWindow = false,
+}: QuestionTrackerProps) {
+  const items = getVisibleQuestionTrackerItems({
+    totalQuestions,
+    currentIndex,
+    limit,
+    questionNumbers,
+    slidingWindow,
+  }).map((item) => ({
+    ...item,
+    status: getQuestionTrackerStatus(item.label, answers, correctMap),
+  }));
 
   return (
     <div className="question-tracker" aria-label="Question progress tracker">

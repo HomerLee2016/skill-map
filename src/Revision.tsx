@@ -341,6 +341,7 @@ function Revision() {
                   limit={15}
                   disabled
                   questionNumbers={revisionQuestions.map((question) => question.displayQuestionNumber ?? question.question_number)}
+                  slidingWindow
                 />
                 {revisionQuestions.slice(currentIdx, currentIdx + 1).map((q) => (
                   <AnswerQuestion
