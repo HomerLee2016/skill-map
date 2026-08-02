@@ -6,6 +6,7 @@ import { useWorkspace } from './contexts/WorkspaceContext';
 import { getInitialTestsStructure } from './utils/contentCatalog';
 import {
   exportRevisionData,
+  formatRevisionTimestamp,
   getAllCompletedQuestions,
   getDueRevisionQuestions,
   getDowngradedProficiency,
@@ -21,6 +22,7 @@ async function saveQuestionResult(payload: {
   correct_answer: string;
   selected_answer: string;
   correct: number;
+  explanation?: string | null;
   last_time: string;
   proficiency?: string;
   quiz_title: string;
@@ -95,9 +97,7 @@ function Revision() {
     try {
       const data = await exportRevisionData();
       const revisionDirectory = await selectedDirectoryHandle.getDirectoryHandle('revision', { create: true });
-      const now = new Date();
-      const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
-      const fileName = `revision-data-${timestamp}.json`;
+      const fileName = `revision-data-${formatRevisionTimestamp()}.json`;
       const fileHandle = await revisionDirectory.getFileHandle(fileName, { create: true });
       const writable = await fileHandle.createWritable();
       await writable.write(data);
@@ -120,6 +120,7 @@ function Revision() {
         correct_answer: row.correct_answer,
         proficiency: row.proficiency,
         quiz_title: row.quiz_title,
+        explanation: row.explanation,
       }));
       setRevisionQuestions(revQuestions);
       setRevisionMode(true);
@@ -159,6 +160,7 @@ function Revision() {
         correct_answer: question.correct_answer,
         selected_answer: option,
         correct: isCorrect ? 1 : 0,
+        explanation: question.explanation,
         last_time: new Date().toISOString(),
         proficiency: currentProficiency,
         quiz_title: quizTitle,
@@ -172,6 +174,7 @@ function Revision() {
           correct_answer: question.correct_answer,
           quiz_title: quizTitle,
           proficiency: nextProficiency,
+          explanation: question.explanation,
           last_time: new Date().toISOString(),
           correct: isCorrect ? 1 : 0,
         };
@@ -185,7 +188,7 @@ function Revision() {
       });
       await fetchCompleted();
       const nextDueCount = await fetchDueCount();
-      if (!backupCompleted && nextDueCount === 0) {
+      if (!backupCompleted && isLastQuestion && nextDueCount === 0) {
         await saveRevisionBackup();
       }
     } catch (error) {
@@ -283,7 +286,7 @@ function Revision() {
                       const url = URL.createObjectURL(blob);
                       const link = document.createElement('a');
                       link.href = url;
-                      link.download = 'revision-data.json';
+                      link.download = `revision-data-${formatRevisionTimestamp()}.json`;
                       link.click();
                       URL.revokeObjectURL(url);
                     } catch (error) {

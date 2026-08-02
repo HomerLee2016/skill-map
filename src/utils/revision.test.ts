@@ -11,6 +11,7 @@ const {
   getDowngradedProficiency,
   getNextProficiency,
   getNextRevisionTime,
+  formatRevisionTimestamp,
   insertCompletedQuestion,
   isQuestionDue,
   normalizeProficiency,
@@ -57,6 +58,31 @@ test('derives deterministic storage keys for different workspace paths', () => {
   assert.equal(first, second);
   assert.notEqual(first, third);
   assert.match(first, /^workspace-/);
+});
+
+test('formats revision backup filenames with a timestamp', () => {
+  const date = new Date('2026-08-02T12:05:30.000Z');
+  const expected = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${String(date.getHours()).padStart(2, '0')}${String(date.getMinutes()).padStart(2, '0')}${String(date.getSeconds()).padStart(2, '0')}`;
+
+  assert.equal(formatRevisionTimestamp(date), expected);
+});
+
+test('persists an explanation alongside revision results', async () => {
+  setActiveWorkspaceStorageKey('persist-explanation-test');
+
+  const record = await insertCompletedQuestion({
+    question_name: 'Question 1',
+    options: ['A', 'B'],
+    correct_answer: 'A',
+    last_time: new Date('2026-07-27T04:00:00.000Z').toISOString(),
+    proficiency: DEFAULT_PROFICIENCY,
+    quiz_title: 'Revision Quiz',
+    selected_answer: 'B',
+    correct: 0,
+    explanation: 'Because A is the correct option.',
+  });
+
+  assert.equal(record.explanation, 'Because A is the correct option.');
 });
 
 test('preserves the original quiz title when updating an existing revision entry', async () => {

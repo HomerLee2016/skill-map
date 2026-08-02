@@ -35,6 +35,7 @@ async function saveQuestionResult(payload: {
   correct_answer: string;
   selected_answer: string;
   correct: number;
+  explanation?: string | null;
   last_time: string;
   proficiency?: string;
   quiz_title: string;
@@ -165,6 +166,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
         correct_answer: question.correct_answer,
         selected_answer: option,
         correct: isCorrect ? 1 : 0,
+        explanation: question.explanation,
         last_time: new Date().toISOString(),
         proficiency: question.proficiency,
         quiz_title: selected?.title ?? '',

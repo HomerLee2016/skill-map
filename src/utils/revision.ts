@@ -17,6 +17,7 @@ export interface CompletedQuestionRecord {
   correct_answer: string;
   selected_answer?: string | null;
   correct?: number;
+  explanation?: string | null;
   last_time: string;
   next_revision_time?: string | null;
   proficiency?: string | null;
@@ -33,6 +34,7 @@ export interface CompletedQuestionInsert {
   quiz_title: string;
   selected_answer?: string;
   correct?: number;
+  explanation?: string | null;
   question_id?: number;
 }
 
@@ -75,6 +77,16 @@ export function getDowngradedProficiency(currentProficiency: string | null | und
     return DEFAULT_PROFICIENCY;
   }
   return `${stage - 1}.1`;
+}
+
+export function formatRevisionTimestamp(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${year}${month}${day}-${hours}${minutes}${seconds}`;
 }
 
 export function getNextRevisionTime(lastTime: string | null | undefined, currentProficiency: string | null | undefined): string {
@@ -171,6 +183,7 @@ export async function insertCompletedQuestion(entry: CompletedQuestionInsert): P
     correct_answer: entry.correct_answer,
     selected_answer: entry.selected_answer ?? null,
     correct: entry.correct ?? 0,
+    explanation: entry.explanation ?? existing?.explanation ?? null,
     last_time: entry.last_time,
     next_revision_time: nextRevisionTime,
     proficiency: resolvedProficiency,

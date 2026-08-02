@@ -7,7 +7,7 @@ interface Question {
   options: string[];
   correct_answer: string;
   displayQuestionNumber?: number;
-  explanation?: string;
+  explanation?: string | null;
 }
 
 interface Props {
