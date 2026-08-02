@@ -145,6 +145,15 @@ function Revision() {
     }
   };
 
+  const handleNextQuestionOrFinish = () => {
+    if (isLastQuestion && !autoAdvanceOnCorrect) {
+      setFinished(true);
+      return;
+    }
+
+    advanceToNextQuestion();
+  };
+
   const handleAnswerSelect = async (question: any, option: string) => {
     const isCorrect = option === question.correct_answer;
     const currentProficiency = question.proficiency ?? '1.1';
@@ -251,6 +260,9 @@ function Revision() {
               <div className="summary-table-header">
                 <div>
                   <h2>Learnt Summary</h2>
+                  <p>
+                    Total: {completedRows.length} question{completedRows.length !== 1 ? 's' : ''}
+                  </p>
                 </div>
                 <div className="summary-table-header-buttons">
                   <button
@@ -356,8 +368,8 @@ function Revision() {
                     answers={answers}
                     correctMap={correctMap}
                     handleAnswerSelect={handleAnswerSelect}
-                    onNextQuestion={advanceToNextQuestion}
-                    showNextButton={!!answers[q.question_number] && !finished && !isLastQuestion}
+                    onNextQuestion={handleNextQuestionOrFinish}
+                    showNextButton={!!answers[q.question_number] && !finished && (!isLastQuestion || !autoAdvanceOnCorrect)}
                     autoAdvanceOnCorrect={autoAdvanceOnCorrect}
                     onAutoAdvanceChange={setAutoAdvanceOnCorrect}
                   />

@@ -154,6 +154,15 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
     }
   };
 
+  const handleNextQuestionOrFinish = (nextAnswers: Record<number, string> = answers) => {
+    if (isLastQuestion && !autoAdvanceOnCorrect) {
+      handleFinishTest(nextAnswers);
+      return;
+    }
+
+    advanceToNextQuestion();
+  };
+
   const handleAnswerSelect = async (question: any, option: string) => {
     if (!selected) return;
     const isCorrect = option === question.correct_answer;
@@ -178,7 +187,9 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
 
     const firstUnansweredIndex = getFirstUnansweredQuestionIndex(totalQuestions, nextAnswers);
     if (firstUnansweredIndex === -1) {
-      setFinished(true);
+      if (!isCorrect || autoAdvanceOnCorrect) {
+        setFinished(true);
+      }
       return;
     }
 
@@ -285,8 +296,8 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
                         answers={answers}
                         correctMap={correctMap}
                         handleAnswerSelect={handleAnswerSelect}
-                        onNextQuestion={advanceToNextQuestion}
-                        showNextButton={!!answers[q.question_number] && !finished && !isLastQuestion}
+                        onNextQuestion={() => handleNextQuestionOrFinish(answers)}
+                        showNextButton={!!answers[q.question_number] && !finished && (!isLastQuestion || !autoAdvanceOnCorrect)}
                         autoAdvanceOnCorrect={autoAdvanceOnCorrect}
                         onAutoAdvanceChange={setAutoAdvanceOnCorrect}
                       />
