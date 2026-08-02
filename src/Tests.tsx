@@ -54,6 +54,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const [finished, setFinished] = useState(false);
   const [score, setScore] = useState(0);
   const [total, setTotal] = useState(0);
+  const [autoAdvanceOnCorrect, setAutoAdvanceOnCorrect] = useState(true);
   const [structure, setStructure] = useState(workspace.testsStructure);
   const [structureError, setStructureError] = useState<string | null>(null);
   const [modalState, setModalState] = useState<{ open: boolean; mode: 'add-folder' | 'assign-item' }>({
@@ -183,13 +184,15 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
 
     if (isCorrect) {
       setScore((s) => s + 1);
-      setTimeout(() => {
-        if (isLastQuestion) {
-          handleFinishTest(nextAnswers);
-        } else {
-          advanceToNextQuestion();
-        }
-      }, 1000);
+      if (autoAdvanceOnCorrect) {
+        setTimeout(() => {
+          if (isLastQuestion) {
+            handleFinishTest(nextAnswers);
+          } else {
+            advanceToNextQuestion();
+          }
+        }, 1000);
+      }
     } else if (isLastQuestion) {
       setTimeout(() => {
         handleFinishTest(nextAnswers);
@@ -284,6 +287,8 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
                         handleAnswerSelect={handleAnswerSelect}
                         onNextQuestion={advanceToNextQuestion}
                         showNextButton={!!answers[q.question_number] && !finished && !isLastQuestion}
+                        autoAdvanceOnCorrect={autoAdvanceOnCorrect}
+                        onAutoAdvanceChange={setAutoAdvanceOnCorrect}
                       />
                     ))}
                   </div>

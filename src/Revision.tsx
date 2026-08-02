@@ -45,6 +45,7 @@ function Revision() {
   const [finished, setFinished] = useState(false);
   const [score, setScore] = useState(0);
   const [dueCount, setDueCount] = useState(0);
+  const [autoAdvanceOnCorrect, setAutoAdvanceOnCorrect] = useState(true);
   const [showSummary, setShowSummary] = useState(true);
   const [backupCompleted, setBackupCompleted] = useState(false);
 
@@ -197,9 +198,11 @@ function Revision() {
 
     if (isCorrect) {
       setScore((value) => value + 1);
-      setTimeout(() => {
-        advanceToNextQuestion();
-      }, 1000);
+      if (autoAdvanceOnCorrect) {
+        setTimeout(() => {
+          advanceToNextQuestion();
+        }, 1000);
+      }
     } else if (isLastQuestion) {
       setTimeout(() => {
         setFinished(true);
@@ -355,6 +358,8 @@ function Revision() {
                     handleAnswerSelect={handleAnswerSelect}
                     onNextQuestion={advanceToNextQuestion}
                     showNextButton={!!answers[q.question_number] && !finished && !isLastQuestion}
+                    autoAdvanceOnCorrect={autoAdvanceOnCorrect}
+                    onAutoAdvanceChange={setAutoAdvanceOnCorrect}
                   />
                 ))}
                 {finished && (

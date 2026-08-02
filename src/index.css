@@ -807,8 +807,27 @@ body, html, #root {
   color: var(--tests-muted);
 }
 
-.test-question__next-button {
+.test-question__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.test-question__toggle {
+  font-size: 0.95rem;
+  color: var(--tests-muted);
+  position: relative;
+}
+
+.test-question__toggle-label {
+  color: var(--tests-text);
+}
+
+.test-question__next-button {
+  margin-top: 0;
 }
 
 .option-box {
