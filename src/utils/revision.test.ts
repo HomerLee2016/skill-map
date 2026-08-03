@@ -84,6 +84,33 @@ test('builds review items from incorrect answers only', () => {
   assert.deepEqual(reviewItems.map((item) => item.selectedAnswer), ['B', 'C']);
 });
 
+test('uses the submitted answer to identify incorrect questions when the correctness map is incomplete', () => {
+  const questions = [
+    { question_number: 1, question: 'Question 1', options: ['A', 'B'], correct_answer: 'A' },
+    { question_number: 2, question: 'Question 2', options: ['A', 'B'], correct_answer: 'A' },
+  ];
+  const answers = { 1: 'B' };
+  const correctMap = {};
+
+  const reviewItems = buildIncorrectReviewQuestions(questions, answers, correctMap);
+
+  assert.equal(reviewItems.length, 1);
+  assert.equal(reviewItems[0].question.question_number, 1);
+});
+
+test('returns no review items when every answered question is correct', () => {
+  const questions = [
+    { question_number: 1, question: 'Question 1', options: ['A', 'B'], correct_answer: 'A' },
+    { question_number: 2, question: 'Question 2', options: ['A', 'B'], correct_answer: 'A' },
+  ];
+  const answers = { 1: 'A', 2: 'A' };
+  const correctMap = { 1: true, 2: true };
+
+  const reviewItems = buildIncorrectReviewQuestions(questions, answers, correctMap);
+
+  assert.equal(reviewItems.length, 0);
+});
+
 test('persists an explanation alongside revision results', async () => {
   setActiveWorkspaceStorageKey('persist-explanation-test');
 

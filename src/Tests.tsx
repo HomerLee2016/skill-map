@@ -20,6 +20,7 @@ import AnswerQuestion from './components/AnswerQuestion';
 import IncorrectReviewScreen from './components/IncorrectReviewScreen';
 import QuestionTracker, { getFirstUnansweredQuestionIndex } from './components/QuestionTracker';
 import { writeWorkspaceStructureFile } from './services/workspaceStructurePersistence';
+import { countCorrectAnswers } from './utils/testScoring';
 
 interface TestsProps {
   selectedTestId?: string;
@@ -54,7 +55,6 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [finished, setFinished] = useState(false);
   const [showIncorrectReview, setShowIncorrectReview] = useState(false);
-  const [score, setScore] = useState(0);
   const [total, setTotal] = useState(0);
   const [autoAdvanceOnCorrect, setAutoAdvanceOnCorrect] = useState(true);
   const [structure, setStructure] = useState(workspace.testsStructure);
@@ -90,7 +90,6 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   useEffect(() => {
     if (selected) {
       setTotal(selected.questions.length);
-      setScore(0);
       setCurrentIdx(0);
       setFinished(false);
       setShowIncorrectReview(false);
@@ -143,6 +142,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
 
   const totalQuestions = selected?.questions.length ?? 0;
   const isLastQuestion = currentIdx + 1 >= totalQuestions;
+  const computedScore = countCorrectAnswers(correctMap);
 
   const jumpToQuestion = (index: number) => {
     if (!selected || index < 0 || index >= totalQuestions) return;
@@ -197,7 +197,6 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
     }
 
     if (isCorrect) {
-      setScore((s) => s + 1);
       if (autoAdvanceOnCorrect) {
         setTimeout(() => {
           if (isLastQuestion) {
@@ -270,69 +269,61 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
       <div className="tests-content">
         {!selected ? (
           <p className="tests-empty">Select a test from the sidebar.</p>
+        ) : showIncorrectReview ? (
+          <IncorrectReviewScreen
+            questions={selected.questions}
+            answers={answers}
+            correctMap={correctMap}
+            title={selected.title}
+            subtitle="Review the questions you answered incorrectly."
+            onFinish={() => {
+              setShowIncorrectReview(false);
+              setFinished(false);
+              setCurrentIdx(0);
+              setAnswers({});
+              setCorrectMap({});
+            }}
+          />
+        ) : finished ? (
+          <div className="tests-score">
+            <p>Finished! Score: {computedScore} / {total}</p>
+            <button type="button" className="toolbar-btn" onClick={() => {
+              setShowIncorrectReview(true);
+              setFinished(false);
+              setCurrentIdx(0);
+            }}>
+              Review Incorrect Answers
+            </button>
+          </div>
         ) : (
           <>
-            {!showIncorrectReview && (
-              <header className="tests-header">
-                <h1>{selected.title}</h1>
-                <p className="tests-meta">{selected.questions.length} multiple-choice questions</p>
-              </header>
-            )}
-
-            {showIncorrectReview ? (
-                <IncorrectReviewScreen
-                  questions={selected.questions}
+            <header className="tests-header">
+              <h1>{selected.title}</h1>
+              <p className="tests-meta">{selected.questions.length} multiple-choice questions</p>
+            </header>
+            <QuestionTracker
+              totalQuestions={totalQuestions}
+              answers={answers}
+              correctMap={correctMap}
+              currentIndex={currentIdx}
+              onSelectQuestion={jumpToQuestion}
+              questionNumbers={selected.questions.map((question) => question.question_number)}
+            />
+            <div className="test-question-container">
+              {selected.questions.slice(currentIdx, currentIdx + 1).map((q) => (
+                <AnswerQuestion
+                  key={`${q.question_number}-${q.question}`}
+                  q={q}
                   answers={answers}
                   correctMap={correctMap}
-                  title={selected.title}
-                  subtitle="Review the questions you answered incorrectly."
-                  onFinish={() => {
-                    setShowIncorrectReview(false);
-                    setFinished(false);
-                    setCurrentIdx(0);
-                    setAnswers({});
-                    setCorrectMap({});
-                    setScore(0);
-                  }}
+                  handleAnswerSelect={handleAnswerSelect}
+                  onNextQuestion={() => handleNextQuestionOrFinish(answers)}
+                  showNextButton={!!answers[q.question_number] && !finished && (!isLastQuestion || !autoAdvanceOnCorrect)}
+                  autoAdvanceOnCorrect={autoAdvanceOnCorrect}
+                  onAutoAdvanceChange={setAutoAdvanceOnCorrect}
                 />
-              ) : finished ? (
-                <div className="tests-score">
-                  <p>Finished! Score: {score} / {total}</p>
-                  <button type="button" className="toolbar-btn" onClick={() => {
-                    setShowIncorrectReview(true);
-                    setFinished(false);
-                    setCurrentIdx(0);
-                  }}>
-                    Review Incorrect Answers
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <QuestionTracker
-                    totalQuestions={totalQuestions}
-                    answers={answers}
-                    correctMap={correctMap}
-                    currentIndex={currentIdx}
-                    onSelectQuestion={jumpToQuestion}
-                    questionNumbers={selected.questions.map((question) => question.question_number)}
-                  />
-                  <div className="test-question-container">
-                    {selected.questions.slice(currentIdx, currentIdx + 1).map((q) => (
-                      <AnswerQuestion
-                        key={`${q.question_number}-${q.question}`}
-                        q={q}
-                        answers={answers}
-                        correctMap={correctMap}
-                        handleAnswerSelect={handleAnswerSelect}
-                        onNextQuestion={() => handleNextQuestionOrFinish(answers)}
-                        showNextButton={!!answers[q.question_number] && !finished && (!isLastQuestion || !autoAdvanceOnCorrect)}
-                        autoAdvanceOnCorrect={autoAdvanceOnCorrect}
-                        onAutoAdvanceChange={setAutoAdvanceOnCorrect}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
+              ))}
+            </div>
           </>
         )}
       </div>

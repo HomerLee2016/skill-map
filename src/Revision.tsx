@@ -348,69 +348,67 @@ function Revision() {
             </div>
           </div>
         ) : revisionMode ? (
-          <div className="test-question-container">
-            {revisionQuestions.length === 0 ? (
-              <div className="tests-score">
-                <p>No questions are due for review right now. Come back later.</p>
-              </div>
-            ) : (
-              <>
-                <QuestionTracker
-                  totalQuestions={revisionQuestions.length}
+          showIncorrectReview ? (
+            <IncorrectReviewScreen
+              questions={revisionQuestions}
+              answers={answers}
+              correctMap={correctMap}
+              title="Revision review"
+              subtitle="Review the questions you answered incorrectly."
+              onFinish={() => {
+                setShowIncorrectReview(false);
+                setFinished(false);
+                setCurrentIdx(0);
+                setAnswers({});
+                setCorrectMap({});
+                setScore(0);
+                setShowSummary(true);
+                setRevisionMode(false);
+              }}
+            />
+          ) : revisionQuestions.length === 0 ? (
+            <div className="tests-score">
+              <p>No questions are due for review right now. Come back later.</p>
+            </div>
+          ) : (
+            <div className="test-question-container">
+              <QuestionTracker
+                totalQuestions={revisionQuestions.length}
+                answers={answers}
+                correctMap={correctMap}
+                currentIndex={currentIdx}
+                limit={15}
+                disabled
+                questionNumbers={revisionQuestions.map((question) => question.displayQuestionNumber ?? question.question_number)}
+                slidingWindow
+              />
+              {revisionQuestions.slice(currentIdx, currentIdx + 1).map((q) => (
+                <AnswerQuestion
+                  key={`${q.question_number}-${q.question}`}
+                  q={q}
                   answers={answers}
                   correctMap={correctMap}
-                  currentIndex={currentIdx}
-                  limit={15}
-                  disabled
-                  questionNumbers={revisionQuestions.map((question) => question.displayQuestionNumber ?? question.question_number)}
-                  slidingWindow
+                  handleAnswerSelect={handleAnswerSelect}
+                  onNextQuestion={handleNextQuestionOrFinish}
+                  showNextButton={!!answers[q.question_number] && !finished && (!isLastQuestion || !autoAdvanceOnCorrect)}
+                  autoAdvanceOnCorrect={autoAdvanceOnCorrect}
+                  onAutoAdvanceChange={setAutoAdvanceOnCorrect}
                 />
-                {revisionQuestions.slice(currentIdx, currentIdx + 1).map((q) => (
-                  <AnswerQuestion
-                    key={`${q.question_number}-${q.question}`}
-                    q={q}
-                    answers={answers}
-                    correctMap={correctMap}
-                    handleAnswerSelect={handleAnswerSelect}
-                    onNextQuestion={handleNextQuestionOrFinish}
-                    showNextButton={!!answers[q.question_number] && !finished && (!isLastQuestion || !autoAdvanceOnCorrect)}
-                    autoAdvanceOnCorrect={autoAdvanceOnCorrect}
-                    onAutoAdvanceChange={setAutoAdvanceOnCorrect}
-                  />
-                ))}
-                {showIncorrectReview ? (
-                  <IncorrectReviewScreen
-                    questions={revisionQuestions}
-                    answers={answers}
-                    correctMap={correctMap}
-                    title="Revision review"
-                    subtitle="Review the questions you answered incorrectly."
-                    onFinish={() => {
-                      setShowIncorrectReview(false);
-                      setFinished(false);
-                      setCurrentIdx(0);
-                      setAnswers({});
-                      setCorrectMap({});
-                      setScore(0);
-                      setShowSummary(true);
-                      setRevisionMode(false);
-                    }}
-                  />
-                ) : finished ? (
-                  <div className="tests-score">
-                    <p>Finished! Score: {score} / {totalQuestions}</p>
-                    <button type="button" className="toolbar-btn" onClick={() => {
-                      setShowIncorrectReview(true);
-                      setFinished(false);
-                      setCurrentIdx(0);
-                    }}>
-                      Review Incorrect Answers
-                    </button>
-                  </div>
-                ) : null}
-              </>
-            )}
-          </div>
+              ))}
+              {finished ? (
+                <div className="tests-score">
+                  <p>Finished! Score: {score} / {totalQuestions}</p>
+                  <button type="button" className="toolbar-btn" onClick={() => {
+                    setShowIncorrectReview(true);
+                    setFinished(false);
+                    setCurrentIdx(0);
+                  }}>
+                    Review Incorrect Answers
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          )
         ) : null}
       </div>
     </div>

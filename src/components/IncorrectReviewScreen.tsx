@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import QuestionTracker from './QuestionTracker';
 import AnswerQuestion from './AnswerQuestion';
+import { buildIncorrectReviewQuestions } from '../utils/revision';
 
 interface ReviewQuestion {
   question_number: number;
@@ -28,12 +29,16 @@ function IncorrectReviewScreen({
   subtitle = 'Go through the questions you missed.',
   onFinish,
 }: IncorrectReviewScreenProps) {
-  const reviewQuestions = useMemo(() => questions.filter((question) => {
-    const selectedAnswer = answers[question.question_number];
-    return !!selectedAnswer && correctMap[question.question_number] === false;
-  }), [questions, answers, correctMap]);
+  const reviewQuestions = useMemo<ReviewQuestion[]>(() => 
+    buildIncorrectReviewQuestions(questions, answers, correctMap).map((item) => item.question),
+    [questions, answers, correctMap],
+  );
 
   const [currentIdx, setCurrentIdx] = useState(0);
+
+  useEffect(() => {
+    setCurrentIdx(0);
+  }, [reviewQuestions.length]);
 
   if (reviewQuestions.length === 0) {
     return (
@@ -41,14 +46,27 @@ function IncorrectReviewScreen({
         <p>You did not miss any questions.</p>
         {onFinish && (
           <button type="button" className="toolbar-btn" onClick={onFinish}>
-            Back to summary
+            Back to Test/Summary
           </button>
         )}
       </div>
     );
   }
 
-  const currentQuestion = reviewQuestions[currentIdx];
+  const currentQuestion = reviewQuestions[currentIdx] ?? reviewQuestions[0];
+
+  if (!currentQuestion) {
+    return (
+      <div className="tests-score">
+        <p>No incorrect questions.</p>
+        {onFinish && (
+          <button type="button" className="toolbar-btn" onClick={onFinish}>
+            Close review
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="test-question-container">

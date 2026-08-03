@@ -58,7 +58,16 @@ export function buildIncorrectReviewQuestions<TQuestion extends {
   return questions
     .filter((question) => {
       const selectedAnswer = answers[question.question_number];
-      return !!selectedAnswer && correctMap[question.question_number] === false;
+      if (!selectedAnswer) {
+        return false;
+      }
+
+      const correctness = correctMap[question.question_number];
+      if (typeof correctness === 'boolean') {
+        return correctness === false;
+      }
+
+      return selectedAnswer !== question.correct_answer;
     })
     .map((question) => ({
       question,
