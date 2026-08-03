@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import type { PageId } from '../types';
 
@@ -16,7 +17,42 @@ const NAV_ITEMS: { id: PageId; label: string }[] = [
 ];
 
 export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBarProps) {
-  const { selectWorkspace, isLoading, selectedDirectoryHandle, workspaceSelectionLabel } = useWorkspace();
+  const {
+    selectWorkspace,
+    selectWorkspaceFromHistory,
+    removeWorkspaceHistoryEntry,
+    isLoading,
+    selectedDirectoryHandle,
+    workspaceSelectionLabel,
+    workspaceHistory,
+  } = useWorkspace();
+  const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
+  const workspaceMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (workspaceMenuRef.current && !workspaceMenuRef.current.contains(event.target as Node)) {
+        setIsWorkspaceMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, []);
+
+  const handleSelectWorkspace = async () => {
+    setIsWorkspaceMenuOpen(false);
+    await selectWorkspace();
+  };
+
+  const handleHistoryWorkspace = async (entry: { name: string; path: string }) => {
+    setIsWorkspaceMenuOpen(false);
+    await selectWorkspaceFromHistory(entry);
+  };
+
+  const handleRemoveHistoryEntry = (entry: { name: string; path: string }) => {
+    removeWorkspaceHistoryEntry(entry);
+  };
 
   return (
     <header className="top-bar">
@@ -34,12 +70,57 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
         ))}
       </nav>
       <div className="top-bar-actions">
-        <div className="top-bar-workspace-pill">
+        <div className="top-bar-workspace-pill" ref={workspaceMenuRef}>
           <span className="top-bar-workspace-label">{workspaceSelectionLabel}</span>
+          <button
+            type="button"
+            className="top-bar-workspace-trigger"
+            onClick={() => setIsWorkspaceMenuOpen((value) => !value)}
+            aria-expanded={isWorkspaceMenuOpen}
+            aria-haspopup="menu"
+          >
+            {isLoading ? 'Loading…' : selectedDirectoryHandle ? 'Change Workspace' : 'Select Local Workspace'}
+          </button>
+          {isWorkspaceMenuOpen ? (
+            <div className="top-bar-workspace-menu" role="menu">
+              {workspaceHistory.length > 0 ? (
+                <div className="top-bar-workspace-menu-section">
+                  <div className="top-bar-workspace-menu-title">Recent workspaces</div>
+                  {workspaceHistory.map((entry) => (
+                    <div key={`${entry.path}-${entry.name}`} className="top-bar-workspace-menu-item-row">
+                      <button
+                        type="button"
+                        className="top-bar-workspace-menu-item"
+                        onClick={() => { void handleHistoryWorkspace(entry); }}
+                      >
+                        <span className="top-bar-workspace-menu-item-label">{entry.name}</span>
+                        {typeof (entry as any).pendingCount === 'number' ? (
+                          <span className="top-bar-workspace-badge">{(entry as any).pendingCount}</span>
+                        ) : null}
+                      </button>
+                      <button
+                        type="button"
+                        className="top-bar-workspace-menu-remove"
+                        onClick={() => handleRemoveHistoryEntry(entry)}
+                        aria-label={`Remove ${entry.name}`}
+                        title={`Remove ${entry.name}`}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              <button
+                type="button"
+                className="top-bar-workspace-menu-item top-bar-workspace-menu-item--action"
+                onClick={() => { void handleSelectWorkspace(); }}
+              >
+                + Browse from local
+              </button>
+            </div>
+          ) : null}
         </div>
-        <button type="button" className="toolbar-btn" onClick={() => { void selectWorkspace(); }}>
-          {isLoading ? 'Loading…' : selectedDirectoryHandle ? 'Change Workspace' : 'Select Local Workspace'}
-        </button>
         <label className="top-bar-theme">
           <span className="top-bar-theme-label">Dark mode</span>
           <span className={darkMode ? 'toggle-track toggle-track--on' : 'toggle-track'}>

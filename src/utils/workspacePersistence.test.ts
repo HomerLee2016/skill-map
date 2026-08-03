@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readPersistedWorkspaceSelection, writePersistedWorkspaceSelection } from './workspacePersistence';
+import {
+  readPersistedWorkspaceSelection,
+  upsertWorkspaceHistoryEntry,
+  writePersistedWorkspaceSelection,
+} from './workspacePersistence';
 
 test('persists and restores workspace selection metadata', () => {
   const storage = new MapStorage();
@@ -14,6 +18,29 @@ test('persists and restores workspace selection metadata', () => {
     name: 'my-workspace',
     path: '/Users/demo/my-workspace',
   });
+});
+
+test('upserts workspace history entries to the front and trims older entries', () => {
+  const history = [
+    { name: 'Alpha', path: 'alpha' },
+    { name: 'Beta', path: 'beta' },
+    { name: 'Gamma', path: 'gamma' },
+  ];
+
+  const next = upsertWorkspaceHistoryEntry(history, { name: 'Delta', path: 'delta' }, 3);
+
+  assert.deepEqual(next.map((entry) => entry.path), ['delta', 'alpha', 'beta']);
+});
+
+test('moves an existing workspace entry to the front without duplicating it', () => {
+  const history = [
+    { name: 'Alpha', path: 'alpha' },
+    { name: 'Beta', path: 'beta' },
+  ];
+
+  const next = upsertWorkspaceHistoryEntry(history, { name: 'Alpha', path: 'alpha' }, 5);
+
+  assert.deepEqual(next.map((entry) => entry.path), ['alpha', 'beta']);
 });
 
 class MapStorage implements Storage {

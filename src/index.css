@@ -354,6 +354,7 @@ body, html, #root {
 }
 
 .top-bar-workspace-pill {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -370,6 +371,104 @@ body, html, #root {
   opacity: 0.7;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.top-bar-workspace-trigger {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.top-bar-workspace-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--topbar-bg);
+  border: 1px solid var(--topbar-border);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+  z-index: 20;
+}
+
+.top-bar-workspace-menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.top-bar-workspace-menu-title {
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.top-bar-workspace-menu-item-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.top-bar-workspace-menu-item {
+  flex: 1;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 8px;
+  text-align: left;
+}
+
+.top-bar-workspace-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.top-bar-workspace-menu-remove {
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  padding: 6px;
+}
+
+.top-bar-workspace-menu-remove:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.top-bar-workspace-menu-item-label {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.top-bar-workspace-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: 8px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.top-bar-workspace-menu-item--action {
+  font-weight: 600;
+  color: var(--topbar-link-active-text);
 }
 
 .top-bar-workspace-value {

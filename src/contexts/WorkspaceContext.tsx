@@ -4,9 +4,15 @@ import { setActiveWorkspaceStorageKey } from '../utils/revision';
 import {
   persistWorkspaceHandle,
   readPersistedWorkspaceHandle,
+  readPersistedWorkspaceHandleForSelection,
+  readPersistedWorkspaceHistory,
   readPersistedWorkspaceSelection,
+  removeWorkspaceHistoryEntry,
+  upsertWorkspaceHistoryEntry,
+  writePersistedWorkspaceHistory,
   writePersistedWorkspaceSelection,
 } from '../utils/workspacePersistence';
+import { getDueRevisionCountForWorkspace } from '../utils/revision';
 
 interface WorkspaceContextValue {
   workspace: WorkspaceContent;
@@ -14,7 +20,10 @@ interface WorkspaceContextValue {
   selectedDirectoryHandle: FileSystemDirectoryHandle | null;
   workspaceSelectionLabel: string;
   workspaceVersion: number;
+  workspaceHistory: Array<{ name: string; path: string; pendingCount?: number }>;
   selectWorkspace: () => Promise<void>;
+  selectWorkspaceFromHistory: (entry: { name: string; path: string }) => Promise<void>;
+  removeWorkspaceHistoryEntry: (entry: { name: string; path: string }) => void;
   refreshWorkspace: () => Promise<void>;
 }
 
@@ -26,6 +35,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [selectedDirectoryHandle, setSelectedDirectoryHandle] = useState<FileSystemDirectoryHandle | null>(null);
   const [workspaceSelectionLabel, setWorkspaceSelectionLabel] = useState<string>('Default workspace');
   const [workspaceVersion, setWorkspaceVersion] = useState(0);
+  const [workspaceHistory, setWorkspaceHistory] = useState<Array<{ name: string; path: string; pendingCount?: number }>>([]);
 
   const loadWorkspaceForHandle = async (handle: FileSystemDirectoryHandle | null) => {
     const workspaceIdentity = handle?.name ?? null;
@@ -48,9 +58,20 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const restoreWorkspace = async () => {
       const persistedSelection = readPersistedWorkspaceSelection();
+      const rawHistory = readPersistedWorkspaceHistory();
+      setWorkspaceHistory(rawHistory.map((h) => ({ ...h, pendingCount: undefined })));
       if (persistedSelection) {
         setWorkspaceSelectionLabel(persistedSelection.path || persistedSelection.name);
         document.title = `Skill Map · ${persistedSelection.path || persistedSelection.name}`;
+      }
+
+      // populate pending counts for history entries
+      try {
+        const counts = await Promise.all(rawHistory.map((entry) => getDueRevisionCountForWorkspace(entry.path)));
+        const withCounts = rawHistory.map((entry, idx) => ({ ...entry, pendingCount: counts[idx] }));
+        setWorkspaceHistory(withCounts);
+      } catch {
+        // ignore per-entry failures
       }
 
       const restoredHandle = await readPersistedWorkspaceHandle();
@@ -69,6 +90,28 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     void restoreWorkspace();
   }, []);
 
+  const updateWorkspaceSelection = async (handle: FileSystemDirectoryHandle | null, selectionPath: string, selectionLabel: string) => {
+    setSelectedDirectoryHandle(handle);
+    setWorkspaceSelectionLabel(selectionPath);
+    if (handle) {
+      await persistWorkspaceHandle(handle, { name: selectionLabel, path: selectionPath });
+      const nextHistoryEntries = upsertWorkspaceHistoryEntry(workspaceHistory, { name: selectionLabel, path: selectionPath });
+      // compute pending count for the new entry
+      try {
+        const count = await getDueRevisionCountForWorkspace(selectionPath);
+        const nextHistory = nextHistoryEntries.map((h) => ({ ...h, pendingCount: h.path === selectionPath && h.name === selectionLabel ? count : undefined }));
+        setWorkspaceHistory(nextHistory);
+        writePersistedWorkspaceHistory(nextHistory.map(({ name, path }) => ({ name, path })));
+      } catch {
+        setWorkspaceHistory(nextHistoryEntries.map((h) => ({ ...h, pendingCount: undefined })));
+        writePersistedWorkspaceHistory(nextHistoryEntries);
+      }
+    }
+    writePersistedWorkspaceSelection({ name: selectionLabel, path: selectionPath });
+    document.title = `Skill Map · ${selectionPath}`;
+    await loadWorkspaceForHandle(handle);
+  };
+
   const selectWorkspace = async () => {
     if (typeof window === 'undefined') {
       return;
@@ -86,17 +129,39 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       const handle = await showDirectoryPicker();
       const selectionPath = handle.name || 'Local workspace';
       const selectionLabel = selectionPath || 'Local workspace';
-      setSelectedDirectoryHandle(handle);
-      setWorkspaceSelectionLabel(selectionPath);
-      await persistWorkspaceHandle(handle);
-      writePersistedWorkspaceSelection({ name: selectionLabel, path: selectionPath });
-      document.title = `Skill Map · ${selectionPath}`;
-      await loadWorkspaceForHandle(handle);
+      await updateWorkspaceSelection(handle, selectionPath, selectionLabel);
     } catch (error) {
       console.error('Failed to select workspace directory', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const selectWorkspaceFromHistory = async (entry: { name: string; path: string }) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const selectionPath = entry.path || entry.name || 'Local workspace';
+      const selectionLabel = entry.name || selectionPath || 'Local workspace';
+      const persistedHandle = await readPersistedWorkspaceHandleForSelection({ name: selectionLabel, path: selectionPath });
+      if (!persistedHandle) {
+        return;
+      }
+
+      await updateWorkspaceSelection(persistedHandle, selectionPath, selectionLabel);
+    } catch (error) {
+      console.error('Failed to restore workspace from history', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const removeWorkspaceHistoryEntryFromContext = (entry: { name: string; path: string }) => {
+    const nextHistory = removeWorkspaceHistoryEntry(workspaceHistory, entry);
+    setWorkspaceHistory(nextHistory);
+    writePersistedWorkspaceHistory(nextHistory);
   };
 
   const value = useMemo(() => ({
@@ -105,9 +170,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     selectedDirectoryHandle,
     workspaceSelectionLabel,
     workspaceVersion,
+    workspaceHistory,
     selectWorkspace,
+    selectWorkspaceFromHistory,
+    removeWorkspaceHistoryEntry: removeWorkspaceHistoryEntryFromContext,
     refreshWorkspace,
-  }), [workspace, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion]);
+  }), [workspace, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion, workspaceHistory]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

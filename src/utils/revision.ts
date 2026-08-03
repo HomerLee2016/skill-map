@@ -241,6 +241,17 @@ export async function getDueRevisionQuestions(now: string = new Date().toISOStri
   return revisionStore.completed_questions.where('next_revision_time').belowOrEqual(now).toArray();
 }
 
+export async function getDueRevisionCountForWorkspace(workspacePath: string | null | undefined, now: string = new Date().toISOString()): Promise<number> {
+  const storageKey = deriveWorkspaceStorageKey(workspacePath);
+  const tempStore = new RevisionDexieStore(storageKey);
+  try {
+    const count = await tempStore.completed_questions.where('next_revision_time').belowOrEqual(now).count();
+    return count;
+  } catch {
+    return 0;
+  }
+}
+
 export async function exportRevisionData(): Promise<string> {
   const records = await getAllCompletedQuestions();
   return JSON.stringify({
