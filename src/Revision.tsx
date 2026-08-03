@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CategorySection } from './components/ContentTreeSidebar';
 import AnswerQuestion from './components/AnswerQuestion';
+import IncorrectReviewScreen from './components/IncorrectReviewScreen';
 import QuestionTracker from './components/QuestionTracker';
 import { useWorkspace } from './contexts/WorkspaceContext';
 import { getInitialTestsStructure } from './utils/contentCatalog';
@@ -43,6 +44,7 @@ function Revision() {
   const [correctMap, setCorrectMap] = useState<Record<number, boolean>>({});
   const [currentIdx, setCurrentIdx] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [showIncorrectReview, setShowIncorrectReview] = useState(false);
   const [score, setScore] = useState(0);
   const [dueCount, setDueCount] = useState(0);
   const [autoAdvanceOnCorrect, setAutoAdvanceOnCorrect] = useState(true);
@@ -79,6 +81,7 @@ function Revision() {
     setCorrectMap({});
     setCurrentIdx(0);
     setFinished(false);
+    setShowIncorrectReview(false);
     setScore(0);
     setDueCount(0);
     setShowSummary(true);
@@ -128,6 +131,7 @@ function Revision() {
       setShowSummary(false);
       setCurrentIdx(0);
       setFinished(false);
+      setShowIncorrectReview(false);
       setScore(0);
       setAnswers({});
       setCorrectMap({});
@@ -374,11 +378,36 @@ function Revision() {
                     onAutoAdvanceChange={setAutoAdvanceOnCorrect}
                   />
                 ))}
-                {finished && (
+                {showIncorrectReview ? (
+                  <IncorrectReviewScreen
+                    questions={revisionQuestions}
+                    answers={answers}
+                    correctMap={correctMap}
+                    title="Revision review"
+                    subtitle="Review the questions you answered incorrectly."
+                    onFinish={() => {
+                      setShowIncorrectReview(false);
+                      setFinished(false);
+                      setCurrentIdx(0);
+                      setAnswers({});
+                      setCorrectMap({});
+                      setScore(0);
+                      setShowSummary(true);
+                      setRevisionMode(false);
+                    }}
+                  />
+                ) : finished ? (
                   <div className="tests-score">
                     <p>Finished! Score: {score} / {totalQuestions}</p>
+                    <button type="button" className="toolbar-btn" onClick={() => {
+                      setShowIncorrectReview(true);
+                      setFinished(false);
+                      setCurrentIdx(0);
+                    }}>
+                      Review Incorrect Answers
+                    </button>
                   </div>
-                )}
+                ) : null}
               </>
             )}
           </div>

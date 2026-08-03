@@ -7,6 +7,7 @@ import { indexedDB, IDBKeyRange } from 'fake-indexeddb';
 
 const {
   DEFAULT_PROFICIENCY,
+  buildIncorrectReviewQuestions,
   deriveWorkspaceStorageKey,
   getDowngradedProficiency,
   getNextProficiency,
@@ -65,6 +66,22 @@ test('formats revision backup filenames with a timestamp', () => {
   const expected = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${String(date.getHours()).padStart(2, '0')}${String(date.getMinutes()).padStart(2, '0')}${String(date.getSeconds()).padStart(2, '0')}`;
 
   assert.equal(formatRevisionTimestamp(date), expected);
+});
+
+test('builds review items from incorrect answers only', () => {
+  const questions = [
+    { question_number: 1, question: 'Question 1', options: ['A', 'B'], correct_answer: 'A' },
+    { question_number: 2, question: 'Question 2', options: ['A', 'B'], correct_answer: 'A' },
+    { question_number: 3, question: 'Question 3', options: ['A', 'B'], correct_answer: 'A' },
+  ];
+  const answers = { 1: 'B', 2: 'A', 3: 'C' };
+  const correctMap = { 1: false, 2: true, 3: false };
+
+  const reviewItems = buildIncorrectReviewQuestions(questions, answers, correctMap);
+
+  assert.equal(reviewItems.length, 2);
+  assert.deepEqual(reviewItems.map((item) => item.question.question_number), [1, 3]);
+  assert.deepEqual(reviewItems.map((item) => item.selectedAnswer), ['B', 'C']);
 });
 
 test('persists an explanation alongside revision results', async () => {

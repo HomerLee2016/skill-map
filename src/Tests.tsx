@@ -17,6 +17,7 @@ import {
 } from './components/ContentTreeSidebar';
 import { useExpandCollapseState } from './hooks/useExpandCollapseState';
 import AnswerQuestion from './components/AnswerQuestion';
+import IncorrectReviewScreen from './components/IncorrectReviewScreen';
 import QuestionTracker, { getFirstUnansweredQuestionIndex } from './components/QuestionTracker';
 import { writeWorkspaceStructureFile } from './services/workspaceStructurePersistence';
 
@@ -52,6 +53,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const [correctMap, setCorrectMap] = useState<Record<number, boolean>>({});
   const [currentIdx, setCurrentIdx] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [showIncorrectReview, setShowIncorrectReview] = useState(false);
   const [score, setScore] = useState(0);
   const [total, setTotal] = useState(0);
   const [autoAdvanceOnCorrect, setAutoAdvanceOnCorrect] = useState(true);
@@ -91,6 +93,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
       setScore(0);
       setCurrentIdx(0);
       setFinished(false);
+      setShowIncorrectReview(false);
       setAnswers({});
       setCorrectMap({});
     }
@@ -269,14 +272,39 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
           <p className="tests-empty">Select a test from the sidebar.</p>
         ) : (
           <>
-            <header className="tests-header">
-              <h1>{selected.title}</h1>
-              <p className="tests-meta">{selected.questions.length} multiple-choice questions</p>
-            </header>
+            {!showIncorrectReview && (
+              <header className="tests-header">
+                <h1>{selected.title}</h1>
+                <p className="tests-meta">{selected.questions.length} multiple-choice questions</p>
+              </header>
+            )}
 
-            {finished ? (
+            {showIncorrectReview ? (
+                <IncorrectReviewScreen
+                  questions={selected.questions}
+                  answers={answers}
+                  correctMap={correctMap}
+                  title={selected.title}
+                  subtitle="Review the questions you answered incorrectly."
+                  onFinish={() => {
+                    setShowIncorrectReview(false);
+                    setFinished(false);
+                    setCurrentIdx(0);
+                    setAnswers({});
+                    setCorrectMap({});
+                    setScore(0);
+                  }}
+                />
+              ) : finished ? (
                 <div className="tests-score">
                   <p>Finished! Score: {score} / {total}</p>
+                  <button type="button" className="toolbar-btn" onClick={() => {
+                    setShowIncorrectReview(true);
+                    setFinished(false);
+                    setCurrentIdx(0);
+                  }}>
+                    Review Incorrect Answers
+                  </button>
                 </div>
               ) : (
                 <>

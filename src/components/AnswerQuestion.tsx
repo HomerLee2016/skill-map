@@ -19,6 +19,7 @@ interface Props {
   showNextButton?: boolean;
   autoAdvanceOnCorrect?: boolean;
   onAutoAdvanceChange?: (value: boolean) => void;
+  showAutoAdvanceToggle?: boolean;
 }
 
 export function shouldAutoAdvanceOnCorrect({
@@ -47,6 +48,10 @@ export function shouldShowNextButton({
   return !!hasAnswered && !!showNextButton && (!isCorrectAnswer || !autoAdvanceOnCorrect);
 }
 
+export function shouldShowAutoAdvanceToggle(showAutoAdvanceToggle?: boolean) {
+  return showAutoAdvanceToggle !== false;
+}
+
 // Fisher-Yates shuffle returning a new array
 function shuffleArray<T>(array: T[]): T[] {
   const arr = [...array];
@@ -66,6 +71,7 @@ const AnswerQuestion: React.FC<Props> = ({
   showNextButton,
   autoAdvanceOnCorrect,
   onAutoAdvanceChange,
+  showAutoAdvanceToggle,
 }) => {
   // Shuffle once per question instance, and recompute when the question content changes.
   const shuffledOptions = useMemo(() => shuffleArray(q.options), [q.question, q.correct_answer, q.options.join('\u0000')]);
@@ -77,6 +83,7 @@ const AnswerQuestion: React.FC<Props> = ({
     autoAdvanceOnCorrect,
     showNextButton,
   });
+  const showToggle = shouldShowAutoAdvanceToggle(showAutoAdvanceToggle);
 
   return (
     <div className="test-question">
@@ -111,18 +118,20 @@ const AnswerQuestion: React.FC<Props> = ({
         </div>
       )}
       <div className="test-question__footer">
-        <label className="toggle-switch test-question__toggle">
-          <span className="test-question__toggle-label">Auto-next on correct</span>
-          <span className={`toggle-track ${autoAdvanceOnCorrect ? 'toggle-track--on' : ''}`} aria-hidden="true">
-            <span className="toggle-knob" />
-          </span>
-          <input
-            type="checkbox"
-            checked={!!autoAdvanceOnCorrect}
-            onChange={(event) => onAutoAdvanceChange?.(event.target.checked)}
-            className="toggle-input"
-          />
-        </label>
+        {showToggle && (
+          <label className="toggle-switch test-question__toggle">
+            <span className="test-question__toggle-label">Auto-next on correct</span>
+            <span className={`toggle-track ${autoAdvanceOnCorrect ? 'toggle-track--on' : ''}`} aria-hidden="true">
+              <span className="toggle-knob" />
+            </span>
+            <input
+              type="checkbox"
+              checked={!!autoAdvanceOnCorrect}
+              onChange={(event) => onAutoAdvanceChange?.(event.target.checked)}
+              className="toggle-input"
+            />
+          </label>
+        )}
         {hasAnswered && shouldShowManualNext && onNextQuestion && (
           <button type="button" className="toolbar-btn test-question__next-button" onClick={onNextQuestion}>
             Next Question
