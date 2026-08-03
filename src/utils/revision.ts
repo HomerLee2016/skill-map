@@ -243,7 +243,7 @@ export async function getCompletedQuestionsByQuiz(quizTitle: string): Promise<Co
 }
 
 export async function getAllCompletedQuestions(): Promise<CompletedQuestionRecord[]> {
-  return revisionStore.completed_questions.orderBy('last_time').reverse().toArray();
+  return revisionStore.completed_questions.orderBy('next_revision_time').toArray();
 }
 
 export async function getDueRevisionQuestions(now: string = new Date().toISOString()): Promise<CompletedQuestionRecord[]> {
