@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import type { PageId } from '../types';
+import { handleWorkspaceTriggerClick } from './workspaceTrigger';
 
 interface TopBarProps {
   currentPage: PageId;
@@ -21,6 +22,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
     selectWorkspace,
     selectWorkspaceFromHistory,
     removeWorkspaceHistoryEntry,
+    refreshWorkspace,
     isLoading,
     selectedDirectoryHandle,
     workspaceSelectionLabel,
@@ -43,6 +45,13 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
   const handleSelectWorkspace = async () => {
     setIsWorkspaceMenuOpen(false);
     await selectWorkspace();
+  };
+
+  const handleWorkspaceTrigger = async () => {
+    await handleWorkspaceTriggerClick({
+      toggleMenu: () => setIsWorkspaceMenuOpen((value) => !value),
+      refreshWorkspace,
+    });
   };
 
   const handleHistoryWorkspace = async (entry: { name: string; path: string }) => {
@@ -75,7 +84,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
           <button
             type="button"
             className="top-bar-workspace-trigger"
-            onClick={() => setIsWorkspaceMenuOpen((value) => !value)}
+            onClick={() => { void handleWorkspaceTrigger(); }}
             aria-expanded={isWorkspaceMenuOpen}
             aria-haspopup="menu"
           >
