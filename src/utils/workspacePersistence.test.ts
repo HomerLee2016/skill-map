@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  applyPendingCountToWorkspaceHistory,
   readPersistedWorkspaceSelection,
   upsertWorkspaceHistoryEntry,
   writePersistedWorkspaceSelection,
@@ -41,6 +42,18 @@ test('moves an existing workspace entry to the front without duplicating it', ()
   const next = upsertWorkspaceHistoryEntry(history, { name: 'Alpha', path: 'alpha' }, 5);
 
   assert.deepEqual(next.map((entry) => entry.path), ['alpha', 'beta']);
+});
+
+test('applies a pending-count badge to the matching workspace history entry', () => {
+  const history = [
+    { name: 'Alpha', path: 'alpha', pendingCount: 0 },
+    { name: 'Beta', path: 'beta', pendingCount: 0 },
+  ];
+
+  const next = applyPendingCountToWorkspaceHistory(history, { name: 'Beta', path: 'beta' }, 3);
+
+  assert.equal(next[0]?.pendingCount, 0);
+  assert.equal(next[1]?.pendingCount, 3);
 });
 
 class MapStorage implements Storage {

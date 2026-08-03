@@ -8,6 +8,10 @@ export interface PersistedWorkspaceHistoryEntry {
   path: string;
 }
 
+export interface WorkspaceHistoryEntryWithPendingCount extends PersistedWorkspaceHistoryEntry {
+  pendingCount?: number;
+}
+
 interface PersistedWorkspaceHandleRecord {
   id: string;
   currentHandle?: FileSystemDirectoryHandle;
@@ -120,6 +124,17 @@ export function removeWorkspaceHistoryEntry(
   target: PersistedWorkspaceHistoryEntry
 ): PersistedWorkspaceHistoryEntry[] {
   return history.filter((entry) => entry.path !== target.path || entry.name !== target.name);
+}
+
+export function applyPendingCountToWorkspaceHistory(
+  history: WorkspaceHistoryEntryWithPendingCount[],
+  target: PersistedWorkspaceHistoryEntry,
+  pendingCount: number
+): WorkspaceHistoryEntryWithPendingCount[] {
+  return history.map((entry) => ({
+    ...entry,
+    pendingCount: entry.path === target.path && entry.name === target.name ? pendingCount : entry.pendingCount,
+  }));
 }
 
 function openWorkspaceHandleDatabase(): Promise<IDBDatabase> {

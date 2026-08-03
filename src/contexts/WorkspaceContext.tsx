@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { createDefaultWorkspaceContent, loadWorkspaceContent, type WorkspaceContent } from '../services/workspace';
 import { setActiveWorkspaceStorageKey } from '../utils/revision';
 import {
+  applyPendingCountToWorkspaceHistory,
   persistWorkspaceHandle,
   readPersistedWorkspaceHandle,
   readPersistedWorkspaceHandleForSelection,
@@ -37,6 +38,23 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [workspaceVersion, setWorkspaceVersion] = useState(0);
   const [workspaceHistory, setWorkspaceHistory] = useState<Array<{ name: string; path: string; pendingCount?: number }>>([]);
 
+  const syncPendingRevisionCount = async (workspaceIdentity: string | null, fallbackLabel?: string) => {
+    const effectiveIdentity = workspaceIdentity || fallbackLabel || null;
+    if (!effectiveIdentity) {
+      return;
+    }
+
+    try {
+      const count = await getDueRevisionCountForWorkspace(effectiveIdentity);
+      setWorkspaceHistory((currentHistory) => currentHistory.map((entry) => {
+        const matchesIdentity = entry.path === effectiveIdentity || entry.name === effectiveIdentity;
+        return matchesIdentity ? { ...entry, pendingCount: count } : entry;
+      }));
+    } catch {
+      // Ignore count refresh failures and keep the existing badge state.
+    }
+  };
+
   const loadWorkspaceForHandle = async (handle: FileSystemDirectoryHandle | null) => {
     const workspaceIdentity = handle?.name ?? null;
     setActiveWorkspaceStorageKey(workspaceIdentity);
@@ -46,6 +64,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       const nextWorkspace = await loadWorkspaceContent(handle);
       setWorkspace(nextWorkspace);
       setWorkspaceVersion((value) => value + 1);
+      await syncPendingRevisionCount(workspaceIdentity, handle?.name ?? workspaceSelectionLabel);
     } finally {
       setIsLoading(false);
     }
@@ -96,16 +115,10 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     if (handle) {
       await persistWorkspaceHandle(handle, { name: selectionLabel, path: selectionPath });
       const nextHistoryEntries = upsertWorkspaceHistoryEntry(workspaceHistory, { name: selectionLabel, path: selectionPath });
-      // compute pending count for the new entry
-      try {
-        const count = await getDueRevisionCountForWorkspace(selectionPath);
-        const nextHistory = nextHistoryEntries.map((h) => ({ ...h, pendingCount: h.path === selectionPath && h.name === selectionLabel ? count : undefined }));
-        setWorkspaceHistory(nextHistory);
-        writePersistedWorkspaceHistory(nextHistory.map(({ name, path }) => ({ name, path })));
-      } catch {
-        setWorkspaceHistory(nextHistoryEntries.map((h) => ({ ...h, pendingCount: undefined })));
-        writePersistedWorkspaceHistory(nextHistoryEntries);
-      }
+      const count = await getDueRevisionCountForWorkspace(selectionPath);
+      const nextHistory = applyPendingCountToWorkspaceHistory(nextHistoryEntries, { name: selectionLabel, path: selectionPath }, count);
+      setWorkspaceHistory(nextHistory);
+      writePersistedWorkspaceHistory(nextHistory.map(({ name, path }) => ({ name, path })));
     }
     writePersistedWorkspaceSelection({ name: selectionLabel, path: selectionPath });
     document.title = `Skill Map · ${selectionPath}`;
