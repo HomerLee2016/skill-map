@@ -26,6 +26,7 @@ interface WorkspaceContextValue {
   selectWorkspaceFromHistory: (entry: { name: string; path: string }) => Promise<void>;
   removeWorkspaceHistoryEntry: (entry: { name: string; path: string }) => void;
   refreshWorkspace: () => Promise<void>;
+  refreshWorkspaceHistoryCounts: () => Promise<void>;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefined);
@@ -72,6 +73,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const refreshWorkspace = async () => {
     await loadWorkspaceForHandle(selectedDirectoryHandle);
+  };
+
+  const refreshWorkspaceHistoryCounts = async () => {
+    const identity = selectedDirectoryHandle?.name ?? workspaceSelectionLabel ?? null;
+    if (!identity) {
+      return;
+    }
+
+    await syncPendingRevisionCount(identity, workspaceSelectionLabel);
   };
 
   useEffect(() => {
@@ -188,6 +198,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     selectWorkspaceFromHistory,
     removeWorkspaceHistoryEntry: removeWorkspaceHistoryEntryFromContext,
     refreshWorkspace,
+    refreshWorkspaceHistoryCounts,
   }), [workspace, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion, workspaceHistory]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

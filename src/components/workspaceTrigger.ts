@@ -1,9 +1,9 @@
 export interface WorkspaceTriggerClickHandlers {
   toggleMenu: () => void;
-  refreshWorkspace: () => Promise<void>;
+  refreshWorkspaceHistoryCounts: () => Promise<void>;
 }
 
-export async function handleWorkspaceTriggerClick({ toggleMenu, refreshWorkspace }: WorkspaceTriggerClickHandlers) {
+export async function handleWorkspaceTriggerClick({ toggleMenu, refreshWorkspaceHistoryCounts }: WorkspaceTriggerClickHandlers) {
   toggleMenu();
-  await refreshWorkspace();
+  await refreshWorkspaceHistoryCounts();
 }

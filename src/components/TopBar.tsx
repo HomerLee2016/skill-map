@@ -22,7 +22,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
     selectWorkspace,
     selectWorkspaceFromHistory,
     removeWorkspaceHistoryEntry,
-    refreshWorkspace,
+    refreshWorkspaceHistoryCounts,
     isLoading,
     selectedDirectoryHandle,
     workspaceSelectionLabel,
@@ -50,7 +50,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
   const handleWorkspaceTrigger = async () => {
     await handleWorkspaceTriggerClick({
       toggleMenu: () => setIsWorkspaceMenuOpen((value) => !value),
-      refreshWorkspace,
+      refreshWorkspaceHistoryCounts,
     });
   };
 
