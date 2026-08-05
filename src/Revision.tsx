@@ -52,7 +52,7 @@ function Revision() {
   const [autoAdvanceOnCorrect, setAutoAdvanceOnCorrect] = useState(true);
   const [showSummary, setShowSummary] = useState(true);
   const [backupCompleted, setBackupCompleted] = useState(false);
-  const { scheduleAutoAdvance, handleAudioPlaybackStart, handleAudioPlaybackEnd, handleAudioPlaybackError } = useAudioAutoAdvance([currentIdx]);
+  const { scheduleAutoAdvance, handleAudioPlaybackStart, handleAudioPlaybackEnd, handleAudioPlaybackError } = useAudioAutoAdvance();
 
   const totalQuestions = revisionQuestions.length;
   const isLastQuestion = currentIdx + 1 >= totalQuestions;

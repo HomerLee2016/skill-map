@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "tsx regression/browser-audio-auto-advance.test.ts",
+    "dev:custom": "vite --host 127.0.0.1 --port 4173"
   },
   "dependencies": {
     "@uiw/react-textarea-code-editor": "^3.1.1",

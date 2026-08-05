@@ -95,8 +95,8 @@ const AnswerQuestion: React.FC<Props> = ({
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const prevHasAnsweredRef = useRef<boolean>(hasAnswered);
-  const audioSource = q.audio_track_url ? getAudioSource(q.audio_track_url) : undefined;
-
+  const audioSource = useMemo(() => q.audio_track_url ? getAudioSource(q.audio_track_url) : undefined, [q.audio_track_url]);
+  // Play audio after the user answers (if audio exists)
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) {
@@ -105,27 +105,36 @@ const AnswerQuestion: React.FC<Props> = ({
     }
 
     const handleEnded = () => {
+      console.log('[Audio] Playback ended for question', q.question_number);
       onAudioPlaybackEnd?.();
     };
 
     const handleError = () => {
+      console.log('[Audio] Playback error for question', q.question_number);
       onAudioPlaybackError?.();
     };
 
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
 
-    if (hasAnswered && !prevHasAnsweredRef.current && audioSource) {
+    // Start playback only once after answer
+    if (hasAnswered && audioSource && !prevHasAnsweredRef.current) {
+      console.log('[Audio] Starting playback after answer for question', q.question_number);
       const playPromise = audio.play();
       if (playPromise !== undefined) {
-        void playPromise.then(() => {
-          onAudioPlaybackStart?.();
-        }).catch(() => {
-          onAudioPlaybackError?.();
-        });
+        void playPromise
+          .then(() => {
+            console.log('[Audio] Playback started for question', q.question_number);
+            onAudioPlaybackStart?.();
+          })
+          .catch(() => {
+            console.log('[Audio] Playback failed for question', q.question_number);
+            onAudioPlaybackError?.();
+          });
       }
     }
 
+    // Update flag for next render
     prevHasAnsweredRef.current = hasAnswered;
 
     return () => {
@@ -166,7 +175,7 @@ const AnswerQuestion: React.FC<Props> = ({
           <div className="test-question__explanation-body">{q.explanation}</div>
         </div>
       )}
-      {hasAnswered && q.audio_track_url && (
+      {q.audio_track_url && (
         <div className="test-question__audio-player">
           <audio
             ref={audioRef}
@@ -174,6 +183,7 @@ const AnswerQuestion: React.FC<Props> = ({
             preload="metadata"
             src={audioSource}
             aria-label="Question audio playback"
+            style={hasAnswered ? {} : { display: 'none' }}
           >
             Your browser does not support the audio element.
           </audio>

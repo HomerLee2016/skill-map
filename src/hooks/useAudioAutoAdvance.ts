@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 export interface AudioAutoAdvanceControls {
-  scheduleAutoAdvance: (callback: () => void, pendingAudio?: boolean) => void;
+  scheduleAutoAdvance: (callback: () => void, expectsAudio?: boolean) => void;
   handleAudioPlaybackStart: () => void;
   handleAudioPlaybackEnd: () => void;
   handleAudioPlaybackError: () => void;
@@ -12,90 +12,119 @@ export interface AudioAutoAdvanceManagerOptions {
   clearTimeoutFn?: typeof clearTimeout;
 }
 
-type AudioAutoAdvanceManager = AudioAutoAdvanceControls & {
-  dispose: () => void;
-};
+type TimerId = ReturnType<typeof setTimeout>;
 
+/**
+ * Manager used by the hook and also exported for unit tests.
+ */
 export function createAudioAutoAdvanceManager({
   setTimeoutFn = globalThis.setTimeout.bind(globalThis),
   clearTimeoutFn = globalThis.clearTimeout.bind(globalThis),
-}: AudioAutoAdvanceManagerOptions = {}): AudioAutoAdvanceManager {
-  type TimerId = ReturnType<typeof setTimeout>;
+}: AudioAutoAdvanceManagerOptions = {}): AudioAutoAdvanceControls & { dispose: () => void } {
   let advanceTimer: TimerId | null = null;
+  let expectsAudio = false;
+  // Indicates whether audio playback has begun at least once.
+  let audioSeen = false;
   let audioPlaying = false;
-  let audioPending = false;
-  let audioEndedBeforeTimer = false;
-  let waitForAudioEnd = false;
   let autoAdvanceCallback: (() => void) | null = null;
 
   const clearAdvanceTimer = () => {
-    if (advanceTimer != null) {
+    if (advanceTimer !== null) {
       clearTimeoutFn(advanceTimer);
       advanceTimer = null;
     }
   };
 
-  const scheduleAutoAdvance = (callback: () => void, pendingAudio = false) => {
+  // Configurable values – can be tweaked if needed.
+  const POLL_INTERVAL = 1000; // 1 s
+  const MAX_WAIT_TIME = 10000; // 10 s fallback
+
+  const scheduleAutoAdvance = (callback: () => void, expectsAudioParam = false) => {
+    expectsAudio = expectsAudioParam;
+    // If audio is already playing, mark it as seen.
+    audioSeen = audioPlaying;
+    // Do not reset audioPlaying here; keep the current playback state.
     autoAdvanceCallback = callback;
     clearAdvanceTimer();
-    waitForAudioEnd = false;
-    audioEndedBeforeTimer = false;
-    audioPending = pendingAudio;
-    advanceTimer = setTimeoutFn(() => {
-      if (audioPlaying || audioPending) {
-        waitForAudioEnd = true;
-        audioPending = false;
-        advanceTimer = null;
+
+
+
+    const startTime = Date.now();
+    const poll = () => {
+      const elapsed = Date.now() - startTime;
+  
+        if (expectsAudio) {
+          // Wait until we have observed audio start (audioSeen) or timeout.
+          if (!audioSeen) {
+            if (elapsed >= MAX_WAIT_TIME) {
+          
+              expectsAudio = false;
+              const cb = autoAdvanceCallback;
+              autoAdvanceCallback = null;
+              if (cb) cb();
+              return;
+            }
+            // Still waiting for audio to start.
+            advanceTimer = setTimeoutFn(poll, POLL_INTERVAL);
+            return;
+          }
+          // Audio has started; wait for it to finish.
+          if (!audioPlaying) {
+            const cb = autoAdvanceCallback;
+            autoAdvanceCallback = null;
+            if (cb) cb();
+            return;
+          }
+          // Audio still playing; enforce max wait.
+          if (elapsed >= MAX_WAIT_TIME) {
+        
+            const cb = autoAdvanceCallback;
+            autoAdvanceCallback = null;
+            if (cb) cb();
+            return;
+          }
+          // Continue polling.
+          advanceTimer = setTimeoutFn(poll, POLL_INTERVAL);
+          return;
+        }
+      // No audio expected: simple timeout fallback
+      if (elapsed >= MAX_WAIT_TIME) {
+    
+        const cb = autoAdvanceCallback;
+        autoAdvanceCallback = null;
+        if (cb) cb();
         return;
       }
+      advanceTimer = setTimeoutFn(poll, POLL_INTERVAL);
+    };
 
-      if (audioEndedBeforeTimer) {
-        waitForAudioEnd = false;
-        audioEndedBeforeTimer = false;
-        advanceTimer = setTimeoutFn(() => {
-          autoAdvanceCallback = null;
-          callback();
-        }, 500);
-        return;
-      }
-
-      autoAdvanceCallback = null;
-      callback();
-    }, 1500);
+    // Initial poll after the first interval.
+    advanceTimer = setTimeoutFn(poll, POLL_INTERVAL);
   };
 
   const handleAudioPlaybackStart = () => {
+
     audioPlaying = true;
-    audioPending = false;
+    audioSeen = true;
   };
 
   const handleAudioPlaybackEnd = () => {
+
     audioPlaying = false;
-
-    if (waitForAudioEnd) {
-      clearAdvanceTimer();
-      const callback = autoAdvanceCallback;
-      if (callback) {
-        waitForAudioEnd = false;
-        advanceTimer = setTimeoutFn(() => {
-          autoAdvanceCallback = null;
-          callback();
-        }, 500);
-      }
-      return;
-    }
-
-    if (advanceTimer != null) {
-      audioPending = false;
-      audioEndedBeforeTimer = true;
-    }
   };
 
   const handleAudioPlaybackError = () => {
+
     audioPlaying = false;
+    audioSeen = false;
+    // Stop waiting for audio start if it never started.
+    expectsAudio = false;
   };
 
   const dispose = () => {
+    expectsAudio = false;
+    audioSeen = false;
+    audioPlaying = false;
     clearAdvanceTimer();
     autoAdvanceCallback = null;
   };
@@ -109,8 +138,10 @@ export function createAudioAutoAdvanceManager({
   };
 }
 
-export function useAudioAutoAdvance(resetDeps: readonly unknown[] = []): AudioAutoAdvanceControls {
-  const managerRef = useRef<AudioAutoAdvanceManager | null>(null);
+/** Hook wrapper that creates a manager per resetDeps set. */
+export function useAudioAutoAdvance(): AudioAutoAdvanceControls {
+  const managerRef = useRef<ReturnType<typeof createAudioAutoAdvanceManager> | null>(null);
+
   if (managerRef.current === null) {
     managerRef.current = createAudioAutoAdvanceManager();
   }
@@ -118,10 +149,8 @@ export function useAudioAutoAdvance(resetDeps: readonly unknown[] = []): AudioAu
   useEffect(() => {
     return () => {
       managerRef.current?.dispose();
-      managerRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...resetDeps]);
+  }, []);
 
-  return managerRef.current;
+  return managerRef.current as AudioAutoAdvanceControls;
 }

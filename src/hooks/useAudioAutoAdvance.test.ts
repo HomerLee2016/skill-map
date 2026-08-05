@@ -27,22 +27,16 @@ test('scheduleAutoAdvance uses the fallback timeout when audio is not playing', 
   assert.equal(fired, true);
 });
 
-test('handleAudioPlaybackEnd continues pending auto-advance after audio ends', async () => {
+test('handleAudioPlaybackEnd does not advance early if audio finishes before 1.5s timer', async () => {
   let firstTimeout: (() => void) | null = null;
-  let secondTimeout: (() => void) | null = null;
   let timeoutCount = 0;
   const fakeSetTimeout = (cb: () => void) => {
     timeoutCount += 1;
-    if (timeoutCount === 1) {
-      firstTimeout = cb;
-    } else {
-      secondTimeout = cb;
-    }
+    firstTimeout = cb;
     return timeoutCount as const;
   };
   const fakeClearTimeout = () => {
     firstTimeout = null;
-    secondTimeout = null;
   };
 
   const manager = createAudioAutoAdvanceManager({
@@ -58,19 +52,14 @@ test('handleAudioPlaybackEnd continues pending auto-advance after audio ends', a
   manager.handleAudioPlaybackStart();
   assert.equal(firstTimeout !== null, true);
 
-  firstTimeout?.();
-  assert.equal(fired, false, 'First timer should defer if audio is playing');
-  assert.equal(secondTimeout, null, 'Second timer should not be scheduled before audio end');
-
   manager.handleAudioPlaybackEnd();
-  assert.equal(fired, false, 'Callback should not fire until the second timer runs');
-  assert.equal(secondTimeout !== null, true, 'Second timer should be scheduled after audio end');
+  assert.equal(fired, false, 'Callback should not fire immediately when short audio ends');
 
-  secondTimeout?.();
-  assert.equal(fired, true);
+  firstTimeout?.();
+  assert.equal(fired, true, 'Callback fires when 1.5s timer completes');
 });
 
-test('auto-advance waits for long audio playback before continuing', async () => {
+test('auto-advance waits for long audio playback (>1.5s) before continuing with 500ms delay', async () => {
   let firstTimeout: (() => void) | null = null;
   let secondTimeout: (() => void) | null = null;
   let timeoutCount = 0;
@@ -99,11 +88,12 @@ test('auto-advance waits for long audio playback before continuing', async () =>
   }, true);
 
   assert.equal(firstTimeout !== null, true);
+  manager.handleAudioPlaybackStart();
+
   firstTimeout?.();
   assert.equal(fired, false, 'Should not fire during long audio playback');
   assert.equal(secondTimeout, null, 'Should not schedule the followup timer until audio ends');
 
-  manager.handleAudioPlaybackStart();
   manager.handleAudioPlaybackEnd();
   assert.equal(secondTimeout !== null, true, 'Should schedule followup timer when long audio ends');
   assert.equal(fired, false, 'Callback should still be pending after long audio ends');

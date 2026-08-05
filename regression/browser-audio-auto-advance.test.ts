@@ -2,12 +2,8 @@ import { chromium } from 'playwright';
 import path from 'node:path';
 
 async function run() {
-  //const browser = await chromium.launch();
-  const browser = await chromium.launch({ 
-    headless: false,  // Shows the actual browser window
-    devtools: true,   // Automatically opens Chrome DevTools
-    slowMo: 500       // Slows down actions by 500ms so you can watch what happens
-  });
+  const browser = await chromium.launch();
+  //const browser = await chromium.launch({headless: false, slowMo: 500});
   const page = await browser.newPage();
   await page.goto('http://127.0.0.1:4173/');
 
@@ -79,16 +75,19 @@ async function run() {
     });
   }
 
-  async function waitForNextQuestion(timeout = 8000) {
+  async function waitForNextQuestion(timeout = 10000) {
     const start = Date.now();
     const initialPrompt = await getQuestionPrompt();
+    console.log(`[waitForNextQuestion] start initialPrompt: "${initialPrompt}"`);
     while (Date.now() - start < timeout) {
       await page.waitForTimeout(200);
       const currentPrompt = await getQuestionPrompt();
       if (currentPrompt && currentPrompt !== initialPrompt) {
+        console.log(`[waitForNextQuestion] detected change after ${Date.now() - start}ms: "${currentPrompt}"`);
         return currentPrompt;
       }
     }
+    console.log(`[waitForNextQuestion] timed out after ${Date.now() - start}ms, currentPrompt: "${await getQuestionPrompt()}"`);
     return null;
   }
 
@@ -108,6 +107,17 @@ async function run() {
   await clickTopBarButton('Tests');
   await page.waitForSelector('.test-question__legend, .test-question__prompt');
 
+  const expectedByQuestion: Record<string, { audioSrc: string | null; nextPrompt: string | null }> = {
+    'Question 1': {
+      audioSrc: null,
+      nextPrompt: "How do you say 'two' in Spanish?",
+    },
+    'Question 6': {
+      audioSrc: null,
+      nextPrompt: "Which number corresponds to the Spanish word 'Siete'?",
+    },
+  };
+
   for (const step of sequence) {
     const trackerButton = await page.$(`button.question-tracker__box[aria-label="Question ${step.question}"]`);
     if (!trackerButton) {
@@ -123,8 +133,16 @@ async function run() {
       throw new Error(`Could not answer question ${step.question} with ${step.answer}`);
     }
 
-    const nextPrompt = await waitForNextQuestion(10000);
-    results.push({ questionLabel: `Question ${step.question}`, audioSrc, nextPrompt });
+    const nextPrompt = await waitForNextQuestion(12000);
+    const resultItem = { questionLabel: `Question ${step.question}`, audioSrc, nextPrompt };
+    results.push(resultItem);
+
+    const expected = expectedByQuestion[`Question ${step.question}`];
+    if (expected) {
+      if (resultItem.nextPrompt !== expected.nextPrompt) {
+        throw new Error(`Question ${step.question} nextPrompt expected ${expected.nextPrompt}, got ${resultItem.nextPrompt}`);
+      }
+    }
   }
 
   await browser.close();

@@ -59,7 +59,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const [showIncorrectReview, setShowIncorrectReview] = useState(false);
   const [total, setTotal] = useState(0);
   const [autoAdvanceOnCorrect, setAutoAdvanceOnCorrect] = useState(true);
-  const { scheduleAutoAdvance, handleAudioPlaybackStart, handleAudioPlaybackEnd, handleAudioPlaybackError } = useAudioAutoAdvance([currentIdx]);
+  const { scheduleAutoAdvance, handleAudioPlaybackStart, handleAudioPlaybackEnd, handleAudioPlaybackError } = useAudioAutoAdvance();
   const [structure, setStructure] = useState(workspace.testsStructure);
   const [structureError, setStructureError] = useState<string | null>(null);
   const [modalState, setModalState] = useState<{ open: boolean; mode: 'add-folder' | 'assign-item' }>({
