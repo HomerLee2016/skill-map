@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "tsx regression/browser-audio-auto-advance.test.ts",
+    "test": "npx tsx test-wrapper.ts",
     "dev:custom": "vite --host 127.0.0.1 --port 4173"
   },
   "dependencies": {
