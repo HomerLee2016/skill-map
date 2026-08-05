@@ -89,6 +89,7 @@ function Revision() {
     setScore(0);
     setDueCount(0);
     setShowSummary(true);
+    setRevisionMode(false);
     setBackupCompleted(false);
   }, [workspaceVersion]);
 
