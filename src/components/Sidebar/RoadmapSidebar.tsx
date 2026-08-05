@@ -45,32 +45,32 @@ export function RoadmapSidebar({
   setYamlVisible,
 }: RoadmapSidebarProps) {
   return (
-    <div className="sidebar">
-      <div className="sidebar-header">
-        <div className="sidebar-title">Roadmaps</div>
-        <button type="button" className="toolbar-btn toolbar-btn--full" onClick={onSaveRoadmap}>
-          Save Roadmap
-        </button>
-        <button type="button" className="toolbar-btn toolbar-btn--full" onClick={onCreateRoadmap}>
-          + New Roadmap
-        </button>
-        <div className="sidebar-toggles">
-          <ToggleSwitch checked={yamlVisible} onChange={setYamlVisible} label="Show YAML" />
+    <>
+        <div className="sidebar-header">
+          <div className="sidebar-title">Roadmaps</div>
+          <button type="button" className="toolbar-btn toolbar-btn--full" onClick={onSaveRoadmap}>
+            Save Roadmap
+          </button>
+          <button type="button" className="toolbar-btn toolbar-btn--full" onClick={onCreateRoadmap}>
+            + New Roadmap
+          </button>
+          <div className="sidebar-toggles">
+            <ToggleSwitch checked={yamlVisible} onChange={setYamlVisible} label="Show YAML" />
+          </div>
         </div>
-      </div>
-      {roadmaps.map((r) => (
-        <button
-          key={r.id}
-          className={
-            selectedRoadmapId === r.id
-              ? 'sidebar-item sidebar-item--selected'
-              : 'sidebar-item'
-          }
-          onClick={() => onSelectRoadmap(r.id)}
-        >
-          {r.name}
-        </button>
-      ))}
-    </div>
+        {roadmaps.map((r) => (
+          <button
+            key={r.id}
+            className={
+              selectedRoadmapId === r.id
+                ? 'sidebar-item sidebar-item--selected'
+                : 'sidebar-item'
+            }
+            onClick={() => onSelectRoadmap(r.id)}
+          >
+            {r.name}
+          </button>
+        ))}
+      </>
   );
 }

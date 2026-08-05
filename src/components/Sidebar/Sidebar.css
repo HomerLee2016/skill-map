@@ -1,0 +1,81 @@
+/* Sidebar layout */
+.sidebar-wrapper {
+  width: var(--sidebar-width, 300px);
+  height: 100%;
+  overflow: visible;
+  transition: width 0.3s ease;
+  position: relative;
+  background: var(--lessons-sidebar-bg, #f5f7fb);
+}
+
+.sidebar-wrapper.sidebar--closed {
+  width: 0;
+}
+
+/* The actual sidebar */
+.sidebar {
+  width: var(--sidebar-width, 300px);
+  max-width: 100%;
+  height: 100%;
+  background: var(--sidebar-bg, #f5f7fb);
+  color: var(--sidebar-text, #111);
+  border-right: 1px solid var(--sidebar-border, #d9e0ea);
+  overflow-y: auto;
+  transition: transform 0.3s ease;
+  position: relative;
+  top: 0;
+  left: 0;
+}
+
+
+.sidebar--closed {
+  transform: translateX(-100%);
+}
+
+.sidebar--open {
+  transform: translateX(0);
+}
+
+
+.sidebar-toggle {
+  position: absolute;
+  top: 1rem;
+  right: -1.5rem;
+  width: 1.5rem;
+  height: 2rem;
+  background: #e0e0e0;
+  color: #111;
+  border: none;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: right 0.3s ease;
+}
+
+.sidebar-wrapper.sidebar--closed .sidebar-toggle {
+  right: -1.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sidebar-toggle {
+    background: #444; /* dark mode */
+    color: #fff;
+  }
+}
+
+/* Shared CSS custom properties – adjust as needed */
+:root {
+  --sidebar-width: 300px;
+  --sidebar-bg: #f5f7fb;
+  --sidebar-text: #111;
+  --sidebar-border: #d9e0ea;
+  --sidebar-item-selected-bg: #e6eefc;
+  --sidebar-create-bg: #eef3f8;
+  --sidebar-create-border: #c7d2e2;
+  --sidebar-save-bg: linear-gradient(45deg, #4f46e5, #2563eb);
+  --sidebar-save-color: #fff;
+}

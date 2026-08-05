@@ -275,7 +275,21 @@ body, html, #root {
   display: flex;
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  overflow: visible;
+  background: var(--app-bg);
+}
+
+.lessons-page {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  background: var(--app-bg);
+}
+
+.sidebar-wrapper {
+  position: relative;
+  z-index: 20;
 }
 
 /* Top bar */

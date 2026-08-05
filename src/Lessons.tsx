@@ -7,6 +7,7 @@ import {
   pathToSegments,
   type StructureTree,
 } from './utils/contentCatalog';
+import { Sidebar } from './components/Sidebar/Sidebar';
 import { useWorkspace } from './contexts/WorkspaceContext';
 import { resolveStructureTree } from './utils/folderStructure';
 import { writeWorkspaceStructureFile } from './services/workspaceStructurePersistence';
@@ -15,7 +16,7 @@ import {
   ContentTreeSidebar,
   TreeActionModal,
   TreeGlobalActions,
-} from './components/ContentTreeSidebar';
+} from './components/Sidebar/ContentTreeSidebar';
 import { useExpandCollapseState } from './hooks/useExpandCollapseState';
 
 interface LessonsProps {
@@ -95,7 +96,7 @@ function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
 
   return (
     <div className="lessons-page">
-      <aside className="lessons-sidebar">
+      <Sidebar>
         <div className="lessons-sidebar-header">
           <div className="lessons-sidebar-title">Lessons</div>
         </div>
@@ -133,7 +134,7 @@ function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
             />
           )}
         </CategorySection>
-      </aside>
+      </Sidebar>
       <article className="lessons-content markdown-body">
         {selected ? (
           <LessonMarkdown content={selected.content} />

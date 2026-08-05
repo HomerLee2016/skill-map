@@ -36,8 +36,9 @@ export function createAudioAutoAdvanceManager({
   };
 
   // Configurable values – can be tweaked if needed.
-  const POLL_INTERVAL = 1000; // 1 s
+  const POLL_INTERVAL = 500; // 0.5 s
   const MAX_WAIT_TIME = 10000; // 10 s fallback
+  const MIN_WAIT_TIME = 1500; // 2 s
 
   const scheduleAutoAdvance = (callback: () => void, expectsAudioParam = false) => {
     expectsAudio = expectsAudioParam;
@@ -87,15 +88,16 @@ export function createAudioAutoAdvanceManager({
           advanceTimer = setTimeoutFn(poll, POLL_INTERVAL);
           return;
         }
-      // No audio expected: simple timeout fallback
-      if (elapsed >= MAX_WAIT_TIME) {
-    
+      
+      advanceTimer = setTimeoutFn(poll, POLL_INTERVAL);
+
+      // No audio expected: apply min wait time
+      if (elapsed >= MIN_WAIT_TIME) {
         const cb = autoAdvanceCallback;
         autoAdvanceCallback = null;
         if (cb) cb();
         return;
       }
-      advanceTimer = setTimeoutFn(poll, POLL_INTERVAL);
     };
 
     // Initial poll after the first interval.

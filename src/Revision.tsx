@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { CategorySection } from './components/ContentTreeSidebar';
+import { CategorySection } from './components/Sidebar/ContentTreeSidebar';
 import AnswerQuestion from './components/AnswerQuestion';
 import IncorrectReviewScreen from './components/IncorrectReviewScreen';
 import QuestionTracker from './components/QuestionTracker';
 import { useWorkspace } from './contexts/WorkspaceContext';
 import { getInitialTestsStructure } from './utils/contentCatalog';
+import { Sidebar } from './components/Sidebar/Sidebar';
 import { useAudioAutoAdvance } from './hooks/useAudioAutoAdvance';
 import {
   exportRevisionData,
@@ -237,7 +238,7 @@ function Revision() {
 
   return (
     <div className="tests-page">
-      <aside className="tests-sidebar">
+      <Sidebar>
         <div className="tests-sidebar-header">
           <div className="tests-sidebar-title">Revision</div>
         </div>
@@ -257,8 +258,7 @@ function Revision() {
             </button>
           </div>
         </CategorySection>
-
-      </aside>
+      </Sidebar>
 
       <div className="tests-content">
         {showSummary && !revisionMode ? (

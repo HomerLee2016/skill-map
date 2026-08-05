@@ -7,6 +7,7 @@ import {
   type StructureTree,
 } from './utils/contentCatalog';
 import { insertCompletedQuestion } from './utils/revision';
+import { Sidebar } from './components/Sidebar/Sidebar';
 import { useWorkspace } from './contexts/WorkspaceContext';
 import { collectTreeIds, resolveStructureTree } from './utils/folderStructure';
 import {
@@ -14,7 +15,7 @@ import {
   ContentTreeSidebar,
   TreeActionModal,
   TreeGlobalActions,
-} from './components/ContentTreeSidebar';
+} from './components/Sidebar/ContentTreeSidebar';
 import { useExpandCollapseState } from './hooks/useExpandCollapseState';
 import { useAudioAutoAdvance } from './hooks/useAudioAutoAdvance';
 import AnswerQuestion from './components/AnswerQuestion';
@@ -237,9 +238,9 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
 
   return (
     <div className="tests-page">
-      <aside className="tests-sidebar">
-        <div className="tests-sidebar-header">
-          <div className="tests-sidebar-title">Tests</div>
+      <Sidebar>
+        <div className="sidebar-header">
+          <div className="sidebar-title">Tests</div>
         </div>
         <TreeGlobalActions onExpandAll={expandAll} onCollapseAll={collapseAll} />
         <p className="tree-structure-hint">
@@ -271,7 +272,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
             itemIcon="📝"
           />
         </CategorySection>
-      </aside>
+      </Sidebar>
 
       <div className="tests-content">
         {!selected ? (

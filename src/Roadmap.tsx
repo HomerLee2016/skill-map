@@ -24,7 +24,8 @@ import { useYamlSync } from './hooks/useYamlSync';
 import { SkillNode } from './components/SkillNode';
 import { useAutoLayout } from './hooks/useAutoLayout';
 import { Toolbar } from './components/Toolbar';
-import { RoadmapSidebar } from './components/RoadmapSidebar';
+import { RoadmapSidebar } from './components/Sidebar/RoadmapSidebar';
+import { Sidebar } from './components/Sidebar/Sidebar';
 import { useWorkspace } from './contexts/WorkspaceContext';
 import { writeWorkspaceRoadmapFile } from './services/workspaceRoadmapPersistence';
 
@@ -351,15 +352,17 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest }: RoadmapProps) {
 
   return (
     <div className="roadmap-page">
-      <RoadmapSidebar
-        roadmaps={roadmaps}
-        selectedRoadmapId={selectedRoadmapId}
-        onSelectRoadmap={selectRoadmap}
-        onCreateRoadmap={onCreateRoadmap}
-        onSaveRoadmap={saveRoadmap}
-        yamlVisible={yamlVisible}
-        setYamlVisible={setYamlVisible}
-      />
+      <Sidebar>
+        <RoadmapSidebar
+          roadmaps={roadmaps}
+          selectedRoadmapId={selectedRoadmapId}
+          onSelectRoadmap={selectRoadmap}
+          onCreateRoadmap={onCreateRoadmap}
+          onSaveRoadmap={saveRoadmap}
+          yamlVisible={yamlVisible}
+          setYamlVisible={setYamlVisible}
+        />
+      </Sidebar>
 
       {yamlVisible && (
         <div className="yaml-panel" style={{ width: `${leftWidth}px` }}>
