@@ -28,6 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       proficiency,
       quiz_title,
       question_id,
+      audio_track_url,
     } = req.body;
     await insertCompletedQuestion({
       question_name,
@@ -40,6 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       proficiency,
       quiz_title,
       question_id,
+      audio_track_url,
     });
     res.status(200).json({ ok: true });
   } catch (error) {

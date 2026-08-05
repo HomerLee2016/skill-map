@@ -16,6 +16,7 @@ import {
   TreeGlobalActions,
 } from './components/ContentTreeSidebar';
 import { useExpandCollapseState } from './hooks/useExpandCollapseState';
+import { useAudioAutoAdvance } from './hooks/useAudioAutoAdvance';
 import AnswerQuestion from './components/AnswerQuestion';
 import IncorrectReviewScreen from './components/IncorrectReviewScreen';
 import QuestionTracker, { getFirstUnansweredQuestionIndex } from './components/QuestionTracker';
@@ -41,6 +42,7 @@ async function saveQuestionResult(payload: {
   last_time: string;
   proficiency?: string;
   quiz_title: string;
+  audio_track_url?: string;
 }) {
   await insertCompletedQuestion(payload);
 }
@@ -57,6 +59,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const [showIncorrectReview, setShowIncorrectReview] = useState(false);
   const [total, setTotal] = useState(0);
   const [autoAdvanceOnCorrect, setAutoAdvanceOnCorrect] = useState(true);
+  const { scheduleAutoAdvance, handleAudioPlaybackStart, handleAudioPlaybackEnd, handleAudioPlaybackError } = useAudioAutoAdvance([currentIdx]);
   const [structure, setStructure] = useState(workspace.testsStructure);
   const [structureError, setStructureError] = useState<string | null>(null);
   const [modalState, setModalState] = useState<{ open: boolean; mode: 'add-folder' | 'assign-item' }>({
@@ -183,6 +186,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
         last_time: new Date().toISOString(),
         proficiency: question.proficiency,
         quiz_title: selected?.title ?? '',
+        audio_track_url: question.audio_track_url,
       });
     } catch (e) {
       console.error('Failed to save question result', e);
@@ -198,13 +202,16 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
 
     if (isCorrect) {
       if (autoAdvanceOnCorrect) {
-        setTimeout(() => {
-          if (isLastQuestion) {
-            handleFinishTest(nextAnswers);
-          } else {
-            advanceToNextQuestion();
-          }
-        }, 1000);
+        scheduleAutoAdvance(
+          () => {
+            if (isLastQuestion) {
+              handleFinishTest(nextAnswers);
+            } else {
+              advanceToNextQuestion();
+            }
+          },
+          !!question.audio_track_url,
+        );
       }
     } else if (isLastQuestion) {
       setTimeout(() => {
@@ -321,6 +328,9 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
                   showNextButton={!!answers[q.question_number] && !finished && (!isLastQuestion || !autoAdvanceOnCorrect)}
                   autoAdvanceOnCorrect={autoAdvanceOnCorrect}
                   onAutoAdvanceChange={setAutoAdvanceOnCorrect}
+                  onAudioPlaybackStart={handleAudioPlaybackStart}
+                  onAudioPlaybackEnd={handleAudioPlaybackEnd}
+                  onAudioPlaybackError={handleAudioPlaybackError}
                 />
               ))}
             </div>

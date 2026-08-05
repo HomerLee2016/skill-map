@@ -8,6 +8,8 @@ questions:
     - "Único"
     - "Uva"
     correct_answer: "Uno"
+    audio_track_url: "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=Uno"
+    explanation: 'test explanation ......... 1'
   - question_number: 2
     question: "How do you say 'two' in Spanish?"
     options:
@@ -16,6 +18,8 @@ questions:
     - "Tres"
     - "Diez"
     correct_answer: "Dos"
+    audio_track_url: "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=Dos"
+    explanation: 'test explanation ......... 2'
   - question_number: 3
     question: "What is the Spanish word for 'three'?"
     options:
@@ -24,6 +28,8 @@ questions:
     - "Treinta"
     - "Tres"
     correct_answer: "Tres"
+    audio_track_url: "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=Tres"
+    explanation: 'test explanation ......... 3'
   - question_number: 4
     question: "What is the Spanish word for the number 4?"
     options:
@@ -32,6 +38,8 @@ questions:
     - "Cuatro"
     - "Cuadro"
     correct_answer: "Cuatro"
+    audio_track_url: "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=Cuatro"
+    explanation: 'test explanation ......... 4'
   - question_number: 5
     question: "Which of these is the number 5?"
     options:
@@ -40,6 +48,8 @@ questions:
     - "Cien"
     - "Cero"
     correct_answer: "Cinco"
+    audio_track_url: "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=Cinco"
+    explanation: 'test explanation ......... 5'
   - question_number: 6
     question: "What does 'Seis' mean in English?"
     options:
@@ -48,6 +58,8 @@ questions:
     - "Sixteen"
     - "Second"
     correct_answer: "Six"
+    audio_track_url: "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=Seis Hola Amigo el Hotel Ciao. Que esta"
+    explanation: 'test explanation ......... 6'
   - question_number: 7
     question: "Which number corresponds to the Spanish word 'Siete'?"
     options:
@@ -56,6 +68,8 @@ questions:
     - "9"
     - "7"
     correct_answer: "7"
+    audio_track_url: "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=Siete"
+    explanation: 'test explanation ......... 7'
   - question_number: 8
     question: "Which number is 'Ocho'?"
     options:
@@ -64,6 +78,8 @@ questions:
     - "9"
     - "10"
     correct_answer: "8"
+    audio_track_url: "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=Ocho"
+    explanation: 'test explanation ......... 8'
   - question_number: 9
     question: "What is the Spanish word for the number 9?"
     options:
@@ -72,6 +88,8 @@ questions:
     - "Nieve"
     - "Ocho"
     correct_answer: "Nueve"
+    audio_track_url: "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=Nueve"
+    explanation: 'test explanation ......... 9'
   - question_number: 10
     question: "What is the Spanish word for the number 10?"
     options:
@@ -80,3 +98,5 @@ questions:
     - "Diez"
     - "Dos"
     correct_answer: "Diez"
+    audio_track_url: "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=Diez"
+    explanation: 'test explanation ......... 10'

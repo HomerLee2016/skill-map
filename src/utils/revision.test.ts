@@ -129,6 +129,24 @@ test('persists an explanation alongside revision results', async () => {
   assert.equal(record.explanation, 'Because A is the correct option.');
 });
 
+test('persists audio_track_url alongside revision results', async () => {
+  setActiveWorkspaceStorageKey('persist-audio-url-test');
+
+  const record = await insertCompletedQuestion({
+    question_name: 'Question 1',
+    options: ['A', 'B'],
+    correct_answer: 'A',
+    last_time: new Date('2026-07-27T04:00:00.000Z').toISOString(),
+    proficiency: DEFAULT_PROFICIENCY,
+    quiz_title: 'Revision Quiz',
+    selected_answer: 'A',
+    correct: 1,
+    audio_track_url: 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=Hola',
+  });
+
+  assert.equal(record.audio_track_url, 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=Hola');
+});
+
 test('preserves the original quiz title when updating an existing revision entry', async () => {
   setActiveWorkspaceStorageKey('preserve-quiz-title-test');
 

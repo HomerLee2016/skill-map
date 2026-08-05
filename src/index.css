@@ -929,6 +929,10 @@ body, html, #root {
   margin-top: 0;
 }
 
+.test-question__audio-player {
+  margin-top: 14px;
+}
+
 .option-box {
   display: flex;
   align-items: center;

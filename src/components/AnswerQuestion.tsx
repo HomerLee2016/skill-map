@@ -1,11 +1,13 @@
 // src/components/AnswerQuestion.tsx
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
+import { getAudioSource } from '../utils/audioProxy';
 
 interface Question {
   question_number: number;
   question: string;
   options: string[];
   correct_answer: string;
+  audio_track_url?: string;
   displayQuestionNumber?: number;
   explanation?: string | null;
 }
@@ -20,6 +22,9 @@ interface Props {
   autoAdvanceOnCorrect?: boolean;
   onAutoAdvanceChange?: (value: boolean) => void;
   showAutoAdvanceToggle?: boolean;
+  onAudioPlaybackStart?: () => void;
+  onAudioPlaybackEnd?: () => void;
+  onAudioPlaybackError?: () => void;
 }
 
 export function shouldAutoAdvanceOnCorrect({
@@ -72,6 +77,9 @@ const AnswerQuestion: React.FC<Props> = ({
   autoAdvanceOnCorrect,
   onAutoAdvanceChange,
   showAutoAdvanceToggle,
+  onAudioPlaybackStart,
+  onAudioPlaybackEnd,
+  onAudioPlaybackError,
 }) => {
   // Shuffle once per question instance, and recompute when the question content changes.
   const shuffledOptions = useMemo(() => shuffleArray(q.options), [q.question, q.correct_answer, q.options.join('\u0000')]);
@@ -84,6 +92,47 @@ const AnswerQuestion: React.FC<Props> = ({
     showNextButton,
   });
   const showToggle = shouldShowAutoAdvanceToggle(showAutoAdvanceToggle);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const prevHasAnsweredRef = useRef<boolean>(hasAnswered);
+  const audioSource = q.audio_track_url ? getAudioSource(q.audio_track_url) : undefined;
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) {
+      prevHasAnsweredRef.current = hasAnswered;
+      return undefined;
+    }
+
+    const handleEnded = () => {
+      onAudioPlaybackEnd?.();
+    };
+
+    const handleError = () => {
+      onAudioPlaybackError?.();
+    };
+
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+
+    if (hasAnswered && !prevHasAnsweredRef.current && audioSource) {
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        void playPromise.then(() => {
+          onAudioPlaybackStart?.();
+        }).catch(() => {
+          onAudioPlaybackError?.();
+        });
+      }
+    }
+
+    prevHasAnsweredRef.current = hasAnswered;
+
+    return () => {
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
+    };
+  }, [hasAnswered, audioSource, q.question_number, onAudioPlaybackEnd, onAudioPlaybackError, onAudioPlaybackStart]);
 
   return (
     <div className="test-question">
@@ -115,6 +164,19 @@ const AnswerQuestion: React.FC<Props> = ({
         <div className="test-question__explanation">
           <div className="test-question__explanation-title">Explanation:</div>
           <div className="test-question__explanation-body">{q.explanation}</div>
+        </div>
+      )}
+      {hasAnswered && q.audio_track_url && (
+        <div className="test-question__audio-player">
+          <audio
+            ref={audioRef}
+            controls
+            preload="metadata"
+            src={audioSource}
+            aria-label="Question audio playback"
+          >
+            Your browser does not support the audio element.
+          </audio>
         </div>
       )}
       <div className="test-question__footer">

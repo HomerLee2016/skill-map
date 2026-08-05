@@ -5,6 +5,7 @@ import IncorrectReviewScreen from './components/IncorrectReviewScreen';
 import QuestionTracker from './components/QuestionTracker';
 import { useWorkspace } from './contexts/WorkspaceContext';
 import { getInitialTestsStructure } from './utils/contentCatalog';
+import { useAudioAutoAdvance } from './hooks/useAudioAutoAdvance';
 import {
   exportRevisionData,
   formatRevisionTimestamp,
@@ -28,6 +29,7 @@ async function saveQuestionResult(payload: {
   proficiency?: string;
   quiz_title: string;
   question_id?: number;
+  audio_track_url?: string;
 }) {
   await insertCompletedQuestion(payload);
 }
@@ -50,6 +52,7 @@ function Revision() {
   const [autoAdvanceOnCorrect, setAutoAdvanceOnCorrect] = useState(true);
   const [showSummary, setShowSummary] = useState(true);
   const [backupCompleted, setBackupCompleted] = useState(false);
+  const { scheduleAutoAdvance, handleAudioPlaybackStart, handleAudioPlaybackEnd, handleAudioPlaybackError } = useAudioAutoAdvance([currentIdx]);
 
   const totalQuestions = revisionQuestions.length;
   const isLastQuestion = currentIdx + 1 >= totalQuestions;
@@ -179,6 +182,7 @@ function Revision() {
         proficiency: currentProficiency,
         quiz_title: quizTitle,
         question_id: question.record_id,
+        audio_track_url: question.audio_track_url,
       });
 
       setCompletedRows((prev) => {
@@ -191,6 +195,7 @@ function Revision() {
           explanation: question.explanation,
           last_time: new Date().toISOString(),
           correct: isCorrect ? 1 : 0,
+          audio_track_url: question.audio_track_url,
         };
 
         const exists = prev.some((row: any) => row.id === question.record_id);
@@ -212,9 +217,16 @@ function Revision() {
     if (isCorrect) {
       setScore((value) => value + 1);
       if (autoAdvanceOnCorrect) {
-        setTimeout(() => {
-          advanceToNextQuestion();
-        }, 1000);
+        scheduleAutoAdvance(
+          () => {
+            if (isLastQuestion) {
+              setFinished(true);
+            } else {
+              advanceToNextQuestion();
+            }
+          },
+          !!question.audio_track_url,
+        );
       }
     } else if (isLastQuestion) {
       setTimeout(() => {
@@ -393,6 +405,9 @@ function Revision() {
                   showNextButton={!!answers[q.question_number] && !finished && (!isLastQuestion || !autoAdvanceOnCorrect)}
                   autoAdvanceOnCorrect={autoAdvanceOnCorrect}
                   onAutoAdvanceChange={setAutoAdvanceOnCorrect}
+                  onAudioPlaybackStart={handleAudioPlaybackStart}
+                  onAudioPlaybackEnd={handleAudioPlaybackEnd}
+                  onAudioPlaybackError={handleAudioPlaybackError}
                 />
               ))}
               {finished ? (

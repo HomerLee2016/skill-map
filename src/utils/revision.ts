@@ -22,6 +22,7 @@ export interface CompletedQuestionRecord {
   next_revision_time?: string | null;
   proficiency?: string | null;
   quiz_title: string;
+  audio_track_url?: string | null;
   hash: string;
 }
 
@@ -36,6 +37,7 @@ export interface CompletedQuestionInsert {
   correct?: number;
   explanation?: string | null;
   question_id?: number;
+  audio_track_url?: string;
 }
 
 export interface IncorrectReviewItem<TQuestion> {
@@ -225,6 +227,7 @@ export async function insertCompletedQuestion(entry: CompletedQuestionInsert): P
     next_revision_time: nextRevisionTime,
     proficiency: resolvedProficiency,
     quiz_title: existing?.quiz_title ?? entry.quiz_title,
+    audio_track_url: entry.audio_track_url ?? existing?.audio_track_url ?? null,
     hash,
   };
 
