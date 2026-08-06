@@ -277,6 +277,28 @@ body, html, #root {
   height: 100%;
   overflow: visible;
   background: var(--app-bg);
+  position: relative;
+}
+
+.roadmap-page .sidebar-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  height: 100%;
+  z-index: 30;
+}
+
+.roadmap-page .sidebar-wrapper.sidebar--closed {
+  width: 0;
+}
+
+.roadmap-page .sidebar-wrapper .sidebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  height: 100%;
 }
 
 .lessons-page {
