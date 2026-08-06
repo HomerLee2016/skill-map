@@ -130,6 +130,7 @@ function Revision() {
         proficiency: row.proficiency,
         quiz_title: row.quiz_title,
         explanation: row.explanation,
+        audio_track_url: row.audio_track_url,
       }));
       setRevisionQuestions(revQuestions);
       setRevisionMode(true);
@@ -169,6 +170,7 @@ function Revision() {
     const nextProficiency = isCorrect ? getNextProficiency(currentProficiency) : getDowngradedProficiency(currentProficiency);
     const existingRow = completedRows.find((row: any) => row.id === question.record_id);
     const quizTitle = existingRow?.quiz_title || question.quiz_title || 'Revision';
+    const audioTrackUrl = question.audio_track_url ?? existingRow?.audio_track_url;
     setAnswers((prev) => ({ ...prev, [question.question_number]: option }));
     setCorrectMap((prev) => ({ ...prev, [question.question_number]: isCorrect }));
 
@@ -184,7 +186,7 @@ function Revision() {
         proficiency: currentProficiency,
         quiz_title: quizTitle,
         question_id: question.record_id,
-        audio_track_url: question.audio_track_url,
+        audio_track_url: audioTrackUrl,
       });
 
       setCompletedRows((prev) => {
@@ -197,7 +199,7 @@ function Revision() {
           explanation: question.explanation,
           last_time: new Date().toISOString(),
           correct: isCorrect ? 1 : 0,
-          audio_track_url: question.audio_track_url,
+          audio_track_url: audioTrackUrl,
         };
 
         const exists = prev.some((row: any) => row.id === question.record_id);
