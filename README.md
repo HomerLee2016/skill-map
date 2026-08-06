@@ -16,7 +16,7 @@ The app is organized into four main views:
 - A lesson browser that loads Markdown content from your selected workspace.
 - A test runner with structured folders, multiple-choice questions, and answer tracking.
 - A revision page for spaced-repetition review, including import/export of revision data and automatic backup files.
-- A light-weight local-first setup that uses the browser's file system access features instead of a separate backend service.
+- A light-weight local-first setup that uses browser file access and IndexedDB persistence instead of a separate backend service.
 
 ## Getting started
 
@@ -64,9 +64,11 @@ Then open:
 ## Available scripts
 
 - `npm run dev` - start the Vite development server
+- `npm run dev:custom` - start the Vite server on `127.0.0.1:4173`
 - `npm run build` - build the production bundle
 - `npm run preview` - preview the production build locally
 - `npm run lint` - run Oxlint
+- `npm run test` - run the TypeScript test wrapper
 
 ## Project structure
 
@@ -104,5 +106,5 @@ When you review questions, the app stores progress in the browser and can export
 - Vite 8
 - React Flow for interactive graphs
 - React Markdown for lesson rendering
-- Express + Drizzle ORM + better-sqlite3 for the local API and persistence layer
+- Dexie + IndexedDB for local persistence
 - YAML for roadmap and test content parsing
