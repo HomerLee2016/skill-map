@@ -19,6 +19,23 @@ function AppContent() {
     setSelectedTestId(undefined);
   }, [workspaceVersion]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+
+    root.classList.toggle('app-shell-dark', darkMode);
+    root.classList.toggle('app-shell-light', !darkMode);
+    body.classList.toggle('app-shell-dark', darkMode);
+    body.classList.toggle('app-shell-light', !darkMode);
+    root.style.colorScheme = darkMode ? 'dark' : 'light';
+
+    return () => {
+      root.classList.remove('app-shell-dark', 'app-shell-light');
+      body.classList.remove('app-shell-dark', 'app-shell-light');
+      root.style.colorScheme = '';
+    };
+  }, [darkMode]);
+
   const goToLesson = (lessonId: string) => {
     setSelectedLessonId(lessonId);
     setPage('lessons');

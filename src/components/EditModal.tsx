@@ -1,5 +1,6 @@
 // src/components/EditModal.tsx
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { PickerOption } from '../utils/folderStructure';
 
 interface EditModalProps {
@@ -149,7 +150,7 @@ export const EditModal: React.FC<EditModalProps> = ({
     onGoToTest(id);
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-dialog">
         <h3 className="modal-title">✏️ Edit Skill Node</h3>
@@ -225,6 +226,7 @@ export const EditModal: React.FC<EditModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

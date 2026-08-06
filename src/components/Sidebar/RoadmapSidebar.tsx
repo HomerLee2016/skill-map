@@ -1,4 +1,4 @@
-import type { SavedRoadmap } from '../types';
+import type { SavedRoadmap } from '../../types';
 
 interface RoadmapSidebarProps {
   roadmaps: SavedRoadmap[];

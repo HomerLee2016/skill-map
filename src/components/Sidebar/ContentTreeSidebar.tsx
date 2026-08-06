@@ -1,5 +1,6 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { ResolvedFolder, ResolvedTree, TreeItemRef } from '../utils/folderStructure';
+import type { ResolvedFolder, ResolvedTree, TreeItemRef } from '../../utils/folderStructure';
 
 export function TreeGlobalActions({
   onExpandAll,
@@ -294,7 +295,7 @@ export function TreeActionModal({
     setParentPath(folderPaths[0] || '');
   }, [isOpen, catalog, folderPaths]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
   const canSubmit =
     mode === 'add-folder'
@@ -314,7 +315,7 @@ export function TreeActionModal({
 
   const title = mode === 'add-folder' ? '➕ Add Folder' : '🗂️ Assign Item';
 
-  return (
+  return createPortal(
     <div className="modal-overlay" role="dialog" aria-modal="true">
       <div className="modal-dialog">
         <h3 className="modal-title">{title}</h3>
@@ -401,7 +402,8 @@ export function TreeActionModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

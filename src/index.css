@@ -1568,55 +1568,67 @@ body, html, #root {
 /* Edit modal */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
   background-color: var(--modal-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 2147483647;
+  isolation: isolate;
+  padding: 20px;
 }
 
 .modal-dialog {
-  background: var(--modal-bg);
-  border-radius: 8px;
+  position: relative;
+  z-index: 2147483647;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
   padding: 24px;
-  width: 400px;
-  max-height: 90vh;
+  width: min(460px, 100%);
+  max-height: min(90vh, 760px);
   overflow-y: auto;
-  box-shadow: var(--modal-shadow);
+  box-shadow: var(--panel-shadow);
   display: flex;
   flex-direction: column;
   gap: 12px;
+  color: var(--lessons-text);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .modal-title {
   margin: 0;
   font-size: 18px;
-  color: var(--modal-title);
+  font-weight: 700;
+  color: var(--lessons-text);
 }
 
 .modal-label {
-  font-size: 12px;
-  font-weight: bold;
-  color: var(--modal-label);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lessons-text);
 }
 
 .modal-input {
   width: 100%;
-  padding: 8px;
+  padding: 9px 10px;
   margin-top: 4px;
   border: 1px solid var(--modal-input-border);
-  border-radius: 4px;
+  border-radius: 8px;
   box-sizing: border-box;
-  background: var(--modal-bg);
-  color: var(--modal-title);
+  background: var(--lessons-content-bg, var(--modal-bg));
+  color: var(--lessons-text, var(--modal-title));
+  font: inherit;
+}
+
+.modal-input:focus {
+  outline: 2px solid rgba(100, 108, 255, 0.25);
+  outline-offset: 1px;
+  border-color: var(--node-border);
 }
 
 .modal-textarea {
-  height: 60px;
+  min-height: 72px;
   font-family: inherit;
   resize: vertical;
 }
@@ -1651,6 +1663,10 @@ body, html, #root {
   font-weight: 700;
 }
 
+.modal-link-add:hover {
+  filter: brightness(0.96);
+}
+
 .modal-link-add:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -1674,6 +1690,7 @@ body, html, #root {
   font-size: 13px;
   padding: 4px 0;
   text-decoration: underline;
+  font-family: inherit;
 }
 
 .modal-link-remove {
@@ -1688,7 +1705,7 @@ body, html, #root {
 .modal-link-empty {
   margin: 0;
   font-size: 12px;
-  color: var(--modal-label);
+  color: var(--lessons-muted, var(--modal-label));
 }
 
 .modal-actions {
@@ -1701,10 +1718,11 @@ body, html, #root {
 .modal-btn-cancel {
   padding: 8px 16px;
   background: var(--modal-cancel-bg);
-  color: var(--modal-title);
+  color: var(--lessons-text, var(--modal-title));
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
+  font: inherit;
 }
 
 .modal-btn-save {
@@ -1712,6 +1730,7 @@ body, html, #root {
   background: var(--modal-save-bg);
   color: var(--modal-save-color);
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
+  font: inherit;
 }
