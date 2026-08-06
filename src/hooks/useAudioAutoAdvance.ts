@@ -5,6 +5,7 @@ export interface AudioAutoAdvanceControls {
   handleAudioPlaybackStart: () => void;
   handleAudioPlaybackEnd: () => void;
   handleAudioPlaybackError: () => void;
+  resetAutoAdvance: () => void;
 }
 
 export interface AudioAutoAdvanceManagerOptions {
@@ -123,7 +124,9 @@ export function createAudioAutoAdvanceManager({
     expectsAudio = false;
   };
 
-  const dispose = () => {
+  const resetAutoAdvance = () => {
+    // Called when user manually changes question while audio is playing.
+    // Cancel any pending auto‑advance without invoking the callback.
     expectsAudio = false;
     audioSeen = false;
     audioPlaying = false;
@@ -131,11 +134,16 @@ export function createAudioAutoAdvanceManager({
     autoAdvanceCallback = null;
   };
 
+  const dispose = () => {
+    resetAutoAdvance();
+  };
+
   return {
     scheduleAutoAdvance,
     handleAudioPlaybackStart,
     handleAudioPlaybackEnd,
     handleAudioPlaybackError,
+    resetAutoAdvance,
     dispose,
   };
 }

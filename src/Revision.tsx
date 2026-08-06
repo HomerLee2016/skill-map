@@ -46,6 +46,15 @@ function Revision() {
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [correctMap, setCorrectMap] = useState<Record<number, boolean>>({});
   const [currentIdx, setCurrentIdx] = useState(0);
+  const { scheduleAutoAdvance, handleAudioPlaybackStart, handleAudioPlaybackEnd, handleAudioPlaybackError, resetAutoAdvance } = useAudioAutoAdvance();
+  const prevIdxRef = useRef<number>(currentIdx);
+  useEffect(() => {
+    if (prevIdxRef.current !== currentIdx) {
+      // User changed question manually; stop any pending auto‑advance.
+      resetAutoAdvance();
+    }
+    prevIdxRef.current = currentIdx;
+  }, [currentIdx, resetAutoAdvance]);
   const [finished, setFinished] = useState(false);
   const [showIncorrectReview, setShowIncorrectReview] = useState(false);
   const [score, setScore] = useState(0);
@@ -53,7 +62,6 @@ function Revision() {
   const [autoAdvanceOnCorrect, setAutoAdvanceOnCorrect] = useState(true);
   const [showSummary, setShowSummary] = useState(true);
   const [backupCompleted, setBackupCompleted] = useState(false);
-  const { scheduleAutoAdvance, handleAudioPlaybackStart, handleAudioPlaybackEnd, handleAudioPlaybackError } = useAudioAutoAdvance();
 
   const totalQuestions = revisionQuestions.length;
   const isLastQuestion = currentIdx + 1 >= totalQuestions;
@@ -153,6 +161,12 @@ function Revision() {
     } else {
       setFinished(true);
     }
+  };
+
+  const jumpToQuestion = (index: number) => {
+    if (index < 0 || index >= totalQuestions || index === currentIdx) return;
+    resetAutoAdvance();
+    setCurrentIdx(index);
   };
 
   const handleNextQuestionOrFinish = () => {
@@ -394,6 +408,7 @@ function Revision() {
                 currentIndex={currentIdx}
                 limit={15}
                 disabled
+                onSelectQuestion={jumpToQuestion}
                 questionNumbers={revisionQuestions.map((question) => question.displayQuestionNumber ?? question.question_number)}
                 slidingWindow
               />
