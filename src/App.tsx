@@ -6,10 +6,12 @@ import Tests from './Tests';
 import Revision from './Revision';
 import { useWorkspace, WorkspaceProvider } from './contexts/WorkspaceContext';
 import type { PageId } from './types';
+import { shouldPromptBeforeNavigation } from './utils/unsavedChanges';
 
 function AppContent() {
   const { workspaceVersion } = useWorkspace();
   const [page, setPage] = useState<PageId>('roadmap');
+  const [hasUnsavedRoadmapChanges, setHasUnsavedRoadmapChanges] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
   const [selectedLessonId, setSelectedLessonId] = useState<string | undefined>();
   const [selectedTestId, setSelectedTestId] = useState<string | undefined>();
@@ -36,21 +38,30 @@ function AppContent() {
     };
   }, [darkMode]);
 
+  const handleNavigate = (nextPage: PageId) => {
+    if (shouldPromptBeforeNavigation(hasUnsavedRoadmapChanges, page, nextPage)) {
+      const confirmLeave = window.confirm('You have unsaved roadmap changes. Do you want to leave without saving?');
+      if (!confirmLeave) return;
+    }
+
+    setPage(nextPage);
+  };
+
   const goToLesson = (lessonId: string) => {
     setSelectedLessonId(lessonId);
-    setPage('lessons');
+    handleNavigate('lessons');
   };
 
   const goToTest = (testId: string) => {
     setSelectedTestId(testId);
-    setPage('tests');
+    handleNavigate('tests');
   };
 
   return (
       <div className={darkMode ? 'app-layout app-shell-dark' : 'app-layout app-shell-light'}>
         <TopBar
           currentPage={page}
-          onNavigate={setPage}
+          onNavigate={handleNavigate}
           darkMode={darkMode}
           setDarkMode={setDarkMode}
         />
@@ -59,7 +70,12 @@ function AppContent() {
             className={page === 'roadmap' ? 'page-panel page-panel--active' : 'page-panel'}
             aria-hidden={page !== 'roadmap'}
           >
-            <Roadmap darkMode={darkMode} onGoToLesson={goToLesson} onGoToTest={goToTest} />
+            <Roadmap
+              darkMode={darkMode}
+              onGoToLesson={goToLesson}
+              onGoToTest={goToTest}
+              onUnsavedChangesChange={setHasUnsavedRoadmapChanges}
+            />
           </div>
           <div
             className={page === 'lessons' ? 'page-panel page-panel--active' : 'page-panel'}

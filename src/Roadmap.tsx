@@ -38,9 +38,10 @@ interface RoadmapProps {
   darkMode: boolean;
   onGoToLesson: (id: string) => void;
   onGoToTest: (id: string) => void;
+  onUnsavedChangesChange?: (hasUnsavedChanges: boolean) => void;
 }
 
-function Roadmap({ darkMode, onGoToLesson, onGoToTest }: RoadmapProps) {
+function Roadmap({ darkMode, onGoToLesson, onGoToTest, onUnsavedChangesChange }: RoadmapProps) {
   const { workspace, workspaceVersion, selectedDirectoryHandle } = useWorkspace();
   const [roadmaps, setRoadmaps] = useState<SavedRoadmap[]>(() => workspace.roadmaps);
   const [selectedRoadmapId, setSelectedRoadmapId] = useState<string>(() => workspace.roadmaps[0]?.id || 'untitled');
@@ -51,6 +52,7 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest }: RoadmapProps) {
   const [error, setError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState<boolean>(true);
   const [tipsOpen, setTipsOpen] = useState<boolean>(true);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
     if (workspace.roadmaps.length === 0) {
@@ -69,8 +71,26 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest }: RoadmapProps) {
     const selectedRoadmap = workspace.roadmaps.find((roadmap) => roadmap.id === nextId);
     if (selectedRoadmap) {
       setYamlText(selectedRoadmap.yaml);
+      lastSavedYamlRef.current = selectedRoadmap.yaml;
     }
   }, [selectedRoadmapId, workspace.roadmaps, workspaceVersion]);
+
+  useEffect(() => {
+    const hasChanges = yamlText !== lastSavedYamlRef.current;
+    setHasUnsavedChanges(hasChanges);
+    onUnsavedChangesChange?.(hasChanges);
+  }, [yamlText, onUnsavedChangesChange]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -82,6 +102,7 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest }: RoadmapProps) {
 
   const { leftWidth, startResize } = useResizePanel();
   const ignoreYamlUpdateRef = useRef<boolean>(false);
+  const lastSavedYamlRef = useRef<string>(workspace.roadmaps[0]?.yaml || '');
   const { syncGraphToYaml } = useYamlSync({ yamlText, setYamlText, setRoadmaps, selectedRoadmapId, ignoreYamlUpdateRef });
   const { onEdgeClick } = useEdgeSelection({ setEdges, nodes, syncGraphToYaml });
 
@@ -113,10 +134,27 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest }: RoadmapProps) {
   };
 
   const selectRoadmap = (id: string) => {
+    if (hasUnsavedChanges && window.confirm('You have unsaved changes. Leave this roadmap and discard them?')) {
+      setSelectedRoadmapId(id);
+      const target = roadmaps.find((r) => r.id === id);
+      if (target) {
+        setYamlText(target.yaml);
+        lastSavedYamlRef.current = target.yaml;
+        setHasUnsavedChanges(false);
+      }
+      return;
+    }
+
+    if (hasUnsavedChanges) {
+      return;
+    }
+
     setSelectedRoadmapId(id);
     const target = roadmaps.find((r) => r.id === id);
     if (target) {
       setYamlText(target.yaml);
+      lastSavedYamlRef.current = target.yaml;
+      setHasUnsavedChanges(false);
     }
   };
 
@@ -146,6 +184,9 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest }: RoadmapProps) {
       };
 
       setRoadmaps((prev) => prev.map((roadmap) => (roadmap.id === selectedRoadmapId ? nextRoadmap : roadmap)));
+      lastSavedYamlRef.current = yamlText;
+      setHasUnsavedChanges(false);
+      onUnsavedChangesChange?.(false);
       const persisted = await writeWorkspaceRoadmapFile(selectedDirectoryHandle, nextRoadmap);
       if (!persisted) {
         throw new Error('Failed to save roadmap to workspace');
