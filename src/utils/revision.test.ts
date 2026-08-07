@@ -13,6 +13,7 @@ const {
   getNextProficiency,
   getNextRevisionTime,
   formatRevisionTimestamp,
+  formatNextRevisionTime,
   insertCompletedQuestion,
   isQuestionDue,
   normalizeProficiency,
@@ -66,6 +67,15 @@ test('formats revision backup filenames with a timestamp', () => {
   const expected = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${String(date.getHours()).padStart(2, '0')}${String(date.getMinutes()).padStart(2, '0')}${String(date.getSeconds()).padStart(2, '0')}`;
 
   assert.equal(formatRevisionTimestamp(date), expected);
+});
+
+test('formats next revision times as relative durations or a calendar date', () => {
+  const now = new Date('2026-08-07T12:00:00.000Z');
+
+  assert.equal(formatNextRevisionTime('2026-08-07T12:45:00.000Z', now), '45 mins');
+  assert.equal(formatNextRevisionTime('2026-08-07T14:00:00.000Z', now), '2 hrs');
+  assert.equal(formatNextRevisionTime('2026-08-09T12:00:00.000Z', now), '2026-08-09');
+  assert.equal(formatNextRevisionTime('2026-08-07T11:59:59.000Z', now), '0 mins');
 });
 
 test('builds review items from incorrect answers only', () => {

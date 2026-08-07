@@ -128,6 +128,35 @@ export function formatRevisionTimestamp(date: Date = new Date()): string {
   return `${year}${month}${day}-${hours}${minutes}${seconds}`;
 }
 
+export function formatNextRevisionTime(nextRevisionTime: string | null | undefined, now: Date = new Date()): string {
+  if (!nextRevisionTime) {
+    return '—';
+  }
+
+  const targetTime = new Date(nextRevisionTime);
+  const diffMs = targetTime.getTime() - now.getTime();
+
+  if (diffMs <= 0) {
+    return '0 mins';
+  }
+
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  if (diffMinutes < 60) {
+    return `${Math.max(0, diffMinutes)} mins`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `${diffHours} hrs`;
+  }
+
+  const targetDate = new Date(targetTime);
+  const year = targetDate.getFullYear();
+  const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const day = String(targetDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function getNextRevisionTime(lastTime: string | null | undefined, currentProficiency: string | null | undefined): string {
   const stage = getStage(currentProficiency);
   const intervalHours = STAGE_INTERVALS_HOURS[stage] ?? STAGE_INTERVALS_HOURS[1];

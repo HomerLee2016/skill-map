@@ -9,6 +9,7 @@ import { Sidebar } from './components/Sidebar/Sidebar';
 import { useAudioAutoAdvance } from './hooks/useAudioAutoAdvance';
 import {
   exportRevisionData,
+  formatNextRevisionTime,
   formatRevisionTimestamp,
   getAllCompletedQuestions,
   getDueRevisionQuestions,
@@ -369,7 +370,7 @@ function Revision() {
                           {normalizeProficiency(row.proficiency)}
                         </span>
                       </td>
-                      <td>{row.next_revision_time}</td>
+                      <td>{formatNextRevisionTime(row.next_revision_time)}</td>
                     </tr>
                   ))}
                 </tbody>
