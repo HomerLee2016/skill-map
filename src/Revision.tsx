@@ -10,6 +10,7 @@ import { useAudioAutoAdvance } from './hooks/useAudioAutoAdvance';
 import {
   exportRevisionData,
   formatNextRevisionTime,
+  formatProficiencyDisplay,
   formatRevisionTimestamp,
   getAllCompletedQuestions,
   getDueRevisionQuestions,
@@ -17,7 +18,6 @@ import {
   getNextProficiency,
   importRevisionData,
   insertCompletedQuestion,
-  normalizeProficiency,
 } from './utils/revision';
 
 async function saveQuestionResult(payload: {
@@ -368,7 +368,7 @@ function Revision() {
                       <td>{row.correct_answer}</td>
                       <td>
                         <span className="revision-proficiency-badge">
-                          {normalizeProficiency(row.proficiency)}
+                          {formatProficiencyDisplay(row.proficiency)}
                         </span>
                       </td>
                       <td>{formatNextRevisionTime(row.next_revision_time)}</td>

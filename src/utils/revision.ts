@@ -96,6 +96,14 @@ function getStage(proficiency: string | null | undefined): number {
   return Number.isFinite(major) ? major : 1;
 }
 
+export function formatProficiencyDisplay(proficiency: string | null | undefined): string {
+  const normalized = normalizeProficiency(proficiency);
+  const stage = getStage(normalized);
+  const starCount = Math.max(1, stage);
+  const stars = '⭐'.repeat(starCount);
+  return `${stars} ${normalized}`;
+}
+
 function getLevelIndex(proficiency: string | null | undefined): number {
   const normalized = normalizeProficiency(proficiency);
   const index = MASTER_LEVELS.indexOf(normalized as (typeof MASTER_LEVELS)[number]);

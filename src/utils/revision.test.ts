@@ -12,8 +12,9 @@ const {
   getDowngradedProficiency,
   getNextProficiency,
   getNextRevisionTime,
-  formatRevisionTimestamp,
   formatNextRevisionTime,
+  formatProficiencyDisplay,
+  formatRevisionTimestamp,
   insertCompletedQuestion,
   isQuestionDue,
   normalizeProficiency,
@@ -31,6 +32,16 @@ test('advances proficiency correctly for correct answers and caps at the top', (
 test('normalizes missing proficiency values to the default level', () => {
   assert.equal(normalizeProficiency(null), DEFAULT_PROFICIENCY);
   assert.equal(normalizeProficiency('   '), DEFAULT_PROFICIENCY);
+});
+
+test('formats proficiency levels with star emojis based on major stage', () => {
+  assert.equal(formatProficiencyDisplay('1.1'), '⭐ 1.1');
+  assert.equal(formatProficiencyDisplay('1.5'), '⭐ 1.5');
+  assert.equal(formatProficiencyDisplay('2.3'), '⭐⭐ 2.3');
+  assert.equal(formatProficiencyDisplay('3.1'), '⭐⭐⭐ 3.1');
+  assert.equal(formatProficiencyDisplay('4.4'), '⭐⭐⭐⭐ 4.4');
+  assert.equal(formatProficiencyDisplay('5.3'), '⭐⭐⭐⭐⭐ 5.3');
+  assert.equal(formatProficiencyDisplay(null), '⭐ 1.1');
 });
 
 test('computes due dates from the current major stage interval', () => {
