@@ -77,6 +77,8 @@ const AnswerQuestion: React.FC<Props> = ({
   autoAdvanceOnCorrect,
   onAutoAdvanceChange,
   showAutoAdvanceToggle,
+  audioTrackEnabled = true,
+  onAudioTrackEnabledChange,
   onAudioPlaybackStart,
   onAudioPlaybackEnd,
   onAudioPlaybackError,
@@ -95,9 +97,14 @@ const AnswerQuestion: React.FC<Props> = ({
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const prevHasAnsweredRef = useRef<boolean>(hasAnswered);
-  const audioSource = useMemo(() => q.audio_track_url ? getAudioSource(q.audio_track_url) : undefined, [q.audio_track_url]);
-  // Play audio after the user answers (if audio exists)
+  const audioSource = useMemo(() => (q.audio_track_url && audioTrackEnabled) ? getAudioSource(q.audio_track_url) : undefined, [q.audio_track_url, audioTrackEnabled]);
+  // Play audio after the user answers (if audio exists and enabled)
   useEffect(() => {
+    if (!audioTrackEnabled) {
+      prevHasAnsweredRef.current = hasAnswered;
+      return undefined;
+    }
+
     const audio = audioRef.current;
     if (!audio) {
       prevHasAnsweredRef.current = hasAnswered;
@@ -141,7 +148,7 @@ const AnswerQuestion: React.FC<Props> = ({
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
     };
-  }, [hasAnswered, audioSource, q.question_number, onAudioPlaybackEnd, onAudioPlaybackError, onAudioPlaybackStart]);
+  }, [hasAnswered, audioSource, audioTrackEnabled, q.question_number, onAudioPlaybackEnd, onAudioPlaybackError, onAudioPlaybackStart]);
 
   return (
     <div className="test-question">
@@ -175,7 +182,7 @@ const AnswerQuestion: React.FC<Props> = ({
           <div className="test-question__explanation-body">{q.explanation}</div>
         </div>
       )}
-      {q.audio_track_url && (
+      {q.audio_track_url && audioTrackEnabled && (
         <div className="test-question__audio-player">
           <audio
             ref={audioRef}
@@ -191,18 +198,36 @@ const AnswerQuestion: React.FC<Props> = ({
       )}
       <div className="test-question__footer">
         {showToggle && (
-          <label className="toggle-switch test-question__toggle">
-            <span className="test-question__toggle-label">Auto-next on correct</span>
-            <span className={`toggle-track ${autoAdvanceOnCorrect ? 'toggle-track--on' : ''}`} aria-hidden="true">
-              <span className="toggle-knob" />
-            </span>
-            <input
-              type="checkbox"
-              checked={!!autoAdvanceOnCorrect}
-              onChange={(event) => onAutoAdvanceChange?.(event.target.checked)}
-              className="toggle-input"
-            />
-          </label>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <label className={`toggle-switch test-question__toggle ${hasAnswered ? 'toggle-switch--disabled' : ''}`}>
+              <span className="test-question__toggle-label">Auto-next on correct</span>
+              <span className={`toggle-track ${autoAdvanceOnCorrect ? 'toggle-track--on' : ''}`} aria-hidden="true">
+                <span className="toggle-knob" />
+              </span>
+              <input
+                type="checkbox"
+                checked={!!autoAdvanceOnCorrect}
+                onChange={(event) => !hasAnswered && onAutoAdvanceChange?.(event.target.checked)}
+                disabled={hasAnswered}
+                className="toggle-input"
+              />
+            </label>
+            {q.audio_track_url && (
+              <label className={`toggle-switch test-question__toggle ${hasAnswered ? 'toggle-switch--disabled' : ''}`}>
+                <span className="test-question__toggle-label">Enable audio</span>
+                <span className={`toggle-track ${audioTrackEnabled ? 'toggle-track--on' : ''}`} aria-hidden="true">
+                  <span className="toggle-knob" />
+                </span>
+                <input
+                  type="checkbox"
+                  checked={!!audioTrackEnabled}
+                  onChange={(event) => !hasAnswered && onAudioTrackEnabledChange?.(event.target.checked)}
+                  disabled={hasAnswered}
+                  className="toggle-input"
+                />
+              </label>
+            )}
+          </div>
         )}
         {hasAnswered && shouldShowManualNext && onNextQuestion && (
           <button type="button" className="toolbar-btn test-question__next-button" onClick={onNextQuestion}>

@@ -61,6 +61,7 @@ function Revision() {
   const [score, setScore] = useState(0);
   const [dueCount, setDueCount] = useState(0);
   const [autoAdvanceOnCorrect, setAutoAdvanceOnCorrect] = useState(true);
+  const [audioTrackEnabled, setAudioTrackEnabled] = useState(true);
   const [showSummary, setShowSummary] = useState(true);
   const [backupCompleted, setBackupCompleted] = useState(false);
 
@@ -244,7 +245,7 @@ function Revision() {
               advanceToNextQuestion();
             }
           },
-          !!question.audio_track_url,
+          !!(question.audio_track_url && audioTrackEnabled),
         );
       }
     } else if (isLastQuestion) {
@@ -424,6 +425,8 @@ function Revision() {
                   showNextButton={!!answers[q.question_number] && !finished && (!isLastQuestion || !autoAdvanceOnCorrect)}
                   autoAdvanceOnCorrect={autoAdvanceOnCorrect}
                   onAutoAdvanceChange={setAutoAdvanceOnCorrect}
+                  audioTrackEnabled={audioTrackEnabled}
+                  onAudioTrackEnabledChange={setAudioTrackEnabled}
                   onAudioPlaybackStart={handleAudioPlaybackStart}
                   onAudioPlaybackEnd={handleAudioPlaybackEnd}
                   onAudioPlaybackError={handleAudioPlaybackError}

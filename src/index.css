@@ -1270,6 +1270,11 @@ body, html, #root {
   font-size: 12px;
 }
 
+.toggle-switch--disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .toggle-track {
   position: relative;
   width: 42px;
@@ -1291,6 +1296,10 @@ body, html, #root {
   opacity: 0;
   cursor: pointer;
   margin: 0;
+}
+
+.toggle-input:disabled {
+  cursor: not-allowed;
 }
 
 .toggle-knob {

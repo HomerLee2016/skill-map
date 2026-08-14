@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import YAML from 'yaml'
+import { viteSingleFile } from "vite-plugin-singlefile";
 
 // https://vite.dev/config/
 function roadmapSavePlugin() {
@@ -260,7 +261,17 @@ function audioProxyPlugin() {
 }
 
 export default defineConfig({
-  plugins: [react(), roadmapSavePlugin(), testResultSavePlugin(), structureSavePlugin(), audioProxyPlugin()],
+  base: './',
+  plugins: [
+    react(),
+    roadmapSavePlugin(),
+    testResultSavePlugin(),
+    structureSavePlugin(),
+    audioProxyPlugin(),
+    viteSingleFile({
+      useRecommendedBuildConfig: true
+    })
+  ],
   server: {
     proxy: {
       '/api': {

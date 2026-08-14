@@ -60,6 +60,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const [showIncorrectReview, setShowIncorrectReview] = useState(false);
   const [total, setTotal] = useState(0);
   const [autoAdvanceOnCorrect, setAutoAdvanceOnCorrect] = useState(true);
+  const [audioTrackEnabled, setAudioTrackEnabled] = useState(true);
   const { scheduleAutoAdvance, handleAudioPlaybackStart, handleAudioPlaybackEnd, handleAudioPlaybackError } = useAudioAutoAdvance();
   const [structure, setStructure] = useState(workspace.testsStructure);
   const [structureError, setStructureError] = useState<string | null>(null);
@@ -211,7 +212,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
               advanceToNextQuestion();
             }
           },
-          !!question.audio_track_url,
+          !!(question.audio_track_url && audioTrackEnabled),
         );
       }
     } else if (isLastQuestion) {
@@ -329,6 +330,8 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
                   showNextButton={!!answers[q.question_number] && !finished && (!isLastQuestion || !autoAdvanceOnCorrect)}
                   autoAdvanceOnCorrect={autoAdvanceOnCorrect}
                   onAutoAdvanceChange={setAutoAdvanceOnCorrect}
+                  audioTrackEnabled={audioTrackEnabled}
+                  onAudioTrackEnabledChange={setAudioTrackEnabled}
                   onAudioPlaybackStart={handleAudioPlaybackStart}
                   onAudioPlaybackEnd={handleAudioPlaybackEnd}
                   onAudioPlaybackError={handleAudioPlaybackError}
