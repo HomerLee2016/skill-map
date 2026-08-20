@@ -22,6 +22,8 @@ interface Props {
   autoAdvanceOnCorrect?: boolean;
   onAutoAdvanceChange?: (value: boolean) => void;
   showAutoAdvanceToggle?: boolean;
+  audioTrackEnabled?: boolean;
+  onAudioTrackEnabledChange?: (value: boolean) => void;
   onAudioPlaybackStart?: () => void;
   onAudioPlaybackEnd?: () => void;
   onAudioPlaybackError?: () => void;

@@ -1128,6 +1128,20 @@ body, html, #root {
   vertical-align: top;
 }
 
+.summary-table .col-id,
+.summary-table .col-proficiency,
+.summary-table .col-next-revision {
+  white-space: nowrap;
+}
+
+.summary-table .col-test,
+.summary-table .col-question,
+.summary-table .col-answer {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
 .revision-proficiency-badge {
   display: inline-flex;
   align-items: center;
@@ -1138,6 +1152,7 @@ body, html, #root {
   background: rgba(14, 165, 233, 0.14);
   color: var(--modal-save-bg);
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .summary-table tbody tr:nth-child(even) {

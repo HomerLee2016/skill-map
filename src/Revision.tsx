@@ -351,27 +351,27 @@ function Revision() {
               <table className="summary-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>Test</th>
-                    <th>Question</th>
-                    <th>Correct Answer</th>
-                    <th>Proficiency</th>
-                    <th>Next Revision Time</th>
+                    <th className="col-id">ID</th>
+                    <th className="col-test">Test</th>
+                    <th className="col-question">Question</th>
+                    <th className="col-answer">Correct Answer</th>
+                    <th className="col-proficiency">Proficiency</th>
+                    <th className="col-next-revision">Next Revision Time</th>
                   </tr>
                 </thead>
                 <tbody>
                   {completedRows.map((row: any) => (
                     <tr key={row.id}>
-                      <td>{row.id}</td>
-                      <td>{row.quiz_title}</td>
-                      <td>{row.question_name}</td>
-                      <td>{row.correct_answer}</td>
-                      <td>
+                      <td className="col-id">{row.id}</td>
+                      <td className="col-test">{row.quiz_title}</td>
+                      <td className="col-question">{row.question_name}</td>
+                      <td className="col-answer">{row.correct_answer}</td>
+                      <td className="col-proficiency">
                         <span className="revision-proficiency-badge">
                           {formatProficiencyDisplay(row.proficiency)}
                         </span>
                       </td>
-                      <td>{formatNextRevisionTime(row.next_revision_time)}</td>
+                      <td className="col-next-revision">{formatNextRevisionTime(row.next_revision_time)}</td>
                     </tr>
                   ))}
                 </tbody>
