@@ -245,10 +245,12 @@ body, html, #root {
   display: flex;
 }
 
+.summary-highlight-block {
+  margin: 10px;
+}
+
 .summary-total-question-count {
-  font-size: 2rem;
   text-wrap: auto;
-  margin: 1rem;
   padding: 1rem;
   background: var(--panel-bg);
   border: 1px solid var(--sidebar-border);
@@ -257,9 +259,7 @@ body, html, #root {
 }
 
 .summary-total-star-count {
-  font-size: 2rem;
   text-wrap: auto;
-  margin: 1rem;
   padding: 1rem;
   background: var(--panel-bg);
   border: 1px solid var(--sidebar-border);
@@ -1786,7 +1786,6 @@ body, html, #root {
 }
 
 .star-stats-chart {
-  margin: 1rem;
   padding: 1rem;
   background: var(--panel-bg);
   border: 1px solid var(--sidebar-border);
@@ -1840,3 +1839,12 @@ body, html, #root {
   color: var(--tests-muted);
 }
 
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.row h1, .row p {
+  margin: 0;
+}

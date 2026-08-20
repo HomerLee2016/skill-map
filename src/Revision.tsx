@@ -37,7 +37,7 @@ function StarStatsChart({ completedRows }: { completedRows: any[] }) {
   });
   const maxCount = Math.max(0, ...Object.values(starCounts));
   return (
-    <div className="star-stats-chart">
+    <div className="star-stats-chart summary-highlight-block">
       <div className="star-chart-container">
         <div className="star-bar-group">
           {[1,2,3,4,5].map(level => {
@@ -401,12 +401,12 @@ function Revision() {
               </div>
                 <div className="summary-highlight">
                   <StarStatsChart completedRows={completedRows} />
-                  <div className="summary-total-question-count">
-                    <p>{completedRows.length} Question{completedRows.length !== 1 ? 's' : ''}</p>
+                  <div className="summary-total-star-count row summary-highlight-block">
+                    <h1>{calcTotalStars(completedRows)} ⭐</h1>
                   </div>
-                   <div className="summary-total-star-count">
-                     <p>{calcTotalStars(completedRows)} ⭐</p>
-                   </div>
+                  <div className="summary-total-question-count row summary-highlight-block">
+                    <h1>{completedRows.length}</h1> <p>{completedRows.length !== 1 ? 'questions' : 'question'}</p>
+                  </div>
                 </div>
               <table className="summary-table">
                 <thead>
