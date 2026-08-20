@@ -136,7 +136,10 @@ export function formatRevisionTimestamp(date: Date = new Date()): string {
   return `${year}${month}${day}-${hours}${minutes}${seconds}`;
 }
 
-export function formatNextRevisionTime(nextRevisionTime: string | null | undefined, now: Date = new Date()): string {
+export function formatNextRevisionTime(
+  nextRevisionTime: string | null | undefined,
+  now: Date = new Date()
+): string {
   if (!nextRevisionTime) {
     return '—';
   }
@@ -150,14 +153,15 @@ export function formatNextRevisionTime(nextRevisionTime: string | null | undefin
 
   const diffMinutes = Math.floor(diffMs / (1000 * 60));
   if (diffMinutes < 60) {
-    return `${Math.max(0, diffMinutes)} mins`;
+    return `${Math.max(0, diffMinutes)} ${diffMinutes === 1 ? 'min' : 'mins'}`;
   }
 
   const diffHours = Math.floor(diffMinutes / 60);
   if (diffHours < 24) {
-    return `${diffHours} hrs`;
+    return `${diffHours} ${diffHours === 1 ? 'hr' : 'hrs'}`;
   }
 
+  // For dates beyond a day, show a simple date string
   const targetDate = new Date(targetTime);
   const year = targetDate.getFullYear();
   const month = String(targetDate.getMonth() + 1).padStart(2, '0');

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { CategorySection } from './components/Sidebar/ContentTreeSidebar';
 import AnswerQuestion from './components/AnswerQuestion';
 import IncorrectReviewScreen from './components/IncorrectReviewScreen';
@@ -19,6 +19,48 @@ import {
   importRevisionData,
   insertCompletedQuestion,
 } from './utils/revision';
+
+function calcTotalStars(rows: any[]): number {
+  return rows.reduce((sum, row) => {
+    const level = parseInt(row.proficiency, 10);
+    return sum + (isNaN(level) ? 0 : level);
+  }, 0);
+}
+
+function StarStatsChart({ completedRows }: { completedRows: any[] }) {
+  const starCounts: Record<number, number> = {1:0,2:0,3:0,4:0,5:0};
+  completedRows.forEach(row => {
+    const level = parseInt(row.proficiency, 10);
+    if (level >= 1 && level <= 5) {
+      starCounts[level] = (starCounts[level] || 0) + 1;
+    }
+  });
+  const maxCount = Math.max(0, ...Object.values(starCounts));
+  return (
+    <div className="star-stats-chart">
+      <div className="star-chart-container">
+        <div className="star-bar-group">
+          {[1,2,3,4,5].map(level => {
+            const count = starCounts[level] ?? 0;
+            const heightPercent = maxCount ? (count / maxCount) * 100 : 0;
+            // Ensure a minimal visible height (4%) for zero counts
+            const displayHeight = Math.max(heightPercent, 4);
+            return (
+
+              <div key={level} className="star-bar-wrapper">
+                <div className={`star-bar level-${level}`} style={{ height: `${displayHeight}%` }} />
+                <div className="star-bar-count">{count}</div>
+                <div className="star-bar-label">{level}⭐</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 
 async function saveQuestionResult(payload: {
   question_name: string;
@@ -42,6 +84,14 @@ function Revision() {
   useState(getInitialTestsStructure);
   useState<string | null>(null);
   const [completedRows, setCompletedRows] = useState<any[]>([]);
+  const nextRevisionIso = useMemo(() => {
+    const times = completedRows
+      .map((row) => row.next_revision_time)
+      .filter((t) => !!t) as string[];
+    if (times.length === 0) return null;
+    // ISO strings can be compared lexicographically
+    return times.reduce((a, b) => (a < b ? a : b));
+  }, [completedRows]);
   const [revisionMode, setRevisionMode] = useState(false);
   const [revisionQuestions, setRevisionQuestions] = useState<any[]>([]);
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -88,20 +138,7 @@ function Revision() {
     }
   };
 
-  useEffect(() => {
-    setCompletedRows([]);
-    setRevisionQuestions([]);
-    setAnswers({});
-    setCorrectMap({});
-    setCurrentIdx(0);
-    setFinished(false);
-    setShowIncorrectReview(false);
-    setScore(0);
-    setDueCount(0);
-    setShowSummary(true);
-    setRevisionMode(false);
-    setBackupCompleted(false);
-  }, [workspaceVersion]);
+
 
   useEffect(() => {
     void fetchCompleted();
@@ -254,6 +291,67 @@ function Revision() {
       }, 0);
     }
   };
+  // Helper to render Import button
+  function renderImportButton() {
+    return (
+      <>
+        <button
+          type="button"
+          className="toolbar-btn"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          Import Revision Data
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json"
+          style={{ display: 'none' }}
+          onChange={async (event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            try {
+              const text = await file.text();
+              const imported = await importRevisionData(text);
+              await fetchCompleted();
+              await fetchDueCount();
+              window.alert(`Imported ${imported} revision records.`);
+            } catch (error) {
+              console.error(error);
+              window.alert('Failed to import revision data.');
+            } finally {
+              event.target.value = '';
+            }
+          }}
+        />
+      </>
+    );
+  }
+
+  function renderExportButton() {
+    return (
+      <button
+        type="button"
+        className="toolbar-btn"
+        onClick={async () => {
+          try {
+            const data = await exportRevisionData();
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `revision-data-${formatRevisionTimestamp()}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+          } catch (error) {
+            console.error(error);
+            window.alert('Failed to export revision data.');
+          }
+        }}>
+        Export Revision Data
+      </button>
+    );
+  }
 
   return (
     <div className="tests-page">
@@ -285,7 +383,7 @@ function Revision() {
             <div className="revision-header-card">
               <div>
                 <h1>Revision</h1>
-                <p>You have {dueCount} question{dueCount !== 1 ? 's' : ''} due for review.</p>
+                <p>You have {dueCount} question{dueCount !== 1 ? 's' : ''} due for review. { dueCount == 0 ? (nextRevisionIso ? 'Come back in ' + formatNextRevisionTime(nextRevisionIso) : '') : 'Let\'s review now.'}</p>
               </div>
               <button type="button" className="toolbar-btn" onClick={() => { void startRevision(); }}>
                 Start revision
@@ -295,59 +393,21 @@ function Revision() {
               <div className="summary-table-header">
                 <div>
                   <h2>Learnt Summary</h2>
-                  <p>
-                    Total: {completedRows.length} question{completedRows.length !== 1 ? 's' : ''}
-                  </p>
                 </div>
                 <div className="summary-table-header-buttons">
-                  <button
-                    type="button"
-                    className="toolbar-btn"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    Import Revision Data
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="application/json"
-                    style={{ display: 'none' }}
-                    onChange={async (event) => {
-                      const file = event.target.files?.[0];
-                      if (!file) return;
-                      try {
-                        const text = await file.text();
-                        const imported = await importRevisionData(text);
-                        await fetchCompleted();
-                        await fetchDueCount();
-                        window.alert(`Imported ${imported} revision records.`);
-                      } catch (error) {
-                        console.error(error);
-                        window.alert('Failed to import revision data.');
-                      } finally {
-                        event.target.value = '';
-                      }
-                    }}
-                  />
-                  <button type="button" className="toolbar-btn" onClick={async () => {
-                    try {
-                      const data = await exportRevisionData();
-                      const blob = new Blob([data], { type: 'application/json' });
-                      const url = URL.createObjectURL(blob);
-                      const link = document.createElement('a');
-                      link.href = url;
-                      link.download = `revision-data-${formatRevisionTimestamp()}.json`;
-                      link.click();
-                      URL.revokeObjectURL(url);
-                    } catch (error) {
-                      console.error(error);
-                      window.alert('Failed to export revision data.');
-                    }
-                  }}>
-                    Export Revision Data
-                  </button>
+                  {renderImportButton()}
+                  {renderExportButton()}
                 </div>
               </div>
+                <div className="summary-highlight">
+                  <StarStatsChart completedRows={completedRows} />
+                  <div className="summary-total-question-count">
+                    <p>{completedRows.length} Question{completedRows.length !== 1 ? 's' : ''}</p>
+                  </div>
+                   <div className="summary-total-star-count">
+                     <p>{calcTotalStars(completedRows)} ⭐</p>
+                   </div>
+                </div>
               <table className="summary-table">
                 <thead>
                   <tr>
