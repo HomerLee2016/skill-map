@@ -25,15 +25,6 @@ export interface TestQuestionResult {
   correct: boolean;
 }
 
-export interface TestResultPayload {
-  testId: string;
-  quiz_title: string;
-  timestamp: string;
-  questions: TestQuestionResult[];
-  score: number;
-  total: number;
-}
-
 export interface SavedRoadmap {
   id: string;
   name: string;
