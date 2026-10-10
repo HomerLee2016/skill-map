@@ -68,15 +68,6 @@ export function writePersistedWorkspaceSelection(selection: PersistedWorkspaceSe
   resolvedStorage.setItem(WORKSPACE_SELECTION_STORAGE_KEY, JSON.stringify(selection));
 }
 
-export function clearPersistedWorkspaceSelection(storage?: Storage | null): void {
-  const resolvedStorage = resolveStorage(storage);
-  if (!resolvedStorage) {
-    return;
-  }
-
-  resolvedStorage.removeItem(WORKSPACE_SELECTION_STORAGE_KEY);
-}
-
 export function readPersistedWorkspaceHistory(storage?: Storage | null): PersistedWorkspaceHistoryEntry[] {
   const resolvedStorage = resolveStorage(storage);
   if (!resolvedStorage) {

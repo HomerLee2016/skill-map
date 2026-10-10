@@ -98,68 +98,6 @@ export function resolveStructureTree(
   return { folders, items, ungrouped };
 }
 
-function flattenFolderOptions(
-  folder: ResolvedFolder,
-  out: PickerOption[]
-) {
-  for (const item of folder.items) {
-    out.push({
-      id: item.id,
-      label: `${folder.path} / ${item.title}`,
-      path: folder.path,
-    });
-  }
-  for (const child of folder.children) {
-    flattenFolderOptions(child, out);
-  }
-}
-
-export function flattenTreePickerOptions(
-  tree: ResolvedTree,
-  sectionPrefix?: string
-): PickerOption[] {
-  const out: PickerOption[] = [];
-  const prefix = sectionPrefix ? `${sectionPrefix} › ` : '';
-
-  for (const item of tree.items) {
-    out.push({
-      id: item.id,
-      label: `${prefix}${item.title}`,
-      path: sectionPrefix || '',
-    });
-  }
-  for (const folder of tree.folders) {
-    const nested: PickerOption[] = [];
-    flattenFolderOptions(folder, nested);
-    for (const opt of nested) {
-      out.push({
-        ...opt,
-        label: `${prefix}${opt.label}`,
-      });
-    }
-  }
-  for (const item of tree.ungrouped) {
-    out.push({
-      id: item.id,
-      label: `${prefix}Ungrouped / ${item.title}`,
-      path: sectionPrefix ? `${sectionPrefix} › Ungrouped` : 'Ungrouped',
-    });
-  }
-  return out;
-}
-
-/** Deduplicate by id, keeping first occurrence (prefer earlier sections). */
-export function uniquePickerOptions(options: PickerOption[]): PickerOption[] {
-  const seen = new Set<string>();
-  const result: PickerOption[] = [];
-  for (const opt of options) {
-    if (seen.has(opt.id)) continue;
-    seen.add(opt.id);
-    result.push(opt);
-  }
-  return result;
-}
-
 export function emptyStructureTree(): StructureTree {
   return { folders: [], items: [] };
 }

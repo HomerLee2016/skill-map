@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { createDefaultWorkspaceContent, loadWorkspaceContent, type WorkspaceContent } from '../services/workspace';
-import { setActiveWorkspaceStorageKey } from '../utils/revision';
+import { setActiveWorkspaceStorageKey } from '../services/revisionDb';
 import {
   applyPendingCountToWorkspaceHistory,
   persistWorkspaceHandle,
@@ -13,7 +13,7 @@ import {
   writePersistedWorkspaceHistory,
   writePersistedWorkspaceSelection,
 } from '../utils/workspacePersistence';
-import { getDueRevisionCountForWorkspace } from '../utils/revision';
+import { getDueRevisionCountForWorkspace } from '../services/revisionDb';
 
 interface WorkspaceContextValue {
   workspace: WorkspaceContent;

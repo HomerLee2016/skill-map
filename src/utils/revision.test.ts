@@ -6,21 +6,25 @@ import { indexedDB, IDBKeyRange } from 'fake-indexeddb';
 (globalThis as typeof globalThis & { IDBKeyRange: typeof IDBKeyRange }).IDBKeyRange = IDBKeyRange;
 
 const {
-  DEFAULT_PROFICIENCY,
   buildIncorrectReviewQuestions,
-  deriveWorkspaceStorageKey,
+} = await import('./incorrectReview');
+const {
+  DEFAULT_PROFICIENCY,
   getDowngradedProficiency,
   getNextProficiency,
   getNextRevisionTime,
   formatNextRevisionTime,
   formatProficiencyDisplay,
   formatRevisionTimestamp,
-  insertCompletedQuestion,
   isQuestionDue,
   normalizeProficiency,
-  setActiveWorkspaceStorageKey,
   shouldAdvanceRevision,
-} = await import('./revision');
+} = await import('./proficiency');
+const {
+  deriveWorkspaceStorageKey,
+  insertCompletedQuestion,
+  setActiveWorkspaceStorageKey,
+} = await import('../services/revisionDb');
 
 test('advances proficiency correctly for correct answers and caps at the top', () => {
   assert.equal(getNextProficiency('1.5'), '2.1');

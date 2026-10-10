@@ -119,7 +119,6 @@ Then open:
 - `src/services/workspace.ts` — loads lessons, tests, roadmaps, and structures from the workspace or static fallback files
 - `src/services/workspaceRoadmapPersistence.ts` — writes roadmap YAML to the workspace directory
 - `src/services/workspaceStructurePersistence.ts` — writes `structure.yaml` to the workspace directory
-- `src/services/db.ts` — Dexie revision store methods and question result helpers
 
 ### Contexts
 
@@ -138,10 +137,7 @@ Then open:
 
 ### Other
 
-- `src/api/save-question-result.ts` — API route handler for saving question results
-- `src/db/` — database schema and re-exports
 - `src/data/` — built-in demo content for roadmaps, lessons, and tests
-- `src/assets/` — hero image and logo SVGs
 - `dev_helper_script/` — Jupyter notebooks for generating audio track URLs
 - `regression/` — Playwright-based browser regression tests
 
@@ -149,9 +145,6 @@ Then open:
 
 The Vite dev server includes middleware plugins that provide local API endpoints:
 
-- `POST /api/save-roadmap` — saves updated roadmap YAML to `src/data/roadmaps/`
-- `POST /api/save-test-result` — writes timestamped quiz result files to `src/data/tests/result/`
-- `POST /api/save-structure` — writes updated `structure.yaml` for lessons, tests, or roadmaps
 - `GET /api/audio-proxy?url=...` — proxies remote audio (e.g. Google Translate TTS) to bypass CORS
 
 ## Workspace content format
