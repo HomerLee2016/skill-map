@@ -145,9 +145,6 @@ Then open:
 
 The Vite dev server includes middleware plugins that provide local API endpoints:
 
-- `POST /api/save-roadmap` — saves updated roadmap YAML to `src/data/roadmaps/`
-- `POST /api/save-test-result` — writes timestamped quiz result files to `src/data/tests/result/`
-- `POST /api/save-structure` — writes updated `structure.yaml` for lessons, tests, or roadmaps
 - `GET /api/audio-proxy?url=...` — proxies remote audio (e.g. Google Translate TTS) to bypass CORS
 
 ## Workspace content format
