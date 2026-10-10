@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import QuestionTracker from './QuestionTracker';
 import AnswerQuestion from './AnswerQuestion';
-import { buildIncorrectReviewQuestions } from '../utils/revision';
+import { buildIncorrectReviewQuestions } from '../utils/incorrectReview';
 
 interface ReviewQuestion {
   question_number: number;
