@@ -6,7 +6,7 @@ import {
   pathToSegments,
   type StructureTree,
 } from './utils/contentCatalog';
-import { insertCompletedQuestion } from './utils/revision';
+import { insertCompletedQuestion } from './services/revisionDb';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { useWorkspace } from './contexts/WorkspaceContext';
 import { collectTreeIds, resolveStructureTree } from './utils/folderStructure';
