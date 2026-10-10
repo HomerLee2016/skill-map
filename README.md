@@ -119,7 +119,6 @@ Then open:
 - `src/services/workspace.ts` — loads lessons, tests, roadmaps, and structures from the workspace or static fallback files
 - `src/services/workspaceRoadmapPersistence.ts` — writes roadmap YAML to the workspace directory
 - `src/services/workspaceStructurePersistence.ts` — writes `structure.yaml` to the workspace directory
-- `src/services/db.ts` — Dexie revision store methods and question result helpers
 
 ### Contexts
 
@@ -138,7 +137,6 @@ Then open:
 
 ### Other
 
-- `src/db/` — database schema and re-exports
 - `src/data/` — built-in demo content for roadmaps, lessons, and tests
 - `dev_helper_script/` — Jupyter notebooks for generating audio track URLs
 - `regression/` — Playwright-based browser regression tests

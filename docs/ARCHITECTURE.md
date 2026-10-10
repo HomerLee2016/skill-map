@@ -45,7 +45,6 @@ src/
     workspace.ts           Loads lessons/tests/roadmaps/structure (workspace folder, else bundled data)
     workspaceRoadmapPersistence.ts    Writes roadmap YAML into the workspace folder
     workspaceStructurePersistence.ts  Writes structure.yaml into the workspace folder
-    db.ts                  Dexie revision helpers (insert, due questions, export/import)
   utils/                   Pure-ish logic + browser helpers
     revision.ts            Dexie schema, proficiency levels, intervals, export/import
     testScoring.ts         Counting correct answers
