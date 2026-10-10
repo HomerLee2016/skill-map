@@ -10,6 +10,14 @@ export const MASTER_LEVELS = [
 
 export const DEFAULT_PROFICIENCY = '1.1' as const;
 
+const STAGE_INTERVALS_HOURS: Record<number, number> = {
+  1: 8,
+  2: 24,
+  3: 48,
+  4: 72,
+  5: 168,
+};
+
 export interface CompletedQuestionRecord {
   id?: number;
   question_name: string;
@@ -81,14 +89,6 @@ export function normalizeProficiency(proficiency: string | null | undefined): st
   const trimmed = proficiency?.trim();
   return trimmed ? trimmed : DEFAULT_PROFICIENCY;
 }
-
-const STAGE_INTERVALS_HOURS: Record<number, number> = {
-  1: 8,
-  2: 24,
-  3: 48,
-  4: 72,
-  5: 168,
-};
 
 function getStage(proficiency: string | null | undefined): number {
   const normalized = normalizeProficiency(proficiency);
