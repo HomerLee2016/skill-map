@@ -196,8 +196,14 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
 
     const firstUnansweredIndex = getFirstUnansweredQuestionIndex(totalQuestions, nextAnswers);
     if (firstUnansweredIndex === -1) {
-      if (!isCorrect || autoAdvanceOnCorrect) {
+      if (!isCorrect) {
         setFinished(true);
+      } else if (autoAdvanceOnCorrect) {
+        // Let the question audio play (or time out) before showing the result.
+        scheduleAutoAdvance(
+          () => setFinished(true),
+          !!(question.audio_track_url && audioTrackEnabled),
+        );
       }
       return;
     }
