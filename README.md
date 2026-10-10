@@ -138,10 +138,8 @@ Then open:
 
 ### Other
 
-- `src/api/save-question-result.ts` — API route handler for saving question results
 - `src/db/` — database schema and re-exports
 - `src/data/` — built-in demo content for roadmaps, lessons, and tests
-- `src/assets/` — hero image and logo SVGs
 - `dev_helper_script/` — Jupyter notebooks for generating audio track URLs
 - `regression/` — Playwright-based browser regression tests
 
