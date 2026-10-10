@@ -45,9 +45,9 @@ src/
     workspace.ts           Loads lessons/tests/roadmaps/structure (workspace folder, else bundled data)
     workspaceRoadmapPersistence.ts    Writes roadmap YAML into the workspace folder
     workspaceStructurePersistence.ts  Writes structure.yaml into the workspace folder
+    db.ts                  Dexie revision helpers (insert, due questions, export/import)
   utils/                   Pure-ish logic + browser helpers
-    proficiency.ts         Pure Leitner levels, intervals, next review time (no storage)
-    incorrectReview.ts     Pure builder for the incorrect-answer review list
+    revision.ts            Dexie schema, proficiency levels, intervals, export/import
     testScoring.ts         Counting correct answers
     folderStructure.ts     Folder tree model for lessons/tests
     contentCatalog.ts      Catalog builders for pickers
@@ -56,9 +56,10 @@ src/
     workspacePersistence.ts  localStorage + IndexedDB storage of the folder handle and history
     unsavedChanges.ts      Navigation guard rules
   data/                    Bundled demo content (roadmaps/, lessons/, tests/) — loaded with import.meta.glob
-  services/revisionDb.ts   Dexie schema, workspace storage keys, insert/query/export/import
-vite.config.ts             Vite config (composes plugins)
-vite/plugins/audioProxy.ts Dev/preview audio proxy middleware
+  db/                      Re-exports of the revision DB API + row type
+  api/save-question-result.ts   Not wired to anything (see §9)
+  server.ts                Empty placeholder (see §9)
+vite.config.ts             Vite config + dev/preview middleware plugins
 regression/                Playwright browser tests
 dev_helper_script/         Jupyter notebooks for generating/validating content (audio URLs, YAML checks)
 AI_content_generator_full_prompt_guide.md   Prompt + schema for AI-generated roadmaps, lessons, tests
@@ -107,7 +108,7 @@ Formats:
 
 ### 4.3 Revision (spaced repetition)
 
-- Stored in **Dexie** (`services/revisionDb.ts`; scheduling rules in `utils/proficiency.ts`), one IndexedDB database per workspace. Rows are `CompletedQuestionRecord` (`question_name`, `options`, `correct_answer`, `selected_answer`, `correct`, `last_time`, `next_revision_time`, `proficiency`, `quiz_title`, `audio_track_url`, `hash`).
+- Stored in **Dexie** (`revision.ts`), one IndexedDB database per workspace. Rows are `CompletedQuestionRecord` (`question_name`, `options`, `correct_answer`, `selected_answer`, `correct`, `last_time`, `next_revision_time`, `proficiency`, `quiz_title`, `audio_track_url`, `hash`).
 - Proficiency levels `1.1 … 5.3` (22 sub-levels). Stage intervals: 8h, 24h, 48h, 72h, 168h.
 - Correct answer advances within a stage; wrong answer drops back to the start of the previous stage.
 - Completing a revision session writes a snapshot into the workspace's `revision/` folder. Manual JSON export/import is also available.
@@ -140,12 +141,16 @@ Formats:
 
 ## 6. Vite middleware (dev and preview only)
 
-Defined in `vite/plugins/audioProxy.ts`. None of these exist in the static production build.
+Defined in `vite.config.ts`. None of these exist in the static production build.
 
 | Route | Method | Purpose |
 |-------|--------|---------|
+| `/api/save-roadmap` | POST | Writes YAML to `src/data/roadmaps/` |
+| `/api/save-test-result` | POST | Writes quiz results to `src/data/tests/result/` |
+| `/api/save-structure` | POST | Writes `structure.yaml` into `src/data/<kind>/` |
 | `/api/audio-proxy` | GET | Proxies remote audio to avoid CORS on `fetch` |
 
+The frontend currently does not call the three `save-*` routes. Writes go through the File System Access API instead (§4.2). Treat those routes as legacy.
 
 ## 7. Hosting and deployment
 
@@ -167,13 +172,13 @@ Consequence: on a phone, the app cannot open a folder the way the desktop does. 
 
 ## 9. Known issues and cleanup candidates
 
-Resolved by the cleanup story (#3): empty `server.ts`, unwired `save-question-result.ts`, the unused `drizzle.config.ts` and `db/schema.ts`, the three duplicate DB re-export modules, the legacy `/api/save-*` routes, and the unused exports.
-
-Still open:
-
-1. Audio depends on an unofficial Google Translate endpoint. That is fragile, and its terms of use do not clearly allow redistribution in a public open-source project.
-2. Revision progress is per browser profile (§4.3), so it cannot sync between devices.
-3. `README.md` says the app is "local-first with no separate backend service". That is still true, and this doc is the more detailed reference.
+1. `src/server.ts` is an empty `export {}`.
+2. `src/api/save-question-result.ts` looks like a Next.js-style handler and is not wired to any route.
+3. `drizzle.config.ts` points to SQLite, but no `drizzle/` folder exists and nothing uses Drizzle. `src/db/schema.ts` only exports an interface. Looks like leftover scaffolding.
+4. The three `save-*` middleware routes in `vite.config.ts` are unused by the frontend (§6).
+5. Audio depends on an unofficial Google Translate endpoint. That is fragile, and its terms of use do not clearly allow redistribution in a public open-source project.
+6. Revision progress is per browser profile (§4.3), so it cannot sync between devices.
+7. `README.md` says the app is "local-first with no separate backend service". That is still true, and this doc is the more detailed reference.
 
 ## 10. Target architecture (goal: web app for PC and mobile, zero cost, open source)
 

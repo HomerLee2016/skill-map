@@ -8,19 +8,17 @@ import { getInitialTestsStructure } from './utils/contentCatalog';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { useAudioAutoAdvance } from './hooks/useAudioAutoAdvance';
 import {
+  exportRevisionData,
   formatNextRevisionTime,
   formatProficiencyDisplay,
   formatRevisionTimestamp,
-  getDowngradedProficiency,
-  getNextProficiency,
-} from './utils/proficiency';
-import {
-  exportRevisionData,
   getAllCompletedQuestions,
   getDueRevisionQuestions,
+  getDowngradedProficiency,
+  getNextProficiency,
   importRevisionData,
   insertCompletedQuestion,
-} from './services/revisionDb';
+} from './utils/revision';
 
 function calcTotalStars(rows: any[]): number {
   return rows.reduce((sum, row) => {

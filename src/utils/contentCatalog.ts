@@ -2,9 +2,12 @@ import YAML from 'yaml';
 import {
   collectTreeIds,
   emptyStructureTree,
+  flattenTreePickerOptions,
   resolveStructureTree,
+  uniquePickerOptions,
   type StructureTree,
   type TestsStructureFile,
+  type PickerOption,
   type ResolvedTree,
 } from './folderStructure';
 
@@ -133,6 +136,10 @@ function loadTestsStructure(): { revision: StructureTree; new_tests: StructureTr
 const lessonStructureData = loadLessonStructure();
 const testsStructureData = loadTestsStructure();
 
+export function getInitialLessonStructure(): StructureTree {
+  return structuredClone(lessonStructureData);
+}
+
 export function getInitialTestsStructure(): { revision: StructureTree; new_tests: StructureTree } {
   return {
     revision: structuredClone(testsStructureData.revision),
@@ -180,3 +187,32 @@ export const newTestTree: ResolvedTree = buildNewTestTree(
   testsStructureData.new_tests,
   testsStructureData.revision
 );
+
+export function getLessonById(id: string): LessonItem | undefined {
+  return lessons.find((lesson) => lesson.id === id);
+}
+
+export function getTestById(id: string): TestItem | undefined {
+  return tests.find((test) => test.id === id);
+}
+
+export function getLessonPickerOptions(structure?: StructureTree): PickerOption[] {
+  const tree = structure ? buildLessonTree(structure) : lessonTree;
+  return uniquePickerOptions(flattenTreePickerOptions(tree));
+}
+
+export function getTestPickerOptions(structures?: {
+  revision: StructureTree;
+  new_tests: StructureTree;
+}): PickerOption[] {
+  const revision = structures
+    ? buildRevisionTestTree(structures.revision)
+    : revisionTestTree;
+  const newTests = structures
+    ? buildNewTestTree(structures.new_tests, structures.revision)
+    : newTestTree;
+  return uniquePickerOptions([
+    ...flattenTreePickerOptions(revision, 'Revision'),
+    ...flattenTreePickerOptions(newTests, 'New Tests'),
+  ]);
+}

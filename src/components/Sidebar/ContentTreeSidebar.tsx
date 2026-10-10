@@ -452,3 +452,74 @@ export function CategorySection({
   );
 }
 
+interface CollapsibleSectionProps {
+  title: string;
+  defaultOpen?: boolean;
+  onAddFolder?: () => void;
+  onAssignItem?: () => void;
+  children: ReactNode;
+  expandKey?: number;
+  collapseKey?: number;
+}
+
+export function CollapsibleSection({
+  title,
+  defaultOpen = true,
+  onAddFolder,
+  onAssignItem,
+  children,
+  expandKey = 0,
+  collapseKey = 0,
+}: CollapsibleSectionProps) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  useEffect(() => {
+    if (expandKey > 0) {
+      setOpen(true);
+    }
+  }, [expandKey]);
+
+  useEffect(() => {
+    if (collapseKey > 0) {
+      setOpen(false);
+    }
+  }, [collapseKey]);
+
+  return (
+    <section className="tree-section">
+      <div className="tree-section-header">
+        <button
+          type="button"
+          className="tree-section-toggle"
+          onClick={() => setOpen((value) => !value)}
+          aria-expanded={open}
+        >
+          <span className="tree-chevron">{open ? '▼' : '▶'}</span>
+          <span>{title}</span>
+        </button>
+        {onAssignItem && (
+          <button
+            type="button"
+            className="tree-assign-item"
+            title="Assign item to folder"
+            onClick={onAssignItem}
+          >
+            ⤵
+          </button>
+        )}
+        {onAddFolder && (
+          <button
+            type="button"
+            className="tree-add-folder"
+            title="Add folder"
+            onClick={onAddFolder}
+          >
+            +
+          </button>
+        )}
+      </div>
+      {open && <div className="tree-section-body">{children}</div>}
+    </section>
+  );
+}
+
