@@ -5,9 +5,13 @@ import { readdirSync, statSync } from 'fs';
 import { join, resolve } from 'path';
 import { pathToFileURL } from 'url';
 
+// Third-party packages ship their own *.test.* files; importing them breaks the run.
+const IGNORED_DIRS = new Set(['node_modules', 'dist', '.git']);
+
 /** Recursively collect test files matching the given pattern */
 function collectTestFiles(dir: string, pattern: RegExp, files: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
+    if (IGNORED_DIRS.has(entry)) continue;
     const fullPath = join(dir, entry);
     const stats = statSync(fullPath);
     if (stats.isDirectory()) {
