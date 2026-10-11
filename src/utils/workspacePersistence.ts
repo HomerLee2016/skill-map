@@ -12,17 +12,8 @@ export interface WorkspaceHistoryEntryWithPendingCount extends PersistedWorkspac
   pendingCount?: number;
 }
 
-interface PersistedWorkspaceHandleRecord {
-  id: string;
-  currentHandle?: FileSystemDirectoryHandle;
-  history: Array<PersistedWorkspaceHistoryEntry & { handle?: FileSystemDirectoryHandle }>;
-}
-
 const WORKSPACE_SELECTION_STORAGE_KEY = 'skill-map.workspace-selection';
 const WORKSPACE_HISTORY_STORAGE_KEY = 'skill-map.workspace-history';
-const WORKSPACE_HANDLE_DB_NAME = 'skill-map-workspace-db';
-const WORKSPACE_HANDLE_STORE_NAME = 'workspace-handle';
-const WORKSPACE_HANDLE_ID = 'workspace';
 
 function resolveStorage(storage?: Storage | null): Storage | null {
   if (storage) {
@@ -126,95 +117,4 @@ export function applyPendingCountToWorkspaceHistory(
     ...entry,
     pendingCount: entry.path === target.path && entry.name === target.name ? pendingCount : entry.pendingCount,
   }));
-}
-
-function openWorkspaceHandleDatabase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (typeof indexedDB === 'undefined') {
-      reject(new Error('IndexedDB is not available in this environment.'));
-      return;
-    }
-
-    const request = indexedDB.open(WORKSPACE_HANDLE_DB_NAME, 1);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(WORKSPACE_HANDLE_STORE_NAME)) {
-        db.createObjectStore(WORKSPACE_HANDLE_STORE_NAME, { keyPath: 'id' });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error('Failed to open workspace handle database'));
-  });
-}
-
-export async function readPersistedWorkspaceHandle(): Promise<FileSystemDirectoryHandle | null> {
-  try {
-    const db = await openWorkspaceHandleDatabase();
-    const transaction = db.transaction(WORKSPACE_HANDLE_STORE_NAME, 'readonly');
-    const store = transaction.objectStore(WORKSPACE_HANDLE_STORE_NAME);
-
-    const result = await new Promise<PersistedWorkspaceHandleRecord | null>((resolve, reject) => {
-      const request = store.get(WORKSPACE_HANDLE_ID);
-      request.onsuccess = () => resolve((request.result as PersistedWorkspaceHandleRecord | null) ?? null);
-      request.onerror = () => reject(request.error ?? new Error('Failed to read persisted workspace handle'));
-    });
-
-    db.close();
-    return result?.currentHandle ?? null;
-  } catch {
-    return null;
-  }
-}
-
-export async function readPersistedWorkspaceHandleForSelection(selection: PersistedWorkspaceHistoryEntry): Promise<FileSystemDirectoryHandle | null> {
-  try {
-    const db = await openWorkspaceHandleDatabase();
-    const transaction = db.transaction(WORKSPACE_HANDLE_STORE_NAME, 'readonly');
-    const store = transaction.objectStore(WORKSPACE_HANDLE_STORE_NAME);
-
-    const result = await new Promise<PersistedWorkspaceHandleRecord | null>((resolve, reject) => {
-      const request = store.get(WORKSPACE_HANDLE_ID);
-      request.onsuccess = () => resolve((request.result as PersistedWorkspaceHandleRecord | null) ?? null);
-      request.onerror = () => reject(request.error ?? new Error('Failed to read persisted workspace handle history'));
-    });
-
-    db.close();
-
-    const matchingHistoryEntry = result?.history.find((entry) => entry.path === selection.path || entry.name === selection.name);
-    return matchingHistoryEntry?.handle ?? result?.currentHandle ?? null;
-  } catch {
-    return null;
-  }
-}
-
-export async function persistWorkspaceHandle(handle: FileSystemDirectoryHandle, selection?: PersistedWorkspaceHistoryEntry): Promise<void> {
-  try {
-    const db = await openWorkspaceHandleDatabase();
-    const transaction = db.transaction(WORKSPACE_HANDLE_STORE_NAME, 'readwrite');
-    const store = transaction.objectStore(WORKSPACE_HANDLE_STORE_NAME);
-
-    const existingRecord = await new Promise<PersistedWorkspaceHandleRecord | null>((resolve, reject) => {
-      const request = store.get(WORKSPACE_HANDLE_ID);
-      request.onsuccess = () => resolve((request.result as PersistedWorkspaceHandleRecord | null) ?? null);
-      request.onerror = () => reject(request.error ?? new Error('Failed to read persisted workspace handle record'));
-    });
-
-    const history = existingRecord?.history ?? [];
-    const nextHistory = selection
-      ? (() => {
-          const withoutSelection = history.filter((entry) => entry.path !== selection.path || entry.name !== selection.name);
-          return [{ ...selection, handle }, ...withoutSelection].slice(0, 6);
-        })()
-      : history;
-
-    await new Promise<void>((resolve, reject) => {
-      const request = store.put({ id: WORKSPACE_HANDLE_ID, currentHandle: handle, history: nextHistory });
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error ?? new Error('Failed to persist workspace handle'));
-    });
-
-    db.close();
-  } catch {
-    // Best-effort persistence; the visible path is still preserved in localStorage.
-  }
 }

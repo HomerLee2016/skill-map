@@ -2,10 +2,12 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { createDefaultWorkspaceContent, loadWorkspaceContent, type WorkspaceContent } from '../services/workspace';
 import { setActiveWorkspaceStorageKey } from '../services/revisionDb';
 import {
-  applyPendingCountToWorkspaceHistory,
   persistWorkspaceHandle,
   readPersistedWorkspaceHandle,
   readPersistedWorkspaceHandleForSelection,
+} from '../services/workspaceHandleStore';
+import {
+  applyPendingCountToWorkspaceHistory,
   readPersistedWorkspaceHistory,
   readPersistedWorkspaceSelection,
   removeWorkspaceHistoryEntry,
