@@ -1,4 +1,4 @@
-import { CategorySection } from './components/Sidebar/ContentTreeSidebar';
+import { CategorySection } from './components/Sidebar/CategorySection';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { LearntSummary } from './components/revision/LearntSummary';
 import { RevisionSessionView } from './components/revision/RevisionSessionView';
