@@ -35,8 +35,8 @@ export function getRoadmapLabel(yaml: string, fallback: string): string {
     if (Array.isArray(parsed) && parsed.length > 0) {
       const rootNode = parsed.find((node: any) => !node.dependsOn || node.dependsOn.length === 0) || parsed[0];
       newLabel = rootNode.label || newLabel;
-    } else if (parsed && typeof parsed === 'object' && parsed.label) {
-      newLabel = parsed.label;
+    } else if (parsed && typeof parsed === 'object' && 'label' in parsed) {
+      newLabel = String((parsed as { label?: string }).label || newLabel);
     }
   } catch {}
   return newLabel;
