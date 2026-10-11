@@ -38,11 +38,17 @@ src/
   App.tsx                  Page switching, dark mode, unsaved-roadmap guard, deep links
   Roadmap.tsx / Lessons.tsx / Tests.tsx / Revision.tsx   The four pages
   components/              UI pieces (TopBar, AnswerQuestion, QuestionTracker, SkillNode, Sidebar/…)
-  hooks/                   Graph parse/serialise, auto-layout, audio auto-advance, YAML sync, panel resize
+    roadmap/               RoadmapCanvas (React Flow wrapper), YamlEditorPanel
+    revision/              LearntSummary, RevisionSessionView, RevisionDataButtons
+  hooks/                   Graph parse/serialise, graph edits, node editor, auto-layout, audio auto-advance, YAML sync, panel resize, revision data/session, workspace history
   contexts/
-    WorkspaceContext.tsx   Selected folder handle, history, revision due-count badges
+    WorkspaceContext.tsx   Selected folder handle and loaded content (history lives in hooks/useWorkspaceHistory.ts)
   services/                Anything touching storage or content loading
-    workspace.ts           Loads lessons/tests/roadmaps/structure (workspace folder, else bundled data)
+    workspace.ts           loadWorkspaceContent: workspace folder, else bundled data
+    workspaceBundled.ts    Bundled demo content (import.meta.glob)
+    workspaceFolder.ts     Reads lessons/tests/roadmaps/structure from a folder handle
+    workspaceParsing.ts    Pure parsers shared by both loaders
+    workspaceHandleStore.ts  IndexedDB storage of the folder handle
     workspaceRoadmapPersistence.ts    Writes roadmap YAML into the workspace folder
     workspaceStructurePersistence.ts  Writes structure.yaml into the workspace folder
   utils/                   Pure-ish logic + browser helpers
@@ -53,7 +59,9 @@ src/
     contentCatalog.ts      Catalog builders for pickers
     lessonMarkdown.tsx     Markdown renderer
     audioProxy.ts          Rewrites Google Translate TTS URLs to /api/audio-proxy (dev only)
-    workspacePersistence.ts  localStorage + IndexedDB storage of the folder handle and history
+    workspacePersistence.ts  localStorage selection/history and pure history helpers
+    revisionSession.ts     Pure helpers for the revision page (stars, due questions, row upsert)
+    roadmapYaml.ts         Pure roadmap completeness and label from YAML
     unsavedChanges.ts      Navigation guard rules
   data/                    Bundled demo content (roadmaps/, lessons/, tests/) — loaded with import.meta.glob
   services/revisionDb.ts   Dexie schema, workspace storage keys, insert/query/export/import
@@ -90,7 +98,7 @@ flowchart LR
 
 ### 4.1 Content loading
 
-`src/services/workspace.ts` → `loadWorkspaceContent(handle?)`:
+`src/services/workspace.ts` → `loadWorkspaceContent(handle?)` (folder reads in `workspaceFolder.ts`, bundled data in `workspaceBundled.ts`):
 
 1. If a workspace folder handle exists, read `lessons/`, `tests/`, `roadmaps/`, plus `structure.yaml` files from it.
 2. Otherwise (or on failure) use the bundled defaults from `src/data/`, which are compiled into the build via `import.meta.glob(..., { query: '?raw', eager: true })`.
@@ -116,7 +124,7 @@ Formats:
 
 ### 4.4 Workspace persistence
 
-`utils/workspacePersistence.ts`:
+`utils/workspacePersistence.ts` (localStorage) and `services/workspaceHandleStore.ts` (IndexedDB):
 
 - `localStorage` keys `skill-map.workspace-selection` and `skill-map.workspace-history` hold name and path.
 - A separate IndexedDB database `skill-map-workspace-db` stores the `FileSystemDirectoryHandle` objects, because handles can be stored in IndexedDB but not in localStorage.

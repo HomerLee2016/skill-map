@@ -110,13 +110,19 @@ Then open:
 - `src/hooks/useAutoLayout.ts` — hierarchical auto-layout algorithm for roadmap nodes
 - `src/hooks/useEdgeSelection.ts` — React Flow edge selection and deletion
 - `src/hooks/useExpandCollapseState.ts` — tree expand/collapse toggle state
+- `src/hooks/useGraphEdits.ts` — roadmap node/edge edit handlers that sync back to YAML
+- `src/hooks/useNodeEditor.ts` — edit-node modal state
+- `src/hooks/useRevisionData.ts` / `useRevisionSession.ts` — revision page data and session state
+- `src/hooks/useRoadmapUnsavedChanges.ts` — unsaved-roadmap tracking and beforeunload guard
+- `src/hooks/useWorkspaceHistory.ts` — recent workspaces and pending-count badges
 - `src/hooks/useGraphParser.ts` — YAML to React Flow nodes/edges parser
 - `src/hooks/useResizePanel.ts` — drag-to-resize handler for the YAML editor panel
 - `src/hooks/useYamlSync.ts` — React Flow graph to YAML serialization
 
 ### Services
 
-- `src/services/workspace.ts` — loads lessons, tests, roadmaps, and structures from the workspace or static fallback files
+- `src/services/workspace.ts` — loads lessons, tests, roadmaps, and structures from the workspace (`workspaceFolder.ts`) or bundled fallback (`workspaceBundled.ts`)
+- `src/services/workspaceHandleStore.ts` — IndexedDB storage of workspace directory handles
 - `src/services/workspaceRoadmapPersistence.ts` — writes roadmap YAML to the workspace directory
 - `src/services/workspaceStructurePersistence.ts` — writes `structure.yaml` to the workspace directory
 
@@ -133,7 +139,7 @@ Then open:
 - `src/utils/revision.ts` — Dexie database, five-stage proficiency logic, spaced-repetition intervals, and JSON export/import
 - `src/utils/testScoring.ts` — correct answer counting helper
 - `src/utils/unsavedChanges.ts` — navigation guard for unsaved roadmap edits
-- `src/utils/workspacePersistence.ts` — localStorage and IndexedDB helpers for workspace directory handles and history
+- `src/utils/workspacePersistence.ts` — localStorage helpers for workspace selection and history
 
 ### Other
 
