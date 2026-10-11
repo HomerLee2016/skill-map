@@ -10,12 +10,10 @@ import { insertCompletedQuestion } from './services/revisionDb';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { useWorkspace } from './contexts/WorkspaceContext';
 import { collectTreeIds, resolveStructureTree } from './utils/folderStructure';
-import {
-  CategorySection,
-  ContentTreeSidebar,
-  TreeActionModal,
-  TreeGlobalActions,
-} from './components/Sidebar/ContentTreeSidebar';
+import { CategorySection } from './components/Sidebar/CategorySection';
+import { ContentTreeSidebar } from './components/Sidebar/ContentTreeSidebar';
+import { TreeActionModal } from './components/Sidebar/TreeActionModal';
+import { TreeGlobalActions } from './components/Sidebar/TreeGlobalActions';
 import { useExpandCollapseState } from './hooks/useExpandCollapseState';
 import { useAudioAutoAdvance } from './hooks/useAudioAutoAdvance';
 import AnswerQuestion from './components/AnswerQuestion';
