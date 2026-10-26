@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useCloudSync } from '../hooks/useCloudSync';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import type { PageId } from '../types';
 import { handleWorkspaceTriggerClick } from './workspaceTrigger';
@@ -30,6 +31,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
     workspaceHistory,
   } = useWorkspace();
   const { isConfigured, user, signInWithGoogle, signOut } = useAuth();
+  const { syncNow, isSyncing, error: syncError } = useCloudSync();
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
   const workspaceMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -136,6 +138,15 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
           user ? (
             <div className="top-bar-auth">
               <span className="top-bar-auth-email" title={user.email ?? undefined}>{user.email}</span>
+              <button
+                type="button"
+                className="top-bar-auth-btn"
+                onClick={() => { void syncNow(); }}
+                disabled={isSyncing}
+                title={syncError ?? 'Sync progress with your account'}
+              >
+                {isSyncing ? 'Syncing…' : syncError ? 'Sync failed – retry' : 'Sync now'}
+              </button>
               <button type="button" className="top-bar-auth-btn" onClick={() => { void signOut(); }}>
                 Sign out
               </button>

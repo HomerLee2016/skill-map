@@ -66,6 +66,22 @@ class RevisionDexieStore extends Dexie {
 let activeWorkspaceStorageKey = deriveWorkspaceStorageKey(null);
 export let revisionStore = new RevisionDexieStore(activeWorkspaceStorageKey);
 
+export function getActiveWorkspaceStorageKey(): string {
+  return activeWorkspaceStorageKey;
+}
+
+const changeListeners = new Set<() => void>();
+
+/** Subscribe to local revision writes (used to trigger cloud sync). Returns an unsubscribe fn. */
+export function onRevisionRecordsChanged(listener: () => void): () => void {
+  changeListeners.add(listener);
+  return () => { changeListeners.delete(listener); };
+}
+
+function notifyRevisionRecordsChanged(): void {
+  changeListeners.forEach((listener) => listener());
+}
+
 export function setActiveWorkspaceStorageKey(workspacePath: string | null | undefined): void {
   const nextStorageKey = deriveWorkspaceStorageKey(workspacePath);
   if (nextStorageKey === activeWorkspaceStorageKey) {
@@ -122,10 +138,12 @@ export async function insertCompletedQuestion(entry: CompletedQuestionInsert): P
   if (existing?.id != null) {
     const updatedRecord = { ...record, id: existing.id } as CompletedQuestionRecord;
     await revisionStore.completed_questions.put(updatedRecord);
+    notifyRevisionRecordsChanged();
     return updatedRecord;
   }
 
   const newId = await revisionStore.completed_questions.add(record);
+  notifyRevisionRecordsChanged();
   return { ...record, id: newId };
 }
 
@@ -172,5 +190,6 @@ export async function importRevisionData(json: string): Promise<number> {
     }
   });
 
+  notifyRevisionRecordsChanged();
   return records.length;
 }
