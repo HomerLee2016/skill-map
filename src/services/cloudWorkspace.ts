@@ -27,6 +27,18 @@ export function hasContent(counts: ContentCounts): boolean {
   return counts.lessons + counts.tests + counts.roadmaps > 0;
 }
 
+const ensured = new Set<string>();
+
+/** Makes sure the `workspaces` row that the content rows reference exists (once per session). */
+export async function ensureCloudWorkspace(client: SupabaseClient, workspaceKey: string, name: string): Promise<void> {
+  if (ensured.has(workspaceKey)) return;
+  const { error } = await client.from('workspaces').upsert(
+    { key: workspaceKey, name: name || workspaceKey }, { onConflict: 'user_id,key' },
+  );
+  fail(error);
+  ensured.add(workspaceKey);
+}
+
 function chunk<T>(items: T[]): T[][] {
   const chunks: T[][] = [];
   for (let index = 0; index < items.length; index += CHUNK_SIZE) chunks.push(items.slice(index, index + CHUNK_SIZE));
@@ -37,20 +49,22 @@ function fail(error: { message: string } | null): void {
   if (error) throw new Error(error.message);
 }
 
-async function upsertRows(client: SupabaseClient, table: string, rows: object[], onConflict: string): Promise<void> {
-  for (const part of chunk(rows)) {
-    const { error } = await client.from(table).upsert(part, { onConflict });
+/** Rows are keyed by user, workspace and item, so each workspace has its own copy. */
+async function upsertRows(client: SupabaseClient, workspaceKey: string, table: string, rows: object[], keyColumn: 'id' | 'kind'): Promise<void> {
+  const keyed = rows.map((row) => ({ ...row, workspace_key: workspaceKey }));
+  for (const part of chunk(keyed)) {
+    const { error } = await client.from(table).upsert(part, { onConflict: `user_id,workspace_key,${keyColumn}` });
     fail(error);
   }
 }
 
-/** Reads the signed-in user's cloud workspace; null when nothing has been uploaded yet. */
-export async function fetchCloudWorkspace(client: SupabaseClient): Promise<WorkspaceContent | null> {
+/** Reads one workspace of the signed-in user from the cloud; null when nothing has been uploaded for it yet. */
+export async function fetchCloudWorkspace(client: SupabaseClient, workspaceKey: string): Promise<WorkspaceContent | null> {
   const [lessons, tests, roadmaps, structures] = await Promise.all([
-    client.from('lessons').select('id,title,content'),
-    client.from('tests').select('id,title,questions'),
-    client.from('roadmaps').select('id,name,yaml'),
-    client.from('workspace_structures').select('kind,data'),
+    client.from('lessons').select('id,title,content').eq('workspace_key', workspaceKey),
+    client.from('tests').select('id,title,questions').eq('workspace_key', workspaceKey),
+    client.from('roadmaps').select('id,name,yaml').eq('workspace_key', workspaceKey),
+    client.from('workspace_structures').select('kind,data').eq('workspace_key', workspaceKey),
   ]);
   for (const result of [lessons, tests, roadmaps, structures]) fail(result.error);
 
@@ -74,17 +88,17 @@ export async function fetchCloudWorkspace(client: SupabaseClient): Promise<Works
   return hasContent(countContent(content)) || hasStructure ? content : null;
 }
 
-/** Ids present in `table` for the signed-in user (RLS scopes the query). */
-async function fetchIds(client: SupabaseClient, table: ContentTable): Promise<string[]> {
-  const { data, error } = await client.from(table).select('id');
+/** Ids present in `table` for the signed-in user's workspace (RLS scopes the user). */
+async function fetchIds(client: SupabaseClient, workspaceKey: string, table: ContentTable): Promise<string[]> {
+  const { data, error } = await client.from(table).select('id').eq('workspace_key', workspaceKey);
   fail(error);
   return (data ?? []).map((row) => row.id as string);
 }
 
-async function deleteMissing(client: SupabaseClient, table: ContentTable, keep: Set<string>): Promise<void> {
-  const stale = (await fetchIds(client, table)).filter((id) => !keep.has(id));
+async function deleteMissing(client: SupabaseClient, workspaceKey: string, table: ContentTable, keep: Set<string>): Promise<void> {
+  const stale = (await fetchIds(client, workspaceKey, table)).filter((id) => !keep.has(id));
   for (const part of chunk(stale)) {
-    const { error } = await client.from(table).delete().in('id', part);
+    const { error } = await client.from(table).delete().eq('workspace_key', workspaceKey).in('id', part);
     fail(error);
   }
 }
@@ -94,35 +108,37 @@ export interface PushOptions {
   prune?: boolean;
 }
 
-/** Writes `content` to the signed-in user's cloud workspace; local items win over cloud ones with the same id. */
+/** Writes `content` to one workspace of the signed-in user in the cloud; local items win over cloud ones with the same id. */
 export async function pushWorkspaceContent(
   client: SupabaseClient,
+  workspaceKey: string,
   content: WorkspaceContent,
   { prune = false }: PushOptions = {},
 ): Promise<void> {
-  await upsertRows(client, 'lessons', content.lessons.map(({ id, title, content: body }) => ({ id, title, content: body })), 'user_id,id');
-  await upsertRows(client, 'tests', content.tests.map(({ id, title, questions }) => ({ id, title, questions })), 'user_id,id');
-  await upsertRows(client, 'roadmaps', content.roadmaps.map(({ id, name, yaml }) => ({ id, name, yaml })), 'user_id,id');
-  await upsertRows(client, 'workspace_structures', [
+  await upsertRows(client, workspaceKey, 'lessons', content.lessons.map(({ id, title, content: body }) => ({ id, title, content: body })), 'id');
+  await upsertRows(client, workspaceKey, 'tests', content.tests.map(({ id, title, questions }) => ({ id, title, questions })), 'id');
+  await upsertRows(client, workspaceKey, 'roadmaps', content.roadmaps.map(({ id, name, yaml }) => ({ id, name, yaml })), 'id');
+  await upsertRows(client, workspaceKey, 'workspace_structures', [
     { kind: 'lessons', data: content.lessonStructure },
     { kind: 'tests', data: content.testsStructure },
-  ], 'user_id,kind');
+  ], 'kind');
 
   if (prune) {
-    await deleteMissing(client, 'lessons', new Set(content.lessons.map((item) => item.id)));
-    await deleteMissing(client, 'tests', new Set(content.tests.map((item) => item.id)));
-    await deleteMissing(client, 'roadmaps', new Set(content.roadmaps.map((item) => item.id)));
+    await deleteMissing(client, workspaceKey, 'lessons', new Set(content.lessons.map((item) => item.id)));
+    await deleteMissing(client, workspaceKey, 'tests', new Set(content.tests.map((item) => item.id)));
+    await deleteMissing(client, workspaceKey, 'roadmaps', new Set(content.roadmaps.map((item) => item.id)));
   }
 }
 
-export async function saveCloudRoadmap(client: SupabaseClient, roadmap: SavedRoadmap): Promise<void> {
-  await upsertRows(client, 'roadmaps', [{ id: roadmap.id, name: roadmap.name, yaml: roadmap.yaml }], 'user_id,id');
+export async function saveCloudRoadmap(client: SupabaseClient, workspaceKey: string, roadmap: SavedRoadmap): Promise<void> {
+  await upsertRows(client, workspaceKey, 'roadmaps', [{ id: roadmap.id, name: roadmap.name, yaml: roadmap.yaml }], 'id');
 }
 
 export async function saveCloudStructure(
   client: SupabaseClient,
+  workspaceKey: string,
   kind: StructureKind,
   structure: StructureTree | TestsStructure,
 ): Promise<void> {
-  await upsertRows(client, 'workspace_structures', [{ kind, data: structure }], 'user_id,kind');
+  await upsertRows(client, workspaceKey, 'workspace_structures', [{ kind, data: structure }], 'kind');
 }

@@ -48,3 +48,26 @@ export function mergeRevisionRecords(
   }
   return { toLocal, toRemote };
 }
+
+export interface LegacySplit {
+  /** Legacy cloud records that belong to this workspace's tests. */
+  adopt: CompletedQuestionRecord[];
+  /** Local row ids that came from the legacy pool but belong to another workspace's tests. */
+  dropLocalIds: number[];
+}
+
+/** Splits the pre-split cloud pool by test title: what this workspace owns, and what leaked into its local store. */
+export function splitLegacyRecords(
+  local: CompletedQuestionRecord[],
+  legacy: CompletedQuestionRecord[],
+  quizTitles: Set<string>,
+): LegacySplit {
+  if (quizTitles.size === 0) return { adopt: [], dropLocalIds: [] };
+  const legacyHashes = new Set(legacy.map((record) => record.hash));
+  return {
+    adopt: legacy.filter((record) => quizTitles.has(record.quiz_title)),
+    dropLocalIds: local
+      .filter((record) => record.id != null && legacyHashes.has(record.hash) && !quizTitles.has(record.quiz_title))
+      .map((record) => record.id as number),
+  };
+}
