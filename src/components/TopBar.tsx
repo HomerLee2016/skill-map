@@ -31,11 +31,16 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
   } = useWorkspace();
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
   const workspaceMenuRef = useRef<HTMLDivElement | null>(null);
+  const [isNavOpen, setIsNavOpen] = useState(false);
+  const navRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
       if (workspaceMenuRef.current && !workspaceMenuRef.current.contains(event.target as Node)) {
         setIsWorkspaceMenuOpen(false);
+      }
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setIsNavOpen(false);
       }
     };
 
@@ -66,19 +71,36 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
 
   return (
     <header className="top-bar">
-      <div className="top-bar-brand">Skill Map</div>
-      <nav className="top-bar-nav">
-        {NAV_ITEMS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={currentPage === item.id ? 'top-bar-link top-bar-link--active' : 'top-bar-link'}
-            onClick={() => onNavigate(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </nav>
+      <div className="top-bar-start" ref={navRef}>
+        <button
+          type="button"
+          className="top-bar-hamburger"
+          onClick={() => setIsNavOpen((value) => !value)}
+          aria-label="Menu"
+          aria-expanded={isNavOpen}
+          aria-controls="top-bar-nav"
+        >
+          <span className="top-bar-hamburger-bar" />
+          <span className="top-bar-hamburger-bar" />
+          <span className="top-bar-hamburger-bar" />
+        </button>
+        <div className="top-bar-brand">Skill Map</div>
+        <nav id="top-bar-nav" className={isNavOpen ? 'top-bar-nav top-bar-nav--open' : 'top-bar-nav'}>
+          {NAV_ITEMS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={currentPage === item.id ? 'top-bar-link top-bar-link--active' : 'top-bar-link'}
+              onClick={() => {
+                setIsNavOpen(false);
+                onNavigate(item.id);
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      </div>
       <div className="top-bar-actions">
         <div className="top-bar-workspace-pill" ref={workspaceMenuRef}>
           <span className="top-bar-workspace-label">{workspaceSelectionLabel}</span>

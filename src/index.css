@@ -353,6 +353,17 @@ body, html, #root {
   flex-shrink: 0;
 }
 
+.top-bar-start {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.top-bar-hamburger {
+  display: none;
+}
+
 .top-bar-brand {
   font-weight: 700;
   font-size: 15px;
@@ -362,7 +373,6 @@ body, html, #root {
 .top-bar-nav {
   display: flex;
   gap: 4px;
-  flex: 1;
 }
 
 .top-bar-link {
@@ -1426,6 +1436,17 @@ body, html, #root {
   align-items: center;
   gap: 15px;
   pointer-events: auto;
+}
+
+/* Anchor the HUD just right of the sidebar [<] toggle (1.5rem wide) so it never covers it */
+.roadmap-page .progress-hud {
+  left: 3.5rem;
+  transform: none;
+  white-space: nowrap;
+}
+
+.roadmap-page:has(.sidebar-wrapper.sidebar--open) .progress-hud {
+  left: calc(var(--sidebar-width) + 3.5rem);
 }
 
 .hud-title {

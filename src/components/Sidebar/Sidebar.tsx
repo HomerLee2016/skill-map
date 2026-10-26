@@ -8,9 +8,15 @@ interface SidebarProps {
   defaultVisible?: boolean;
 }
 
+const MOBILE_QUERY = "(max-width: 768px)";
+
+// Sidebar starts hidden on mobile so the page content gets the full width.
+const isMobileViewport = () =>
+  typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(MOBILE_QUERY).matches;
+
 // Updated Sidebar component with conditional wrapper class
 export const Sidebar: React.FC<SidebarProps> = ({ children, defaultVisible = true }) => {
-  const [visible, setVisible] = useState(defaultVisible);
+  const [visible, setVisible] = useState(defaultVisible && !isMobileViewport());
   const toggle = () => setVisible(!visible);
 
   const wrapperClass = `sidebar-wrapper ${visible ? 'sidebar--open' : 'sidebar--closed'}`;

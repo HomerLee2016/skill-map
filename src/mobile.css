@@ -1,0 +1,238 @@
+/* Mobile UI/UX – loaded after index.css so these rules override the desktop layout. */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: min(82vw, 320px);
+  }
+
+  /* Top bar: [☰] Skill Map ........ actions */
+  .top-bar {
+    position: relative;
+    gap: 8px;
+    padding: 0 10px;
+    height: 48px;
+    z-index: 50;
+  }
+
+  .top-bar-start {
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .top-bar-hamburger {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--topbar-text);
+    cursor: pointer;
+  }
+
+  .top-bar-hamburger:hover,
+  .top-bar-hamburger[aria-expanded='true'] {
+    background: var(--topbar-link-active-bg);
+  }
+
+  .top-bar-hamburger-bar {
+    display: block;
+    width: 20px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+  }
+
+  .top-bar-brand {
+    margin-right: 0;
+    font-size: 16px;
+    white-space: nowrap;
+  }
+
+  /* Nav collapses into a dropdown under the bar */
+  .top-bar-nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px 12px;
+    background: var(--topbar-bg);
+    border-bottom: 1px solid var(--topbar-border);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  .top-bar-nav--open {
+    display: flex;
+  }
+
+  .top-bar-link {
+    padding: 12px 14px;
+    text-align: left;
+    font-size: 15px;
+  }
+
+  .top-bar-actions {
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .top-bar-workspace-pill {
+    padding: 4px 10px;
+    min-width: 0;
+    max-width: 120px;
+  }
+
+  .top-bar-workspace-label {
+    display: none;
+  }
+
+  .top-bar-workspace-trigger {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+  }
+
+  .top-bar-workspace-menu {
+    position: fixed;
+    top: 52px;
+    left: 10px;
+    right: 10px;
+    max-width: none;
+  }
+
+  .top-bar-user-menu {
+    position: fixed;
+    top: 52px;
+    right: 10px;
+  }
+
+  .top-bar-theme-label {
+    display: none;
+  }
+
+  /* Sidebar: hidden by default (see Sidebar.tsx), slides over the content when opened */
+  .app-main .sidebar-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    z-index: 40;
+  }
+
+  .app-main .sidebar-wrapper .sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.35);
+  }
+
+  .app-main .sidebar-wrapper.sidebar--closed .sidebar {
+    box-shadow: none;
+  }
+
+  .sidebar-toggle {
+    top: 0.75rem;
+    width: 1.75rem;
+    height: 2.5rem;
+    right: -1.75rem;
+  }
+
+  .sidebar-wrapper.sidebar--closed .sidebar-toggle {
+    right: -1.75rem;
+  }
+
+  /* Pages that put the sidebar in the flex flow need the content to use the full width */
+  .lessons-page,
+  .tests-page {
+    position: relative;
+  }
+
+  /* Roadmap: progress HUD stays compact and clear of the sidebar toggle */
+  .roadmap-page .progress-hud,
+  .roadmap-page:has(.sidebar-wrapper.sidebar--open) .progress-hud {
+    z-index: 5;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 12px;
+    gap: 8px;
+    max-width: calc(100% - 120px);
+  }
+
+  .hud-track {
+    width: 70px;
+  }
+
+  .hud-title {
+    font-size: 12px;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Toolbar: compact 2x2 grid under the progress HUD */
+  .react-flow__panel.rf-top-panel {
+    margin: 56px 8px 0 0;
+    padding: 0;
+    width: auto;
+    max-width: none;
+  }
+
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 8px;
+    width: min(300px, calc(100vw - 16px));
+  }
+
+  .toolbar .toolbar-btn {
+    padding: 8px 6px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .toolbar .tips-copy {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Revision: stack cards and let the data table scroll sideways instead of crushing columns */
+  .revision-header-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .summary-table-wrapper {
+    padding: 14px;
+    overflow-x: auto;
+  }
+
+  .summary-table-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .summary-highlight {
+    flex-wrap: wrap;
+  }
+
+  .summary-table {
+    min-width: 640px;
+  }
+
+  .summary-table th {
+    white-space: nowrap;
+  }
+}
