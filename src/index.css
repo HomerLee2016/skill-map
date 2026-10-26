@@ -413,6 +413,10 @@ body, html, #root {
   font-size: 12px;
 }
 
+.top-bar-theme--menu {
+  display: none;
+}
+
 .top-bar-theme-label {
   color: var(--topbar-link);
 }

@@ -69,6 +69,21 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
     removeWorkspaceHistoryEntry(entry);
   };
 
+  const darkModeToggle = (className: string) => (
+    <label className={className}>
+      <span className="top-bar-theme-label">Dark mode</span>
+      <span className={darkMode ? 'toggle-track toggle-track--on' : 'toggle-track'}>
+        <input
+          type="checkbox"
+          className="toggle-input"
+          checked={darkMode}
+          onChange={(e) => setDarkMode(e.target.checked)}
+        />
+        <span className="toggle-knob" />
+      </span>
+    </label>
+  );
+
   return (
     <header className="top-bar">
       <div className="top-bar-start" ref={navRef}>
@@ -99,6 +114,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
               {item.label}
             </button>
           ))}
+          {darkModeToggle('top-bar-theme top-bar-theme--menu')}
         </nav>
       </div>
       <div className="top-bar-actions">
@@ -154,18 +170,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
           ) : null}
         </div>
         <UserMenu />
-        <label className="top-bar-theme">
-          <span className="top-bar-theme-label">Dark mode</span>
-          <span className={darkMode ? 'toggle-track toggle-track--on' : 'toggle-track'}>
-            <input
-              type="checkbox"
-              className="toggle-input"
-              checked={darkMode}
-              onChange={(e) => setDarkMode(e.target.checked)}
-            />
-            <span className="toggle-knob" />
-          </span>
-        </label>
+        {darkModeToggle('top-bar-theme top-bar-theme--desktop')}
       </div>
     </header>
   );

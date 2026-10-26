@@ -114,8 +114,17 @@
     right: 10px;
   }
 
-  .top-bar-theme-label {
+  .top-bar-theme--desktop {
     display: none;
+  }
+
+  .top-bar-theme--menu {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 14px;
+    margin-top: 4px;
+    border-top: 1px solid var(--topbar-border);
+    font-size: 15px;
   }
 
   /* Sidebar: hidden by default (see Sidebar.tsx), slides over the content when opened */
