@@ -50,7 +50,7 @@ test('defaults content type to audio/mpeg', async () => {
 test('forwards upstream error status', async () => {
   const response = await handleAudioProxy(proxyRequest(TTS), async () => new Response('nope', { status: 429 }));
   assert.equal(response.status, 429);
-  assert.equal(await response.text(), 'nope');
+  assert.equal(await response.text(), 'Audio upstream error');
 });
 
 test('returns 500 when the upstream fetch throws', async () => {
@@ -58,5 +58,16 @@ test('returns 500 when the upstream fetch throws', async () => {
     throw new Error('boom');
   });
   assert.equal(response.status, 500);
-  assert.equal(await response.text(), 'boom');
+  assert.equal(await response.text(), 'Audio proxy failed');
+});
+
+test('rejects non-audio upstream content types', async () => {
+  const response = await handleAudioProxy(proxyRequest(TTS), async () => new Response('<html>', { headers: { 'content-type': 'text/html' } }));
+  assert.equal(response.status, 502);
+});
+
+test('sets nosniff and rejects overlong urls', async () => {
+  const ok = await handleAudioProxy(proxyRequest(TTS), async () => new Response('a', { headers: { 'content-type': 'audio/mpeg' } }));
+  assert.equal(ok.headers.get('x-content-type-options'), 'nosniff');
+  assert.equal(isAllowedAudioUrl(`${TTS}&q2=${'a'.repeat(700)}`), false);
 });

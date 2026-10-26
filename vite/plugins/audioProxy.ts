@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
+import { isAllowedAudioUrl } from '../../src/worker.ts';
 
 const ROUTE = '/api/audio-proxy';
 
@@ -18,8 +19,14 @@ async function handleAudioProxy(req: IncomingMessage, res: ServerResponse, next:
     return;
   }
 
+  if (!isAllowedAudioUrl(remoteUrl)) {
+    res.statusCode = 403;
+    res.end('Audio url not allowed');
+    return;
+  }
+
   try {
-    const response = await fetch(remoteUrl);
+    const response = await fetch(remoteUrl, { redirect: 'manual' });
     if (!response.ok) {
       res.statusCode = response.status;
       res.end(await response.text());
