@@ -1,6 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { createDefaultWorkspaceContent, loadWorkspaceContent, type WorkspaceContent } from '../services/workspace';
 import { setActiveWorkspaceStorageKey } from '../services/revisionDb';
+import { fetchCloudWorkspace, saveCloudRoadmap, saveCloudStructure } from '../services/cloudWorkspace';
+import { isCloudPreferred } from '../services/syncConflict';
+import { writeWorkspaceRoadmapFile } from '../services/workspaceRoadmapPersistence';
+import { writeWorkspaceStructureFile, type WorkspaceStructureFolder } from '../services/workspaceStructurePersistence';
+import { supabase } from '../lib/supabaseClient';
+import { useAuth } from './AuthContext';
+import type { SavedRoadmap } from '../types';
+import type { StructureTree } from '../utils/folderStructure';
+import type { TestsStructure } from '../services/workspaceTypes';
 import {
   persistWorkspaceHandle,
   readPersistedWorkspaceHandle,
@@ -24,13 +33,30 @@ interface WorkspaceContextValue {
   removeWorkspaceHistoryEntry: (entry: { name: string; path: string }) => void;
   refreshWorkspace: () => Promise<void>;
   refreshWorkspaceHistoryCounts: () => Promise<void>;
+  /** Writes to the selected folder and, when signed in, to the user's cloud workspace. True if either succeeded. */
+  persistRoadmap: (roadmap: SavedRoadmap) => Promise<boolean>;
+  persistStructure: (folder: WorkspaceStructureFolder, structure: StructureTree | TestsStructure) => Promise<boolean>;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefined);
 
 const DEFAULT_WORKSPACE_LABEL = 'Default workspace';
 
+/** Runs a cloud write for the signed-in user; false when signed out or the write fails. */
+async function tryCloudWrite(userId: string | null, write: () => Promise<void>): Promise<boolean> {
+  if (!supabase || !userId) return false;
+  try {
+    await write();
+    return true;
+  } catch (error) {
+    console.error('Failed to save to the cloud workspace', error);
+    return false;
+  }
+}
+
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [workspace, setWorkspace] = useState<WorkspaceContent>(() => createDefaultWorkspaceContent());
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDirectoryHandle, setSelectedDirectoryHandle] = useState<FileSystemDirectoryHandle | null>(null);
@@ -50,14 +76,24 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
     setIsLoading(true);
     try {
-      const nextWorkspace = await loadWorkspaceContent(handle);
+      // Signed in: the cloud copy is the workspace on devices without a folder (e.g. phones),
+      // and wherever the user chose "keep cloud".
+      let cloudWorkspace = null;
+      if (supabase && userId && (!handle || isCloudPreferred(userId))) {
+        try {
+          cloudWorkspace = await fetchCloudWorkspace(supabase);
+        } catch (error) {
+          console.error('Failed to load the cloud workspace', error);
+        }
+      }
+      const nextWorkspace = cloudWorkspace ?? await loadWorkspaceContent(handle);
       setWorkspace(nextWorkspace);
       setWorkspaceVersion((value) => value + 1);
       await syncPendingRevisionCount(workspaceIdentity, handle?.name ?? fallbackLabel);
     } finally {
       setIsLoading(false);
     }
-  }, [syncPendingRevisionCount]);
+  }, [syncPendingRevisionCount, userId]);
 
   const refreshWorkspace = useCallback(async () => {
     await loadWorkspaceForHandle(selectedDirectoryHandle, workspaceSelectionLabel);
@@ -156,6 +192,22 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
   }, [updateWorkspaceSelection]);
 
+  const persistRoadmap = useCallback(async (roadmap: SavedRoadmap) => {
+    const [folderSaved, cloudSaved] = await Promise.all([
+      writeWorkspaceRoadmapFile(selectedDirectoryHandle, roadmap),
+      tryCloudWrite(userId, () => saveCloudRoadmap(supabase!, roadmap)),
+    ]);
+    return folderSaved || cloudSaved;
+  }, [selectedDirectoryHandle, userId]);
+
+  const persistStructure = useCallback(async (folder: WorkspaceStructureFolder, structure: StructureTree | TestsStructure) => {
+    const [folderSaved, cloudSaved] = await Promise.all([
+      writeWorkspaceStructureFile(selectedDirectoryHandle, folder, structure),
+      tryCloudWrite(userId, () => saveCloudStructure(supabase!, folder, structure)),
+    ]);
+    return folderSaved || cloudSaved;
+  }, [selectedDirectoryHandle, userId]);
+
   const value = useMemo(() => ({
     workspace,
     isLoading,
@@ -168,7 +220,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     removeWorkspaceHistoryEntry: removeWorkspaceHistoryItem,
     refreshWorkspace,
     refreshWorkspaceHistoryCounts,
-  }), [workspace, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion, workspaceHistory, selectWorkspace, selectWorkspaceFromHistory, refreshWorkspace, refreshWorkspaceHistoryCounts, removeWorkspaceHistoryItem]);
+    persistRoadmap,
+    persistStructure,
+  }), [persistRoadmap, persistStructure, workspace, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion, workspaceHistory, selectWorkspace, selectWorkspaceFromHistory, refreshWorkspace, refreshWorkspaceHistoryCounts, removeWorkspaceHistoryItem]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

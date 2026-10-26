@@ -1933,3 +1933,25 @@ body, html, #root {
   font: inherit;
   cursor: pointer;
 }
+
+.sync-conflict-sides {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.sync-conflict-side {
+  flex: 1;
+  min-width: 0;
+}
+
+.sync-conflict-side ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+@media (max-width: 600px) {
+  .sync-conflict-sides {
+    flex-direction: column;
+  }
+}

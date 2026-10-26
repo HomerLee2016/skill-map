@@ -13,7 +13,7 @@ function time(value: string): number {
 }
 
 /** One record per `hash` (Dexie indexes `hash` non-uniquely); the newest `last_time` wins, ties keep the first. */
-function dedupeByHash(records: CompletedQuestionRecord[]): CompletedQuestionRecord[] {
+export function dedupeByHash(records: CompletedQuestionRecord[]): CompletedQuestionRecord[] {
   const byHash = new Map<string, CompletedQuestionRecord>();
   for (const record of records) {
     const current = byHash.get(record.hash);
