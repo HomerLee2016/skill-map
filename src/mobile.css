@@ -135,6 +135,10 @@
   /* Account actions (sign in/out, sync) are always listed in the drawer; the icon is redundant */
   .top-bar-user {
     align-self: stretch;
+    order: 1;
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px solid var(--topbar-border);
   }
 
   .top-bar-user-icon {
@@ -160,6 +164,7 @@
   }
 
   .top-bar-theme {
+    order: 0;
     justify-content: space-between;
     padding: 12px 14px;
     font-size: 15px;
