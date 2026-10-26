@@ -369,6 +369,12 @@ body, html, #root {
   display: contents;
 }
 
+/* Desktop order: brand, nav, workspace, account/theme */
+.top-bar-start { order: 0; }
+.top-bar-nav { order: 1; }
+.top-bar-workspace-pill { order: 2; margin-left: auto; }
+
+
 .top-bar-brand {
   font-weight: 700;
   font-size: 15px;
@@ -378,7 +384,6 @@ body, html, #root {
 .top-bar-nav {
   display: flex;
   gap: 4px;
-  margin-right: auto;
 }
 
 .top-bar-link {
@@ -407,7 +412,7 @@ body, html, #root {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  margin-left: auto;
+  order: 3;
 }
 
 .top-bar-theme {

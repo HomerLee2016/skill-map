@@ -95,21 +95,34 @@
     border-top: 1px solid var(--topbar-border);
   }
 
+  /* Workspace select stays in the top bar, right of the title */
   .top-bar-workspace-pill {
-    justify-content: space-between;
-    padding: 10px 14px;
-    max-width: none;
-    flex-wrap: wrap;
-    border-radius: 14px;
-    font-size: 14px;
+    margin-left: auto;
+    padding: 4px 10px;
+    min-width: 0;
+    max-width: 150px;
+  }
+
+  .top-bar-workspace-label {
+    display: none;
   }
 
   .top-bar-workspace-trigger {
-    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
   }
 
-  /* Dropdown lists open inline inside the drawer instead of floating */
-  .top-bar-workspace-menu,
+  .top-bar-workspace-menu {
+    position: fixed;
+    top: 52px;
+    left: 10px;
+    right: 10px;
+    max-width: none;
+  }
+
+  /* Account list opens inline inside the drawer instead of floating */
   .top-bar-user-menu {
     position: static;
     width: 100%;
