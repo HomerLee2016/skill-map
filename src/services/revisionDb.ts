@@ -52,7 +52,7 @@ export function deriveWorkspaceStorageKey(workspacePath: string | null | undefin
   return `workspace-${simpleHash(seed)}`;
 }
 
-class RevisionDexieStore extends Dexie {
+export class RevisionDexieStore extends Dexie {
   completed_questions!: Table<CompletedQuestionRecord, number>;
 
   constructor(storageKey: string) {
@@ -76,6 +76,19 @@ const changeListeners = new Set<() => void>();
 export function onRevisionRecordsChanged(listener: () => void): () => void {
   changeListeners.add(listener);
   return () => { changeListeners.delete(listener); };
+}
+
+const pulledListeners = new Set<() => void>();
+
+/** Subscribe to cloud sync rewriting the local records (so open pages re-read them). Returns an unsubscribe fn. */
+export function onRevisionRecordsPulled(listener: () => void): () => void {
+  pulledListeners.add(listener);
+  return () => { pulledListeners.delete(listener); };
+}
+
+/** Sync wrote into the local store; unlike a local write this does not trigger another sync. */
+export function notifyRevisionRecordsPulled(): void {
+  pulledListeners.forEach((listener) => listener());
 }
 
 function notifyRevisionRecordsChanged(): void {
@@ -151,8 +164,8 @@ export async function getCompletedQuestionsByQuiz(quizTitle: string): Promise<Co
   return revisionStore.completed_questions.where('quiz_title').equals(quizTitle).toArray();
 }
 
-export async function getAllCompletedQuestions(): Promise<CompletedQuestionRecord[]> {
-  return revisionStore.completed_questions.orderBy('next_revision_time').toArray();
+export async function getAllCompletedQuestions(store: RevisionDexieStore = revisionStore): Promise<CompletedQuestionRecord[]> {
+  return store.completed_questions.orderBy('next_revision_time').toArray();
 }
 
 export async function getDueRevisionQuestions(now: string = new Date().toISOString()): Promise<CompletedQuestionRecord[]> {

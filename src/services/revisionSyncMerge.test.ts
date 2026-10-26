@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeRevisionRecords } from './revisionSyncMerge';
+import { mergeRevisionRecords, splitLegacyRecords } from './revisionSyncMerge';
 import type { CompletedQuestionRecord } from './revisionDb';
 
 const rec = (hash: string, last_time: string, id?: number): CompletedQuestionRecord => ({
@@ -48,4 +48,17 @@ test('duplicate remote hashes are pulled once', () => {
   const { toLocal } = mergeRevisionRecords([], [rec('a', '2026-01-01T00:00:00Z'), rec('a', '2026-02-01T00:00:00Z')]);
   assert.equal(toLocal.length, 1);
   assert.equal(toLocal[0].last_time, '2026-02-01T00:00:00Z');
+});
+
+test('legacy split adopts this workspace\'s quizzes and drops leaked local copies of the others', () => {
+  const withQuiz = (hash: string, quiz_title: string, id?: number): CompletedQuestionRecord => ({ ...rec(hash, '2026-01-01T00:00:00Z', id), quiz_title });
+  const legacy = [withQuiz('es1', 'Spanish'), withQuiz('jp1', 'Japanese')];
+  const local = [withQuiz('es1', 'Spanish', 1), withQuiz('jp1', 'Japanese', 2), withQuiz('own', 'Other', 3)];
+  const { adopt, dropLocalIds } = splitLegacyRecords(local, legacy, new Set(['Spanish']));
+  assert.deepEqual(adopt.map((r) => r.hash), ['es1']);
+  assert.deepEqual(dropLocalIds, [2]); // only the leaked Japanese row; 'own' is not in legacy
+});
+
+test('legacy split does nothing without quiz titles', () => {
+  assert.deepEqual(splitLegacyRecords([rec('a', '2026-01-01T00:00:00Z', 1)], [rec('a', '2026-01-01T00:00:00Z')], new Set()), { adopt: [], dropLocalIds: [] });
 });

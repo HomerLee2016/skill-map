@@ -13,7 +13,7 @@ interface RevisionSessionDeps {
 }
 
 export function useRevisionSession({ completedRows, setCompletedRows, fetchCompleted, fetchDueCount }: RevisionSessionDeps) {
-  const { selectedDirectoryHandle } = useWorkspace();
+  const { selectedDirectoryHandle, workspaceVersion } = useWorkspace();
   const [revisionMode, setRevisionMode] = useState(false);
   const [revisionQuestions, setRevisionQuestions] = useState<any[]>([]);
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -35,6 +35,20 @@ export function useRevisionSession({ completedRows, setCompletedRows, fetchCompl
   const [audioTrackEnabled, setAudioTrackEnabled] = useState(true);
   const [showSummary, setShowSummary] = useState(true);
   const [backupCompleted, setBackupCompleted] = useState(false);
+
+  // A session belongs to one workspace's records; leaving it for another workspace starts from the summary.
+  useEffect(() => {
+    setRevisionMode(false);
+    setRevisionQuestions([]);
+    setAnswers({});
+    setCorrectMap({});
+    setCurrentIdx(0);
+    setFinished(false);
+    setShowIncorrectReview(false);
+    setScore(0);
+    setShowSummary(true);
+    setBackupCompleted(false);
+  }, [workspaceVersion]);
 
   const totalQuestions = revisionQuestions.length;
   const isLastQuestion = currentIdx + 1 >= totalQuestions;

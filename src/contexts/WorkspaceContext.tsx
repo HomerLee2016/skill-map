@@ -1,7 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createDefaultWorkspaceContent, loadWorkspaceContent, type WorkspaceContent } from '../services/workspace';
-import { setActiveWorkspaceStorageKey } from '../services/revisionDb';
-import { fetchCloudWorkspace, saveCloudRoadmap, saveCloudStructure } from '../services/cloudWorkspace';
+import { deriveWorkspaceStorageKey, setActiveWorkspaceStorageKey } from '../services/revisionDb';
+import { ensureCloudWorkspace, fetchCloudWorkspace, saveCloudRoadmap, saveCloudStructure } from '../services/cloudWorkspace';
 import { isCloudPreferred } from '../services/syncConflict';
 import { writeWorkspaceRoadmapFile } from '../services/workspaceRoadmapPersistence';
 import { writeWorkspaceStructureFile, type WorkspaceStructureFolder } from '../services/workspaceStructurePersistence';
@@ -23,6 +23,8 @@ import {
 
 interface WorkspaceContextValue {
   workspace: WorkspaceContent;
+  /** Storage key of the workspace that `workspace` was loaded for; cloud rows and revision records are scoped by it. */
+  workspaceKey: string;
   isLoading: boolean;
   selectedDirectoryHandle: FileSystemDirectoryHandle | null;
   workspaceSelectionLabel: string;
@@ -58,6 +60,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const [workspace, setWorkspace] = useState<WorkspaceContent>(() => createDefaultWorkspaceContent());
+  const [workspaceKey, setWorkspaceKey] = useState(() => deriveWorkspaceStorageKey(null));
+  const loadRequest = useRef(0);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDirectoryHandle, setSelectedDirectoryHandle] = useState<FileSystemDirectoryHandle | null>(null);
   const [workspaceSelectionLabel, setWorkspaceSelectionLabel] = useState<string>(DEFAULT_WORKSPACE_LABEL);
@@ -72,26 +76,31 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const loadWorkspaceForHandle = useCallback(async (handle: FileSystemDirectoryHandle | null, fallbackLabel: string) => {
     const workspaceIdentity = handle?.name ?? null;
+    const requestId = ++loadRequest.current;
+    const nextKey = deriveWorkspaceStorageKey(workspaceIdentity);
     setActiveWorkspaceStorageKey(workspaceIdentity);
 
     setIsLoading(true);
     try {
-      // Signed in: the cloud copy is the workspace on devices without a folder (e.g. phones),
-      // and wherever the user chose "keep cloud".
+      // Signed in: this workspace's cloud copy is shown when there is no folder (e.g. phones)
+      // and wherever the user chose "keep cloud". Cloud rows are per workspace, never the whole account.
       let cloudWorkspace = null;
-      if (supabase && userId && (!handle || isCloudPreferred(userId))) {
+      if (supabase && userId && (!handle || isCloudPreferred(userId, nextKey))) {
         try {
-          cloudWorkspace = await fetchCloudWorkspace(supabase);
+          cloudWorkspace = await fetchCloudWorkspace(supabase, nextKey);
         } catch (error) {
           console.error('Failed to load the cloud workspace', error);
         }
       }
       const nextWorkspace = cloudWorkspace ?? await loadWorkspaceContent(handle);
+      // A newer switch started while this one was loading; its result wins.
+      if (requestId !== loadRequest.current) return;
       setWorkspace(nextWorkspace);
+      setWorkspaceKey(nextKey);
       setWorkspaceVersion((value) => value + 1);
       await syncPendingRevisionCount(workspaceIdentity, handle?.name ?? fallbackLabel);
     } finally {
-      setIsLoading(false);
+      if (requestId === loadRequest.current) setIsLoading(false);
     }
   }, [syncPendingRevisionCount, userId]);
 
@@ -195,21 +204,28 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const persistRoadmap = useCallback(async (roadmap: SavedRoadmap) => {
     const [folderSaved, cloudSaved] = await Promise.all([
       writeWorkspaceRoadmapFile(selectedDirectoryHandle, roadmap),
-      tryCloudWrite(userId, () => saveCloudRoadmap(supabase!, roadmap)),
+      tryCloudWrite(userId, async () => {
+        await ensureCloudWorkspace(supabase!, workspaceKey, workspaceSelectionLabel);
+        await saveCloudRoadmap(supabase!, workspaceKey, roadmap);
+      }),
     ]);
     return folderSaved || cloudSaved;
-  }, [selectedDirectoryHandle, userId]);
+  }, [selectedDirectoryHandle, userId, workspaceKey, workspaceSelectionLabel]);
 
   const persistStructure = useCallback(async (folder: WorkspaceStructureFolder, structure: StructureTree | TestsStructure) => {
     const [folderSaved, cloudSaved] = await Promise.all([
       writeWorkspaceStructureFile(selectedDirectoryHandle, folder, structure),
-      tryCloudWrite(userId, () => saveCloudStructure(supabase!, folder, structure)),
+      tryCloudWrite(userId, async () => {
+        await ensureCloudWorkspace(supabase!, workspaceKey, workspaceSelectionLabel);
+        await saveCloudStructure(supabase!, workspaceKey, folder, structure);
+      }),
     ]);
     return folderSaved || cloudSaved;
-  }, [selectedDirectoryHandle, userId]);
+  }, [selectedDirectoryHandle, userId, workspaceKey, workspaceSelectionLabel]);
 
   const value = useMemo(() => ({
     workspace,
+    workspaceKey,
     isLoading,
     selectedDirectoryHandle,
     workspaceSelectionLabel,
@@ -222,7 +238,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     refreshWorkspaceHistoryCounts,
     persistRoadmap,
     persistStructure,
-  }), [persistRoadmap, persistStructure, workspace, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion, workspaceHistory, selectWorkspace, selectWorkspaceFromHistory, refreshWorkspace, refreshWorkspaceHistoryCounts, removeWorkspaceHistoryItem]);
+  }), [persistRoadmap, persistStructure, workspace, workspaceKey, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion, workspaceHistory, selectWorkspace, selectWorkspaceFromHistory, refreshWorkspace, refreshWorkspaceHistoryCounts, removeWorkspaceHistoryItem]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

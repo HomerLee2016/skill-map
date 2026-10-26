@@ -189,7 +189,7 @@ Resolved by the cleanup story (#3): empty `server.ts`, unwired `save-question-re
 Still open:
 
 1. Audio depends on an unofficial Google Translate endpoint. That is fragile, and its terms of use do not clearly allow redistribution in a public open-source project.
-2. Cloud sync (signed in) is keyed by Supabase `user_id`: revision records, lessons, tests, roadmaps and folder structures live in per-user tables (`supabase/README.md`). Large binary files (audio, images) are not stored; if they are ever needed, use Supabase Storage with a `<user_id>/` path policy.
+2. Cloud sync (signed in) is keyed by Supabase `user_id` and workspace: a `workspaces` table (user_id, key, name) is referenced by the revision records, lessons, tests, roadmaps and folder structures tables (`supabase/README.md`). Large binary files (audio, images) are not stored; if they are ever needed, use Supabase Storage with a `<user_id>/` path policy.
 3. `README.md` says the app is "local-first with no separate backend service". That is still true, and this doc is the more detailed reference.
 
 ## 10. Target architecture (goal: web app for PC and mobile, zero cost, open source)
