@@ -13,4 +13,4 @@ export function createSupabaseClient(env: SupabaseEnv): SupabaseClient | null {
   return createClient(url, anonKey);
 }
 
-export const supabase = createSupabaseClient(import.meta.env as SupabaseEnv);
+export const supabase = createSupabaseClient((import.meta.env ?? {}) as SupabaseEnv);
