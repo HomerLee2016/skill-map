@@ -4,6 +4,7 @@ import Roadmap from './Roadmap';
 import Lessons from './Lessons';
 import Tests from './Tests';
 import Revision from './Revision';
+import { AuthProvider } from './contexts/AuthContext';
 import { useWorkspace, WorkspaceProvider } from './contexts/WorkspaceContext';
 import type { PageId } from './types';
 import { shouldPromptBeforeNavigation } from './utils/unsavedChanges';
@@ -105,9 +106,11 @@ function AppContent() {
 
 function App() {
   return (
+    <AuthProvider>
     <WorkspaceProvider>
       <AppContent />
     </WorkspaceProvider>
+    </AuthProvider>
   );
 }
 

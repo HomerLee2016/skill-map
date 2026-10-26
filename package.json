@@ -12,6 +12,7 @@
     "dev:custom": "vite --host 127.0.0.1 --port 4173"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
     "@uiw/react-textarea-code-editor": "^3.1.1",
     "dexie": "^4.4.4",
     "dexie-react-hooks": "^4.4.0",
