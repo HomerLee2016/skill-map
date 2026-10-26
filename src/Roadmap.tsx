@@ -36,7 +36,7 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest, onUnsavedChangesChange }:
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [error, setError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState<boolean>(true);
-  const [tipsOpen, setTipsOpen] = useState<boolean>(true);
+  const [tipsOpen, setTipsOpen] = useState<boolean>(() => !window.matchMedia?.('(max-width: 768px)').matches);
   const { hasUnsavedChanges, setHasUnsavedChanges, lastSavedYamlRef } = useRoadmapUnsavedChanges(
     yamlText,
     workspace.roadmaps[0]?.yaml || '',

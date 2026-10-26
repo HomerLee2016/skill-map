@@ -35,8 +35,9 @@ export function UserMenu() {
           <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7z" />
         </svg>
       </button>
-      {isOpen ? (
-        <div className="top-bar-user-menu" role="menu">
+      {/* Always rendered: on mobile the list sits open inside the hamburger menu (see mobile.css) */}
+      {(
+        <div className={isOpen ? 'top-bar-user-menu' : 'top-bar-user-menu top-bar-user-menu--closed'} role="menu">
           {user ? (
             <>
               <div className="top-bar-user-menu-account">
@@ -82,7 +83,7 @@ export function UserMenu() {
             </button>
           )}
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

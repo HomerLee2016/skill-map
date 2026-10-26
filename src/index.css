@@ -353,6 +353,28 @@ body, html, #root {
   flex-shrink: 0;
 }
 
+.top-bar-start {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.top-bar-hamburger {
+  display: none;
+}
+
+/* Desktop: the menu wrapper is transparent so nav and actions stay top-bar flex items */
+.top-bar-menu {
+  display: contents;
+}
+
+/* Desktop order: brand, nav, workspace, account/theme */
+.top-bar-start { order: 0; }
+.top-bar-nav { order: 1; }
+.top-bar-workspace-pill { order: 2; margin-left: auto; }
+
+
 .top-bar-brand {
   font-weight: 700;
   font-size: 15px;
@@ -362,7 +384,6 @@ body, html, #root {
 .top-bar-nav {
   display: flex;
   gap: 4px;
-  flex: 1;
 }
 
 .top-bar-link {
@@ -391,7 +412,7 @@ body, html, #root {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  margin-left: auto;
+  order: 3;
 }
 
 .top-bar-theme {
@@ -1428,6 +1449,17 @@ body, html, #root {
   pointer-events: auto;
 }
 
+/* Anchor the HUD just right of the sidebar [<] toggle (1.5rem wide) so it never covers it */
+.roadmap-page .progress-hud {
+  left: 3.5rem;
+  transform: none;
+  white-space: nowrap;
+}
+
+.roadmap-page:has(.sidebar-wrapper.sidebar--open) .progress-hud {
+  left: calc(var(--sidebar-width) + 3.5rem);
+}
+
 .hud-title {
   font-size: 13px;
   font-weight: bold;
@@ -1877,6 +1909,10 @@ body, html, #root {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.top-bar-user-menu--closed {
+  display: none;
 }
 
 .top-bar-user-menu-title {
