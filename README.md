@@ -72,6 +72,17 @@ Then open:
 
 - Frontend: http://localhost:5173
 
+## CI and Supabase variables
+
+CI (`.github/workflows/ci.yml`) is a single job: lint, unit tests, build, then the persistence E2E. A second workflow pings Supabase twice a week so the free project does not pause.
+
+Set these under GitHub repo Settings > Secrets and variables > Actions > **Variables** (both are public values; never add the DB password or service role key):
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+If unset, CI uses dummy values so the build still passes and the keep-alive is skipped.
+
 ## Available scripts
 
 - `npm run dev` — start the Vite development server with API middleware
