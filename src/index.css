@@ -1848,3 +1848,24 @@ body, html, #root {
 .row h1, .row p {
   margin: 0;
 }
+.top-bar-auth {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.top-bar-auth-email {
+  color: var(--topbar-link);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-bar-auth-btn {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}

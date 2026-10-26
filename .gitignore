@@ -29,3 +29,7 @@ dist-ssr
 # SQLite database files
 *.db
 *.db-journal
+# Local env (secrets); keep .env.example
+.env
+.env.*
+!.env.example
