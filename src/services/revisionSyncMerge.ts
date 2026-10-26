@@ -12,11 +12,24 @@ function time(value: string): number {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
+/** One record per `hash` (Dexie indexes `hash` non-uniquely); the newest `last_time` wins, ties keep the first. */
+function dedupeByHash(records: CompletedQuestionRecord[]): CompletedQuestionRecord[] {
+  const byHash = new Map<string, CompletedQuestionRecord>();
+  for (const record of records) {
+    const current = byHash.get(record.hash);
+    if (!current || time(record.last_time) > time(current.last_time)) byHash.set(record.hash, record);
+  }
+  return [...byHash.values()];
+}
+
 /** Merge by `hash`; the record with the newest `last_time` wins, ties keep local. */
 export function mergeRevisionRecords(
-  local: CompletedQuestionRecord[],
-  remote: CompletedQuestionRecord[],
+  localRecords: CompletedQuestionRecord[],
+  remoteRecords: CompletedQuestionRecord[],
 ): MergeResult {
+  // Duplicate hashes in one upsert batch make Postgres fail with 21000.
+  const local = dedupeByHash(localRecords);
+  const remote = dedupeByHash(remoteRecords);
   const remoteByHash = new Map(remote.map((record) => [record.hash, record]));
   const localByHash = new Map(local.map((record) => [record.hash, record]));
   const toLocal: CompletedQuestionRecord[] = [];
