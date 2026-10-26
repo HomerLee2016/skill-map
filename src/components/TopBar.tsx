@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useCloudSync } from '../hooks/useCloudSync';
+import { UserMenu } from './UserMenu';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import type { PageId } from '../types';
 import { handleWorkspaceTriggerClick } from './workspaceTrigger';
@@ -30,8 +29,6 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
     workspaceSelectionLabel,
     workspaceHistory,
   } = useWorkspace();
-  const { isConfigured, user, signInWithGoogle, signOut } = useAuth();
-  const { syncNow, isSyncing, error: syncError } = useCloudSync();
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
   const workspaceMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -134,29 +131,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
             </div>
           ) : null}
         </div>
-        {isConfigured ? (
-          user ? (
-            <div className="top-bar-auth">
-              <span className="top-bar-auth-email" title={user.email ?? undefined}>{user.email}</span>
-              <button
-                type="button"
-                className="top-bar-auth-btn"
-                onClick={() => { void syncNow(); }}
-                disabled={isSyncing}
-                title={syncError ?? 'Sync progress with your account'}
-              >
-                {isSyncing ? 'Syncing…' : syncError ? 'Sync failed – retry' : 'Sync now'}
-              </button>
-              <button type="button" className="top-bar-auth-btn" onClick={() => { void signOut(); }}>
-                Sign out
-              </button>
-            </div>
-          ) : (
-            <button type="button" className="top-bar-auth-btn" onClick={() => { void signInWithGoogle(); }}>
-              Sign in with Google
-            </button>
-          )
-        ) : null}
+        <UserMenu />
         <label className="top-bar-theme">
           <span className="top-bar-theme-label">Dark mode</span>
           <span className={darkMode ? 'toggle-track toggle-track--on' : 'toggle-track'}>

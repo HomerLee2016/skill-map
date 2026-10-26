@@ -6,13 +6,23 @@ import { syncRevisionRecords } from '../services/revisionSync';
 import { supabase } from '../lib/supabaseClient';
 
 const DEBOUNCE_MS = 2000;
+const AUTO_SYNC_KEY = 'skill-map-auto-sync';
 
-/** Syncs on sign-in / workspace change, after local revision writes, and on demand. */
+function readAutoSync(): boolean {
+  try {
+    return localStorage.getItem(AUTO_SYNC_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+/** Syncs on sign-in / workspace change and on demand; after local revision writes when auto sync is on. */
 export function useCloudSync() {
   const { user } = useAuth();
   const { workspaceVersion } = useWorkspace();
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autoSync, setAutoSyncState] = useState(readAutoSync);
   const running = useRef(false);
   const userId = user?.id ?? null;
 
@@ -36,8 +46,15 @@ export function useCloudSync() {
     void syncNow();
   }, [syncNow, workspaceVersion]);
 
+  const setAutoSync = useCallback((value: boolean) => {
+    setAutoSyncState(value);
+    try {
+      localStorage.setItem(AUTO_SYNC_KEY, value ? 'on' : 'off');
+    } catch { /* storage unavailable; setting lasts for this session */ }
+  }, []);
+
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !autoSync) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const unsubscribe = onRevisionRecordsChanged(() => {
       clearTimeout(timer);
@@ -47,7 +64,7 @@ export function useCloudSync() {
       clearTimeout(timer);
       unsubscribe();
     };
-  }, [userId, syncNow]);
+  }, [userId, autoSync, syncNow]);
 
-  return { syncNow, isSyncing, error };
+  return { syncNow, isSyncing, error, autoSync, setAutoSync };
 }
