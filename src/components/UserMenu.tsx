@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCloudSync } from '../hooks/useCloudSync';
+import { SyncConflictDialog } from './SyncConflictDialog';
 
 /** Single user icon in the top bar; account, sync and sign-out live in its dropdown. */
 export function UserMenu() {
   const { isConfigured, user, signInWithGoogle, signOut } = useAuth();
-  const { syncNow, isSyncing, error, autoSync, setAutoSync } = useCloudSync();
+  const { syncNow, isSyncing, error, autoSync, setAutoSync, conflict, resolveConflict } = useCloudSync();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -84,6 +85,7 @@ export function UserMenu() {
           )}
         </div>
       )}
+      {conflict ? <SyncConflictDialog conflict={conflict} busy={isSyncing} onChoose={(choice) => { void resolveConflict(choice); }} /> : null}
     </div>
   );
 }

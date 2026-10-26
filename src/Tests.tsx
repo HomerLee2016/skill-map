@@ -19,7 +19,6 @@ import { useAudioAutoAdvance } from './hooks/useAudioAutoAdvance';
 import AnswerQuestion from './components/AnswerQuestion';
 import IncorrectReviewScreen from './components/IncorrectReviewScreen';
 import QuestionTracker, { getFirstUnansweredQuestionIndex } from './components/QuestionTracker';
-import { writeWorkspaceStructureFile } from './services/workspaceStructurePersistence';
 import { countCorrectAnswers } from './utils/testScoring';
 
 interface TestsProps {
@@ -48,7 +47,7 @@ async function saveQuestionResult(payload: {
 
 
 function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
-  const { workspace, workspaceVersion, selectedDirectoryHandle } = useWorkspace();
+  const { workspace, workspaceVersion, persistStructure } = useWorkspace();
   const availableTests = workspace.tests;
   const [activeId, setActiveId] = useState(selectedTestId || availableTests[0]?.id || '');
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -109,7 +108,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
   const persist = async (next: { revision: StructureTree; new_tests: StructureTree }) => {
     try {
       await saveTestsStructure(next);
-      await writeWorkspaceStructureFile(selectedDirectoryHandle, 'tests', next);
+      await persistStructure('tests', next);
       setStructure(next);
       setStructureError(null);
     } catch (err) {

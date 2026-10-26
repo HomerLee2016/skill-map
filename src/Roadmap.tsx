@@ -16,7 +16,6 @@ import { useAutoLayout } from './hooks/useAutoLayout';
 import { RoadmapSidebar } from './components/Sidebar/RoadmapSidebar';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { useWorkspace } from './contexts/WorkspaceContext';
-import { writeWorkspaceRoadmapFile } from './services/workspaceRoadmapPersistence';
 import { calculateCompleteness, getRoadmapLabel } from './utils/roadmapYaml';
 
 interface RoadmapProps {
@@ -27,7 +26,7 @@ interface RoadmapProps {
 }
 
 function Roadmap({ darkMode, onGoToLesson, onGoToTest, onUnsavedChangesChange }: RoadmapProps) {
-  const { workspace, workspaceVersion, selectedDirectoryHandle } = useWorkspace();
+  const { workspace, workspaceVersion, persistRoadmap } = useWorkspace();
   const [roadmaps, setRoadmaps] = useState<SavedRoadmap[]>(() => workspace.roadmaps);
   const [selectedRoadmapId, setSelectedRoadmapId] = useState<string>(() => workspace.roadmaps[0]?.id || 'untitled');
   const [yamlText, setYamlText] = useState<string>(() => workspace.roadmaps[0]?.yaml || '');
@@ -102,7 +101,7 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest, onUnsavedChangesChange }:
       lastSavedYamlRef.current = yamlText;
       setHasUnsavedChanges(false);
       onUnsavedChangesChange?.(false);
-      const persisted = await writeWorkspaceRoadmapFile(selectedDirectoryHandle, nextRoadmap);
+      const persisted = await persistRoadmap(nextRoadmap);
       if (!persisted) {
         throw new Error('Failed to save roadmap to workspace');
       }
