@@ -1,5 +1,5 @@
 import type { CloudWorkspaceInfo } from '../services/cloudWorkspace';
-import { deriveWorkspaceStorageKey } from '../services/revisionDb';
+import { deriveWorkspaceStorageKey } from '../services/workspaceKey';
 import type { WorkspaceHistoryEntryWithPendingCount } from './workspacePersistence';
 
 export interface WorkspaceListEntry {

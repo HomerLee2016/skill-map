@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { deriveWorkspaceStorageKey } from '../services/revisionDb';
+import { deriveWorkspaceStorageKey } from '../services/workspaceKey';
 import { mergeWorkspaceLists } from './workspaceList';
 
 test('a workspace imported on the PC shows up once on a phone with only cloud rows', () => {
