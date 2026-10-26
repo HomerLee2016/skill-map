@@ -54,9 +54,16 @@ export function UserMenu() {
               </button>
               <label className="top-bar-user-menu-toggle">
                 <span>Auto sync</span>
-                <input type="checkbox" checked={autoSync} onChange={(e) => setAutoSync(e.target.checked)} />
+                <span className={autoSync ? 'toggle-track toggle-track--on' : 'toggle-track'}>
+                  <input
+                    type="checkbox"
+                    className="toggle-input"
+                    checked={autoSync}
+                    onChange={(e) => setAutoSync(e.target.checked)}
+                  />
+                  <span className="toggle-knob" />
+                </span>
               </label>
-              <div className="top-bar-user-menu-hint">After answering revision or quiz questions.</div>
               <button
                 type="button"
                 className="top-bar-workspace-menu-item"

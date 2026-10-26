@@ -1879,8 +1879,7 @@ body, html, #root {
   gap: 4px;
 }
 
-.top-bar-user-menu-title,
-.top-bar-user-menu-hint {
+.top-bar-user-menu-title {
   font-size: 11px;
   color: var(--topbar-link);
 }
@@ -1898,8 +1897,4 @@ body, html, #root {
   padding: 6px 8px;
   font-size: 13px;
   cursor: pointer;
-}
-
-.top-bar-user-menu-hint {
-  padding: 0 8px 4px;
 }
