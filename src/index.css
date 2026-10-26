@@ -364,6 +364,11 @@ body, html, #root {
   display: none;
 }
 
+/* Desktop: the menu wrapper is transparent so nav and actions stay top-bar flex items */
+.top-bar-menu {
+  display: contents;
+}
+
 .top-bar-brand {
   font-weight: 700;
   font-size: 15px;
@@ -373,6 +378,7 @@ body, html, #root {
 .top-bar-nav {
   display: flex;
   gap: 4px;
+  margin-right: auto;
 }
 
 .top-bar-link {
@@ -411,10 +417,6 @@ body, html, #root {
   cursor: pointer;
   user-select: none;
   font-size: 12px;
-}
-
-.top-bar-theme--menu {
-  display: none;
 }
 
 .top-bar-theme-label {

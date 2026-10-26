@@ -53,23 +53,31 @@
     white-space: nowrap;
   }
 
-  /* Nav collapses into a dropdown under the bar */
-  .top-bar-nav {
+  /* Everything but the brand collapses into the hamburger dropdown */
+  .top-bar-menu {
     display: none;
     position: absolute;
     top: 100%;
     left: 0;
     right: 0;
     flex-direction: column;
-    gap: 2px;
-    padding: 8px 10px 12px;
+    gap: 8px;
+    padding: 8px 10px 14px;
     background: var(--topbar-bg);
     border-bottom: 1px solid var(--topbar-border);
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
   }
 
-  .top-bar-nav--open {
+  .top-bar-menu--open {
     display: flex;
+  }
+
+  .top-bar-nav {
+    flex-direction: column;
+    gap: 2px;
+    margin-right: 0;
   }
 
   .top-bar-link {
@@ -79,51 +87,49 @@
   }
 
   .top-bar-actions {
+    flex-direction: column;
+    align-items: stretch;
     gap: 8px;
-    min-width: 0;
+    margin-left: 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--topbar-border);
   }
 
   .top-bar-workspace-pill {
-    padding: 4px 10px;
-    min-width: 0;
-    max-width: 120px;
-  }
-
-  .top-bar-workspace-label {
-    display: none;
+    justify-content: space-between;
+    padding: 10px 14px;
+    max-width: none;
+    flex-wrap: wrap;
+    border-radius: 14px;
+    font-size: 14px;
   }
 
   .top-bar-workspace-trigger {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 12px;
+    font-size: 14px;
   }
 
-  .top-bar-workspace-menu {
-    position: fixed;
-    top: 52px;
-    left: 10px;
-    right: 10px;
-    max-width: none;
-  }
-
+  /* Dropdown lists open inline inside the drawer instead of floating */
+  .top-bar-workspace-menu,
   .top-bar-user-menu {
-    position: fixed;
-    top: 52px;
-    right: 10px;
+    position: static;
+    width: 100%;
+    max-width: none;
+    margin-top: 8px;
+    box-sizing: border-box;
+    box-shadow: none;
   }
 
-  .top-bar-theme--desktop {
-    display: none;
+  .top-bar-user {
+    align-self: flex-start;
   }
 
-  .top-bar-theme--menu {
-    display: flex;
+  .top-bar-user:has(.top-bar-user-menu) {
+    align-self: stretch;
+  }
+
+  .top-bar-theme {
     justify-content: space-between;
     padding: 12px 14px;
-    margin-top: 4px;
-    border-top: 1px solid var(--topbar-border);
     font-size: 15px;
   }
 

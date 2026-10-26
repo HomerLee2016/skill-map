@@ -85,22 +85,24 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
   );
 
   return (
-    <header className="top-bar">
-      <div className="top-bar-start" ref={navRef}>
+    <header className="top-bar" ref={navRef}>
+      <div className="top-bar-start">
         <button
           type="button"
           className="top-bar-hamburger"
           onClick={() => setIsNavOpen((value) => !value)}
           aria-label="Menu"
           aria-expanded={isNavOpen}
-          aria-controls="top-bar-nav"
+          aria-controls="top-bar-menu"
         >
           <span className="top-bar-hamburger-bar" />
           <span className="top-bar-hamburger-bar" />
           <span className="top-bar-hamburger-bar" />
         </button>
         <div className="top-bar-brand">Skill Map</div>
-        <nav id="top-bar-nav" className={isNavOpen ? 'top-bar-nav top-bar-nav--open' : 'top-bar-nav'}>
+      </div>
+      <div id="top-bar-menu" className={isNavOpen ? 'top-bar-menu top-bar-menu--open' : 'top-bar-menu'}>
+        <nav className="top-bar-nav">
           {NAV_ITEMS.map((item) => (
             <button
               key={item.id}
@@ -114,9 +116,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
               {item.label}
             </button>
           ))}
-          {darkModeToggle('top-bar-theme top-bar-theme--menu')}
         </nav>
-      </div>
       <div className="top-bar-actions">
         <div className="top-bar-workspace-pill" ref={workspaceMenuRef}>
           <span className="top-bar-workspace-label">{workspaceSelectionLabel}</span>
@@ -170,7 +170,8 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
           ) : null}
         </div>
         <UserMenu />
-        {darkModeToggle('top-bar-theme top-bar-theme--desktop')}
+        {darkModeToggle('top-bar-theme')}
+      </div>
       </div>
     </header>
   );
