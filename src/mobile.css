@@ -132,12 +132,31 @@
     box-shadow: none;
   }
 
+  /* Account actions (sign in/out, sync) are always listed in the drawer; the icon is redundant */
   .top-bar-user {
-    align-self: flex-start;
+    align-self: stretch;
   }
 
-  .top-bar-user:has(.top-bar-user-menu) {
-    align-self: stretch;
+  .top-bar-user-icon {
+    display: none;
+  }
+
+  .top-bar-user-menu--closed {
+    display: flex;
+  }
+
+  .top-bar-user-menu {
+    margin-top: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+  }
+
+  .top-bar-user-menu .top-bar-workspace-menu-item,
+  .top-bar-user-menu-toggle,
+  .top-bar-user-menu-account {
+    padding: 12px 14px;
+    font-size: 15px;
   }
 
   .top-bar-theme {

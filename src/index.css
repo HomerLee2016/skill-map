@@ -1911,6 +1911,10 @@ body, html, #root {
   gap: 4px;
 }
 
+.top-bar-user-menu--closed {
+  display: none;
+}
+
 .top-bar-user-menu-title {
   font-size: 11px;
   color: var(--topbar-link);
