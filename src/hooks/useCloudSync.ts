@@ -47,7 +47,7 @@ function readAutoSync(): boolean {
 /** Syncs the active workspace on sign-in / workspace change and on demand; after local revision writes when auto sync is on. */
 export function useCloudSync() {
   const { user } = useAuth();
-  const { workspace, workspaceKey, workspaceSelectionLabel, workspaceVersion, selectedDirectoryHandle, refreshWorkspace } = useWorkspace();
+  const { workspace, workspaceKey, workspaceSelectionLabel, workspaceVersion, hasLocalContent, refreshWorkspace } = useWorkspace();
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<PendingConflict | null>(null);
@@ -55,8 +55,8 @@ export function useCloudSync() {
   const running = useRef(false);
   const rerunAfter = useRef(false);
   const userId = user?.id ?? null;
-  // A selected folder is the working copy; without one the cloud copy is shown, so nothing local to upload.
-  const localContent = selectedDirectoryHandle ? workspace : null;
+  // A selected folder (or import) is the working copy; without one the cloud copy is shown, so nothing local to upload.
+  const localContent = hasLocalContent ? workspace : null;
   const localContentRef = useRef(localContent);
   localContentRef.current = localContent;
   const workspaceKeyRef = useRef(workspaceKey);

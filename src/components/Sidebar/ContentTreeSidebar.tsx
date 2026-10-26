@@ -117,6 +117,7 @@ function ItemButton({
       type="button"
       className={isSelected ? `tree-item-button ${itemClassName} ${selectedClassName}` : `tree-item-button ${itemClassName}`}
       style={{ ['--tree-depth' as string]: depth }}
+      data-closes-mobile-sidebar
       onClick={() => onSelect(item.id)}
     >
       <span className="tree-chevron-spacer" />

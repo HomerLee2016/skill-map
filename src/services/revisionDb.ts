@@ -37,20 +37,9 @@ export interface CompletedQuestionInsert {
   audio_track_url?: string;
 }
 
-function simpleHash(input: string): string {
-  let hash = 0;
-  for (let index = 0; index < input.length; index += 1) {
-    hash = (hash << 5) - hash + input.charCodeAt(index);
-    hash |= 0;
-  }
-  return (hash >>> 0).toString(16).padStart(8, '0');
-}
+import { deriveWorkspaceStorageKey } from './workspaceKey';
 
-export function deriveWorkspaceStorageKey(workspacePath: string | null | undefined): string {
-  const normalized = (workspacePath ?? '').trim().toLowerCase();
-  const seed = normalized || 'default-workspace';
-  return `workspace-${simpleHash(seed)}`;
-}
+export { deriveWorkspaceStorageKey };
 
 export class RevisionDexieStore extends Dexie {
   completed_questions!: Table<CompletedQuestionRecord, number>;
@@ -96,7 +85,11 @@ function notifyRevisionRecordsChanged(): void {
 }
 
 export function setActiveWorkspaceStorageKey(workspacePath: string | null | undefined): void {
-  const nextStorageKey = deriveWorkspaceStorageKey(workspacePath);
+  setActiveWorkspaceStorageKeyDirect(deriveWorkspaceStorageKey(workspacePath));
+}
+
+/** For workspaces known only by their cloud key (opened on a device that never had the folder). */
+export function setActiveWorkspaceStorageKeyDirect(nextStorageKey: string): void {
   if (nextStorageKey === activeWorkspaceStorageKey) {
     return;
   }

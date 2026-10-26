@@ -24,7 +24,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ children, defaultVisible = tru
   return (
     <div className={wrapperClass}>
       {/* The actual sidebar – slides in/out */}
-      <aside className={`sidebar ${visible ? "sidebar--open" : "sidebar--closed"}`}>
+      <aside
+        className={`sidebar ${visible ? "sidebar--open" : "sidebar--closed"}`}
+        onClick={(event) => {
+          // On phones the drawer covers the content, so picking an item should reveal it.
+          if (isMobileViewport() && (event.target as Element).closest("[data-closes-mobile-sidebar]")) setVisible(false);
+        }}
+      >
         {children}
       </aside>
       {/* Toggle button – positioned at the right edge of the sidebar wrapper, always visible */}
