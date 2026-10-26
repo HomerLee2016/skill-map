@@ -1,6 +1,7 @@
 import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import { safeExternalUrl } from '../utils/safeUrl';
 
 interface SkillNodeData {
   label: string;
@@ -29,6 +30,7 @@ export function SkillNode({ id, data, selected }: NodeProps<SkillNodeData>) {
     .filter(Boolean)
     .join(' ');
 
+  const safeUrl = safeExternalUrl(data.url);
   const linkedLessons = (data.lessons || [])
     .map((lessonId) => workspace.lessons.find((lesson) => lesson.id === lessonId))
     .filter(Boolean);
@@ -90,11 +92,11 @@ export function SkillNode({ id, data, selected }: NodeProps<SkillNodeData>) {
         </div>
       )}
 
-      {(linkedLessons.length > 0 || linkedTests.length > 0 || data.url) && (
+      {(linkedLessons.length > 0 || linkedTests.length > 0 || safeUrl) && (
         <div className="skill-node-links">
-          {data.url && (
+          {safeUrl && (
             <a
-              href={data.url}
+              href={safeUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
