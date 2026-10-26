@@ -158,11 +158,17 @@ If unset, CI uses dummy values so the build still passes and the keep-alive is s
 - `dev_helper_script/` — Jupyter notebooks for generating audio track URLs
 - `regression/` — Playwright-based browser regression tests
 
-## Dev server API endpoints
+## API endpoints
 
-The Vite dev server includes middleware plugins that provide local API endpoints:
+- `GET /api/audio-proxy?url=...` — proxies Google Translate TTS audio to bypass CORS. Served by a Vite plugin in dev/preview and by the Cloudflare Worker in `src/worker.ts` in production. Only `https://translate.google.com/translate_tts` URLs are allowed.
 
-- `GET /api/audio-proxy?url=...` — proxies remote audio (e.g. Google Translate TTS) to bypass CORS
+## Deployment (Cloudflare Workers)
+
+`wrangler.jsonc` serves `dist/` as static assets and runs `src/worker.ts` for `/api/*`.
+
+- Build command: `npm run build`
+- Deploy command: `npx wrangler deploy`
+- Local check: `npm run build && npx wrangler dev`
 
 ## Workspace content format
 
