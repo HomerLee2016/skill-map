@@ -125,7 +125,15 @@ export function useCloudSync() {
   const runSyncRef = useRef(runSync);
   runSyncRef.current = runSync;
 
-  const syncNow = useCallback(() => runSync(true), [runSync]);
+  /** Re-reads the folder (or the cloud copy on a phone) first so files added since it was loaded are uploaded / pulled in. */
+  const syncNow = useCallback(async () => {
+    try {
+      await refreshWorkspace();
+    } catch (err) {
+      console.error(err);
+    }
+    await runSync(true);
+  }, [refreshWorkspace, runSync]);
 
   useEffect(() => {
     // Another workspace's pending conflict prompt no longer applies.
