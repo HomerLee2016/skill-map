@@ -58,15 +58,17 @@ src/
     folderStructure.ts     Folder tree model for lessons/tests
     contentCatalog.ts      Catalog builders for pickers
     lessonMarkdown.tsx     Markdown renderer
-    audioProxy.ts          Rewrites Google Translate TTS URLs to /api/audio-proxy (dev only)
+    audioProxy.ts          Rewrites Google Translate TTS URLs to /api/audio-proxy
     workspacePersistence.ts  localStorage selection/history and pure history helpers
     revisionSession.ts     Pure helpers for the revision page (stars, due questions, row upsert)
     roadmapYaml.ts         Pure roadmap completeness and label from YAML
     unsavedChanges.ts      Navigation guard rules
   data/                    Bundled demo content (roadmaps/, lessons/, tests/) — loaded with import.meta.glob
+  worker.ts                Cloudflare Worker: /api/audio-proxy with host allowlist
   services/revisionDb.ts   Dexie schema, workspace storage keys, insert/query/export/import
 vite.config.ts             Vite config (composes plugins)
 vite/plugins/audioProxy.ts Dev/preview audio proxy middleware
+wrangler.jsonc             Cloudflare Worker config (dist assets + src/worker.ts)
 regression/                Playwright browser tests
 dev_helper_script/         Jupyter notebooks for generating/validating content (audio URLs, YAML checks)
 AI_content_generator_full_prompt_guide.md   Prompt + schema for AI-generated roadmaps, lessons, tests
@@ -133,7 +135,7 @@ Formats:
 ### 4.5 Audio
 
 - Lessons and tests reference audio as Google Translate TTS URLs (`translate.google.com/translate_tts?...`).
-- `utils/audioProxy.ts` rewrites those URLs to `/api/audio-proxy?url=…`. That route exists only in the Vite dev and preview servers (`vite.config.ts`).
+- `utils/audioProxy.ts` rewrites those URLs to `/api/audio-proxy?url=…`. In dev and preview the route is served by the Vite plugin (`vite.config.ts`); in production by the Cloudflare Worker (`src/worker.ts`, §6).
 - `hooks/useAudioAutoAdvance.ts` waits for the audio to finish before advancing a quiz question.
 
 ## 5. Build and run
@@ -146,20 +148,27 @@ Formats:
 | `npm run lint` | Oxlint |
 | `npm test` | Runs `*.test.ts(x)` in `src/` and `regression/` via `test-wrapper.ts` |
 
-## 6. Vite middleware (dev and preview only)
+## 6. Server routes
 
-Defined in `vite/plugins/audioProxy.ts`. None of these exist in the static production build.
+The static build has no server, so the one API route has two implementations with the same behaviour (400 on missing `url`, upstream status on failure, content-type passthrough, `Cache-Control: public, max-age=3600`):
+
+- Dev and preview: Vite middleware in `vite/plugins/audioProxy.ts`.
+- Production: Cloudflare Worker in `src/worker.ts`. It only forwards GET requests to `https://translate.google.com/translate_tts` (anything else gets 403, non-GET gets 405), so it is not an open proxy.
 
 | Route | Method | Purpose |
 |-------|--------|---------|
-| `/api/audio-proxy` | GET | Proxies remote audio to avoid CORS on `fetch` |
+| `/api/audio-proxy` | GET | Proxies Google Translate TTS audio to avoid CORS on `fetch` |
 
 
 ## 7. Hosting and deployment
 
-Today: no hosted deployment. The app runs locally with `npm run dev`.
+Hosted on Cloudflare Workers (free plan, 100k requests/day) from the same project: `wrangler.jsonc` serves `dist/` as static assets and runs `src/worker.ts` for `/api/*` only.
 
-The production build is static (HTML/JS/CSS, no server logic). It can be hosted on any static host. The only runtime dependency beyond the bundle is the external audio URL.
+- Build command: `npm run build`
+- Deploy command: `npx wrangler deploy`, run by Cloudflare on every push to `main`.
+- Local check: `npm run build && npx wrangler dev`.
+
+The static bundle needs no server. The Worker exists only for the audio proxy; the Google TTS endpoint is unofficial (§9), so audio may break independently of the app.
 
 ## 8. Platform constraints (important for mobile)
 
