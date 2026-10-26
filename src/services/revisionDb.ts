@@ -96,7 +96,11 @@ function notifyRevisionRecordsChanged(): void {
 }
 
 export function setActiveWorkspaceStorageKey(workspacePath: string | null | undefined): void {
-  const nextStorageKey = deriveWorkspaceStorageKey(workspacePath);
+  setActiveWorkspaceStorageKeyDirect(deriveWorkspaceStorageKey(workspacePath));
+}
+
+/** For workspaces known only by their cloud key (opened on a device that never had the folder). */
+export function setActiveWorkspaceStorageKeyDirect(nextStorageKey: string): void {
   if (nextStorageKey === activeWorkspaceStorageKey) {
     return;
   }

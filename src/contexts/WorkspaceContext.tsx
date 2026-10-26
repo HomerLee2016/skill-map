@@ -1,8 +1,17 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createDefaultWorkspaceContent, loadWorkspaceContent, type WorkspaceContent } from '../services/workspace';
-import { deriveWorkspaceStorageKey, setActiveWorkspaceStorageKey } from '../services/revisionDb';
-import { ensureCloudWorkspace, fetchCloudWorkspace, saveCloudRoadmap, saveCloudStructure } from '../services/cloudWorkspace';
-import { isCloudPreferred } from '../services/syncConflict';
+import { deriveWorkspaceStorageKey, setActiveWorkspaceStorageKey, setActiveWorkspaceStorageKeyDirect } from '../services/revisionDb';
+import {
+  deleteCloudWorkspace,
+  ensureCloudWorkspace,
+  fetchCloudWorkspace,
+  listCloudWorkspaces,
+  saveCloudRoadmap,
+  saveCloudStructure,
+  type CloudWorkspaceInfo,
+} from '../services/cloudWorkspace';
+import { clearWorkspaceFlags, isCloudPreferred } from '../services/syncConflict';
+import { hasImportedContent, type ImportedWorkspace } from '../services/workspaceImport';
 import { writeWorkspaceRoadmapFile } from '../services/workspaceRoadmapPersistence';
 import { writeWorkspaceStructureFile, type WorkspaceStructureFolder } from '../services/workspaceStructurePersistence';
 import { supabase } from '../lib/supabaseClient';
@@ -27,12 +36,22 @@ interface WorkspaceContextValue {
   workspaceKey: string;
   isLoading: boolean;
   selectedDirectoryHandle: FileSystemDirectoryHandle | null;
+  /** The content came from a folder or import on this device (so it is uploaded), not from the cloud copy or the bundled demo. */
+  hasLocalContent: boolean;
+  /** The signed-in user's workspaces in the cloud; empty when signed out. */
+  cloudWorkspaces: CloudWorkspaceInfo[];
   workspaceSelectionLabel: string;
   workspaceVersion: number;
   workspaceHistory: Array<{ name: string; path: string; pendingCount?: number }>;
   selectWorkspace: () => Promise<void>;
   selectWorkspaceFromHistory: (entry: { name: string; path: string }) => Promise<void>;
-  removeWorkspaceHistoryEntry: (entry: { name: string; path: string }) => void;
+  /** Opens a cloud workspace by key with no local folder (phones). */
+  selectCloudWorkspace: (entry: CloudWorkspaceInfo) => Promise<void>;
+  /** Opens a workspace from files the user picked (folder input or zip), for browsers without the directory picker. */
+  importWorkspace: (imported: ImportedWorkspace) => Promise<void>;
+  refreshCloudWorkspaces: () => Promise<void>;
+  /** Forgets the workspace on this device; with `alsoCloud` it also deletes the user's cloud copy (all devices). */
+  removeWorkspace: (target: { key: string; name: string; local?: { name: string; path: string } }, options: { alsoCloud: boolean }) => Promise<void>;
   refreshWorkspace: () => Promise<void>;
   refreshWorkspaceHistoryCounts: () => Promise<void>;
   /** Writes to the selected folder and, when signed in, to the user's cloud workspace. True if either succeeded. */
@@ -43,6 +62,14 @@ interface WorkspaceContextValue {
 const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefined);
 
 const DEFAULT_WORKSPACE_LABEL = 'Default workspace';
+
+interface LoadTarget {
+  handle: FileSystemDirectoryHandle | null;
+  imported?: ImportedWorkspace;
+  /** Open this workspace by its cloud key instead of deriving the key from a folder name. */
+  cloudKey?: string;
+  fallbackLabel: string;
+}
 
 /** Runs a cloud write for the signed-in user; false when signed out or the write fails. */
 async function tryCloudWrite(userId: string | null, write: () => Promise<void>): Promise<boolean> {
@@ -66,6 +93,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [selectedDirectoryHandle, setSelectedDirectoryHandle] = useState<FileSystemDirectoryHandle | null>(null);
   const [workspaceSelectionLabel, setWorkspaceSelectionLabel] = useState<string>(DEFAULT_WORKSPACE_LABEL);
   const [workspaceVersion, setWorkspaceVersion] = useState(0);
+  const [hasLocalContent, setHasLocalContent] = useState(false);
+  const [cloudWorkspaces, setCloudWorkspaces] = useState<CloudWorkspaceInfo[]>([]);
   const {
     workspaceHistory,
     syncPendingRevisionCount,
@@ -74,39 +103,72 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     removeWorkspaceHistoryItem,
   } = useWorkspaceHistory();
 
-  const loadWorkspaceForHandle = useCallback(async (handle: FileSystemDirectoryHandle | null, fallbackLabel: string) => {
-    const workspaceIdentity = handle?.name ?? null;
+  /** Loads one workspace: a folder handle, imported files, or (no handle) its cloud copy by `cloudKey`/name. */
+  const loadWorkspaceFor = useCallback(async (target: LoadTarget) => {
+    const { handle, imported, cloudKey, fallbackLabel } = target;
+    const workspaceIdentity = handle?.name ?? imported?.name ?? null;
     const requestId = ++loadRequest.current;
-    const nextKey = deriveWorkspaceStorageKey(workspaceIdentity);
-    setActiveWorkspaceStorageKey(workspaceIdentity);
+    let nextKey = cloudKey ?? deriveWorkspaceStorageKey(workspaceIdentity);
+    if (cloudKey) setActiveWorkspaceStorageKeyDirect(cloudKey);
+    else setActiveWorkspaceStorageKey(workspaceIdentity);
 
     setIsLoading(true);
     try {
       // Signed in: this workspace's cloud copy is shown when there is no folder (e.g. phones)
       // and wherever the user chose "keep cloud". Cloud rows are per workspace, never the whole account.
       let cloudWorkspace = null;
-      if (supabase && userId && (!handle || isCloudPreferred(userId, nextKey))) {
+      if (supabase && userId && (!(handle || imported) || isCloudPreferred(userId, nextKey))) {
         try {
           cloudWorkspace = await fetchCloudWorkspace(supabase, nextKey);
         } catch (error) {
           console.error('Failed to load the cloud workspace', error);
         }
       }
-      const nextWorkspace = cloudWorkspace ?? await loadWorkspaceContent(handle);
+      let nextWorkspace = cloudWorkspace ?? imported?.content ?? null;
+      if (!nextWorkspace && cloudKey) {
+        // Signed out (or the cloud copy is gone): show the bundled demo under its own key rather than an empty cloud key.
+        nextKey = deriveWorkspaceStorageKey(null);
+        setActiveWorkspaceStorageKey(null);
+      }
+      nextWorkspace ??= await loadWorkspaceContent(handle);
       // A newer switch started while this one was loading; its result wins.
       if (requestId !== loadRequest.current) return;
       setWorkspace(nextWorkspace);
       setWorkspaceKey(nextKey);
+      setHasLocalContent(Boolean(handle || imported));
       setWorkspaceVersion((value) => value + 1);
-      await syncPendingRevisionCount(workspaceIdentity, handle?.name ?? fallbackLabel);
+      if (!cloudKey) await syncPendingRevisionCount(workspaceIdentity, handle?.name ?? fallbackLabel);
     } finally {
       if (requestId === loadRequest.current) setIsLoading(false);
     }
   }, [syncPendingRevisionCount, userId]);
 
+  const loadWorkspaceForHandle = useCallback(
+    (handle: FileSystemDirectoryHandle | null, fallbackLabel: string) => loadWorkspaceFor({ handle, fallbackLabel }),
+    [loadWorkspaceFor],
+  );
+
+  const refreshCloudWorkspaces = useCallback(async () => {
+    if (!supabase || !userId) {
+      setCloudWorkspaces([]);
+      return;
+    }
+    try {
+      setCloudWorkspaces(await listCloudWorkspaces(supabase));
+    } catch (error) {
+      console.error('Failed to list cloud workspaces', error);
+    }
+  }, [userId]);
+
+  useEffect(() => { void refreshCloudWorkspaces(); }, [refreshCloudWorkspaces, workspaceVersion]);
+
   const refreshWorkspace = useCallback(async () => {
-    await loadWorkspaceForHandle(selectedDirectoryHandle, workspaceSelectionLabel);
-  }, [loadWorkspaceForHandle, selectedDirectoryHandle, workspaceSelectionLabel]);
+    await loadWorkspaceFor({
+      handle: selectedDirectoryHandle,
+      cloudKey: selectedDirectoryHandle ? undefined : workspaceKey,
+      fallbackLabel: workspaceSelectionLabel,
+    });
+  }, [loadWorkspaceFor, selectedDirectoryHandle, workspaceKey, workspaceSelectionLabel]);
 
   const refreshWorkspaceHistoryCounts = useCallback(async () => {
     const identity = selectedDirectoryHandle?.name ?? workspaceSelectionLabel ?? null;
@@ -127,6 +189,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
       await restoreWorkspaceHistory();
 
+      if (persistedSelection?.cloudKey) {
+        // No folder on this device: reopen by key (cloud copy), whatever folder was used before.
+        await loadWorkspaceFor({ handle: null, cloudKey: persistedSelection.cloudKey, fallbackLabel: DEFAULT_WORKSPACE_LABEL });
+        return;
+      }
+
       const restoredHandle = await readPersistedWorkspaceHandle();
       if (restoredHandle) {
         setSelectedDirectoryHandle(restoredHandle);
@@ -141,7 +209,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     };
 
     void restoreWorkspace();
-  }, [restoreWorkspaceHistory, loadWorkspaceForHandle]);
+  }, [restoreWorkspaceHistory, loadWorkspaceForHandle, loadWorkspaceFor]);
 
   const updateWorkspaceSelection = useCallback(async (handle: FileSystemDirectoryHandle | null, selectionPath: string, selectionLabel: string) => {
     setSelectedDirectoryHandle(handle);
@@ -201,6 +269,48 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
   }, [updateWorkspaceSelection]);
 
+  const selectCloudWorkspace = useCallback(async (entry: CloudWorkspaceInfo) => {
+    setSelectedDirectoryHandle(null);
+    setWorkspaceSelectionLabel(entry.name);
+    writePersistedWorkspaceSelection({ name: entry.name, path: entry.name, cloudKey: entry.key });
+    document.title = `Skill Map · ${entry.name}`;
+    await loadWorkspaceFor({ handle: null, cloudKey: entry.key, fallbackLabel: entry.name });
+  }, [loadWorkspaceFor]);
+
+  const importWorkspace = useCallback(async (imported: ImportedWorkspace) => {
+    if (!hasImportedContent(imported)) {
+      window.alert(`No lessons, tests or roadmaps were found in "${imported.name}". Pick the workspace folder (or a zip) that contains lessons/, tests/ or roadmaps/.`);
+      return;
+    }
+    const key = deriveWorkspaceStorageKey(imported.name);
+    setSelectedDirectoryHandle(null);
+    setWorkspaceSelectionLabel(imported.name);
+    writePersistedWorkspaceSelection({ name: imported.name, path: imported.name, cloudKey: key });
+    document.title = `Skill Map · ${imported.name}`;
+    await loadWorkspaceFor({ handle: null, imported, fallbackLabel: imported.name });
+  }, [loadWorkspaceFor]);
+
+  const removeWorkspace = useCallback(async (
+    target: { key: string; name: string; local?: { name: string; path: string } },
+    { alsoCloud }: { alsoCloud: boolean },
+  ) => {
+    if (alsoCloud) {
+      if (!supabase || !userId) throw new Error('Sign in to delete the cloud copy.');
+      await deleteCloudWorkspace(supabase, target.key);
+      clearWorkspaceFlags(userId, target.key);
+      await refreshCloudWorkspaces();
+    }
+    if (target.local) removeWorkspaceHistoryItem(target.local);
+    if (target.key === workspaceKey && (alsoCloud || target.local)) {
+      // The open workspace was removed: fall back to the bundled demo instead of leaving a dangling selection.
+      setSelectedDirectoryHandle(null);
+      setWorkspaceSelectionLabel(DEFAULT_WORKSPACE_LABEL);
+      writePersistedWorkspaceSelection({ name: DEFAULT_WORKSPACE_LABEL, path: DEFAULT_WORKSPACE_LABEL, cloudKey: deriveWorkspaceStorageKey(null) });
+      document.title = `Skill Map · ${DEFAULT_WORKSPACE_LABEL}`;
+      await loadWorkspaceFor({ handle: null, cloudKey: deriveWorkspaceStorageKey(null), fallbackLabel: DEFAULT_WORKSPACE_LABEL });
+    }
+  }, [userId, workspaceKey, removeWorkspaceHistoryItem, refreshCloudWorkspaces, loadWorkspaceFor]);
+
   const persistRoadmap = useCallback(async (roadmap: SavedRoadmap) => {
     const [folderSaved, cloudSaved] = await Promise.all([
       writeWorkspaceRoadmapFile(selectedDirectoryHandle, roadmap),
@@ -228,17 +338,22 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     workspaceKey,
     isLoading,
     selectedDirectoryHandle,
+    hasLocalContent,
+    cloudWorkspaces,
     workspaceSelectionLabel,
     workspaceVersion,
     workspaceHistory,
     selectWorkspace,
     selectWorkspaceFromHistory,
-    removeWorkspaceHistoryEntry: removeWorkspaceHistoryItem,
+    selectCloudWorkspace,
+    importWorkspace,
+    refreshCloudWorkspaces,
+    removeWorkspace,
     refreshWorkspace,
     refreshWorkspaceHistoryCounts,
     persistRoadmap,
     persistStructure,
-  }), [persistRoadmap, persistStructure, workspace, workspaceKey, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion, workspaceHistory, selectWorkspace, selectWorkspaceFromHistory, refreshWorkspace, refreshWorkspaceHistoryCounts, removeWorkspaceHistoryItem]);
+  }), [persistRoadmap, persistStructure, workspace, workspaceKey, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion, workspaceHistory, selectWorkspace, selectWorkspaceFromHistory, refreshWorkspace, refreshWorkspaceHistoryCounts, hasLocalContent, cloudWorkspaces, selectCloudWorkspace, importWorkspace, refreshCloudWorkspaces, removeWorkspace]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

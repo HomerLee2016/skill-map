@@ -49,3 +49,10 @@ export const isCloudPreferred = (userId: string | null, workspaceKey: string) =>
 export const setCloudPreferred = (userId: string, workspaceKey: string, value: boolean) => writeFlag(preferCloudKey(userId, workspaceKey), value);
 export const isLegacyAdopted = (userId: string, workspaceKey: string) => readFlag(legacyAdoptedKey(userId, workspaceKey));
 export const markLegacyAdopted = (userId: string, workspaceKey: string) => writeFlag(legacyAdoptedKey(userId, workspaceKey), true);
+
+/** Drops the per-workspace sync flags (after its cloud copy was deleted, so a later import starts clean). */
+export function clearWorkspaceFlags(userId: string, workspaceKey: string): void {
+  writeFlag(resolvedKey(userId, workspaceKey), false);
+  writeFlag(preferCloudKey(userId, workspaceKey), false);
+  writeFlag(legacyAdoptedKey(userId, workspaceKey), false);
+}

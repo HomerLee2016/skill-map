@@ -1,6 +1,8 @@
 export interface PersistedWorkspaceSelection {
   name: string;
   path: string;
+  /** Set when the workspace has no folder on this device (opened from the cloud or imported); it is reopened by this key. */
+  cloudKey?: string;
 }
 
 export interface PersistedWorkspaceHistoryEntry {
@@ -41,7 +43,9 @@ export function readPersistedWorkspaceSelection(storage?: Storage | null): Persi
   try {
     const parsed = JSON.parse(rawValue) as Partial<PersistedWorkspaceSelection>;
     if (parsed && typeof parsed.name === 'string' && typeof parsed.path === 'string') {
-      return { name: parsed.name, path: parsed.path };
+      return typeof parsed.cloudKey === 'string'
+        ? { name: parsed.name, path: parsed.path, cloudKey: parsed.cloudKey }
+        : { name: parsed.name, path: parsed.path };
     }
   } catch {
     // Ignore invalid persisted entries and fall back to null.

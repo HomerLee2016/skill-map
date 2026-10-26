@@ -67,6 +67,7 @@
     border-bottom: 1px solid var(--topbar-border);
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
     max-height: calc(100vh - 48px);
+    max-height: calc(100dvh - 48px);
     overflow-y: auto;
   }
 
@@ -286,5 +287,25 @@
 
   .summary-table th {
     white-space: nowrap;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Every tab scrolls inside its own pane (the page itself is fixed), so make touch scrolling reliable. */
+  .lessons-content,
+  .tests-content,
+  .lessons-sidebar,
+  .tests-sidebar,
+  .sidebar,
+  .top-bar-menu {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+
+  .lessons-content,
+  .tests-content {
+    min-width: 0;
+    padding: 16px 16px 32px 40px; /* clear of the sidebar toggle */
   }
 }

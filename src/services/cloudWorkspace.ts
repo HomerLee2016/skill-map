@@ -39,6 +39,28 @@ export async function ensureCloudWorkspace(client: SupabaseClient, workspaceKey:
   ensured.add(workspaceKey);
 }
 
+export interface CloudWorkspaceInfo {
+  key: string;
+  name: string;
+}
+
+/** The placeholder row migration 20261027020000 made for rows from before workspaces existed. */
+const LEGACY_KEY = 'legacy';
+
+/** Every workspace of the signed-in user (RLS scopes the user), newest first. */
+export async function listCloudWorkspaces(client: SupabaseClient): Promise<CloudWorkspaceInfo[]> {
+  const { data, error } = await client.from('workspaces').select('key,name,updated_at').order('updated_at', { ascending: false });
+  fail(error);
+  return (data ?? []).filter((row) => row.key !== LEGACY_KEY).map((row) => ({ key: row.key as string, name: row.name as string }));
+}
+
+/** Deletes the cloud copy of one workspace: the row cascades to its lessons, tests, roadmaps, structures and revision records. */
+export async function deleteCloudWorkspace(client: SupabaseClient, workspaceKey: string): Promise<void> {
+  const { error } = await client.from('workspaces').delete().eq('key', workspaceKey);
+  fail(error);
+  ensured.delete(workspaceKey);
+}
+
 function chunk<T>(items: T[]): T[][] {
   const chunks: T[][] = [];
   for (let index = 0; index < items.length; index += CHUNK_SIZE) chunks.push(items.slice(index, index + CHUNK_SIZE));

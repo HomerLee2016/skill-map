@@ -47,6 +47,7 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest, onUnsavedChangesChange }:
       setRoadmaps([]);
       setSelectedRoadmapId('untitled');
       setYamlText('');
+      lastSavedYamlRef.current = '';
       return;
     }
 
