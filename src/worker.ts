@@ -5,12 +5,14 @@
 const ROUTE = '/api/audio-proxy';
 const ALLOWED_HOST = 'translate.google.com';
 const ALLOWED_PATH = '/translate_tts';
+const MAX_URL_LENGTH = 600;
 
 interface Env {
   ASSETS: { fetch(request: Request): Promise<Response> };
 }
 
 export function isAllowedAudioUrl(remoteUrl: string): boolean {
+  if (remoteUrl.length > MAX_URL_LENGTH) return false;
   try {
     const url = new URL(remoteUrl);
     return url.protocol === 'https:' && url.hostname === ALLOWED_HOST && url.pathname === ALLOWED_PATH;
@@ -35,18 +37,23 @@ export async function handleAudioProxy(request: Request, fetchRemote: typeof fet
   try {
     const response = await fetchRemote(remoteUrl, { redirect: 'manual' });
     if (!response.ok) {
-      return new Response(await response.text(), { status: response.status });
+      return new Response('Audio upstream error', { status: response.status >= 400 && response.status < 600 ? response.status : 502 });
+    }
+    const contentType = response.headers.get('content-type') || 'audio/mpeg';
+    if (!contentType.toLowerCase().startsWith('audio/')) {
+      return new Response('Unexpected upstream content type', { status: 502 });
     }
 
     return new Response(response.body, {
       status: 200,
       headers: {
-        'Content-Type': response.headers.get('content-type') || 'audio/mpeg',
+        'Content-Type': contentType,
         'Cache-Control': 'public, max-age=3600',
+        'X-Content-Type-Options': 'nosniff',
       },
     });
-  } catch (error) {
-    return new Response((error instanceof Error && error.message) || 'Audio proxy failed', { status: 500 });
+  } catch {
+    return new Response('Audio proxy failed', { status: 500 });
   }
 }
 
