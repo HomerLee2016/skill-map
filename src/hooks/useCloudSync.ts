@@ -27,6 +27,7 @@ import {
   type SideSummary,
 } from '../services/syncConflict';
 import { supabase } from '../lib/supabaseClient';
+import type { LastSync, SyncTrigger } from '../utils/syncStatus';
 
 const DEBOUNCE_MS = 2000;
 const AUTO_SYNC_KEY = 'skill-map-auto-sync';
@@ -52,8 +53,11 @@ export function useCloudSync() {
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<PendingConflict | null>(null);
   const [autoSync, setAutoSyncState] = useState(readAutoSync);
+  const [lastSync, setLastSync] = useState<LastSync | null>(null);
   const running = useRef(false);
-  const rerunAfter = useRef(false);
+  const rerunAfter = useRef<SyncTrigger | null>(null);
+  // The re-read done by "Sync now" bumps workspaceVersion, which queues a second sync; both belong to the manual press.
+  const manualActive = useRef(false);
   const userId = user?.id ?? null;
   // A selected folder (or import) is the working copy; without one the cloud copy is shown, so nothing local to upload.
   const localContent = hasLocalContent ? workspace : null;
@@ -72,11 +76,12 @@ export function useCloudSync() {
     return key === getActiveWorkspaceStorageKey() ? { workspaceKey: key, store: revisionStore } : null;
   }, []);
 
-  const runSync = useCallback(async (pushContent: boolean): Promise<void> => {
+  const runSync = useCallback(async (pushContent: boolean, requested: SyncTrigger): Promise<void> => {
+    const trigger = manualActive.current ? 'manual' : requested;
     if (!supabase || !userId) return;
     if (running.current) {
       // A switch mid-sync must not be dropped: run again for the new workspace once this one ends.
-      rerunAfter.current = true;
+      rerunAfter.current = trigger;
       return;
     }
     const scope = currentScope();
@@ -110,15 +115,18 @@ export function useCloudSync() {
       await syncRevisionRecords(supabase, scope, remote);
       if (pushContent && content) await pushWorkspaceContent(supabase, key, content);
       setError(null);
+      setLastSync({ at: Date.now(), trigger });
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Sync failed');
     } finally {
       running.current = false;
       setIsSyncing(false);
-      if (rerunAfter.current) {
-        rerunAfter.current = false;
-        void runSyncRef.current(true);
+      const queued = rerunAfter.current;
+      if (!queued) manualActive.current = false;
+      if (queued) {
+        rerunAfter.current = null;
+        void runSyncRef.current(true, queued);
       }
     }
   }, [userId, currentScope]);
@@ -127,18 +135,21 @@ export function useCloudSync() {
 
   /** Re-reads the folder (or the cloud copy on a phone) first so files added since it was loaded are uploaded / pulled in. */
   const syncNow = useCallback(async () => {
+    manualActive.current = true;
     try {
       await refreshWorkspace();
     } catch (err) {
       console.error(err);
     }
-    await runSync(true);
+    await runSync(true, 'manual');
+    // A sync that bailed out early never reaches its finally block.
+    if (!running.current && !rerunAfter.current) manualActive.current = false;
   }, [refreshWorkspace, runSync]);
 
   useEffect(() => {
     // Another workspace's pending conflict prompt no longer applies.
     setConflict(null);
-    void runSync(true);
+    void runSync(true, 'workspace');
   }, [runSync, workspaceVersion]);
 
   const resolveConflict = useCallback(async (choice: ConflictChoice) => {
@@ -186,7 +197,7 @@ export function useCloudSync() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const unsubscribe = onRevisionRecordsChanged(() => {
       clearTimeout(timer);
-      timer = setTimeout(() => { void runSync(false); }, DEBOUNCE_MS);
+      timer = setTimeout(() => { void runSync(false, 'revision'); }, DEBOUNCE_MS);
     });
     return () => {
       clearTimeout(timer);
@@ -194,5 +205,5 @@ export function useCloudSync() {
     };
   }, [userId, autoSync, runSync]);
 
-  return { syncNow, isSyncing, error, autoSync, setAutoSync, conflict, resolveConflict };
+  return { syncNow, isSyncing, error, lastSync, autoSync, setAutoSync, conflict, resolveConflict };
 }

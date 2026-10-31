@@ -1922,6 +1922,12 @@ body, html, #root {
   color: var(--topbar-link);
 }
 
+.top-bar-user-menu-sync-status {
+  padding: 0 8px;
+  font-size: 11px;
+  color: var(--topbar-link);
+}
+
 .top-bar-user-menu-email {
   overflow: hidden;
   text-overflow: ellipsis;
