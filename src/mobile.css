@@ -164,6 +164,11 @@
     font-size: 15px;
   }
 
+  .top-bar-user-menu-sync-status {
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
   .top-bar-theme {
     order: 0;
     justify-content: space-between;
