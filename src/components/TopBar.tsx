@@ -22,6 +22,9 @@ const NAV_ITEMS: { id: PageId; label: string }[] = [
   { id: 'revision', label: 'Revision' },
 ];
 
+/** Question bank and discussion board (GitHub Discussions). */
+const COMMUNITY_URL = 'https://github.com/HomerLee2016/life-in-hk/discussions';
+
 export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBarProps) {
   const {
     selectWorkspace,
@@ -236,6 +239,14 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
           ))}
         </nav>
       <div className="top-bar-actions">
+        <a
+          className="top-bar-link"
+          href={COMMUNITY_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Community
+        </a>
         <UserMenu />
         {darkModeToggle('top-bar-theme')}
       </div>
