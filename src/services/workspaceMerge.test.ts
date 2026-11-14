@@ -111,3 +111,15 @@ test('revision records merge by question: newest answer wins, renamed tests keep
   assert.equal(merged.find((r) => r.hash === 'h3')!.quiz_title, 'New title');
   assert.ok(merged.every((r) => r.id === undefined));
 });
+
+test('merging into an existing target reports only what the others added, and merging again changes nothing', () => {
+  const target = empty();
+  target.lessons = [{ id: 'lesson-1', title: 'Greetings', content: 'g' }];
+  const other = empty();
+  other.lessons = [{ id: 'lesson-1', title: 'Past', content: 'p' }, { id: 'lesson-2', title: 'Food', content: 'f' }];
+  const first = mergeWorkspaceContents([{ name: 'T', content: target }, { name: 'O', content: other }], { firstIsTarget: true });
+  assert.deepEqual(first.report.lessons, { added: 2, duplicates: 0, renamed: 1 });
+  const second = mergeWorkspaceContents([{ name: 'T', content: first.content }, { name: 'O', content: other }], { firstIsTarget: true });
+  assert.deepEqual(second.report.lessons, { added: 0, duplicates: 2, renamed: 0 });
+  assert.equal(second.content.lessons.length, 3);
+});

@@ -39,7 +39,10 @@ export async function mergeCloudWorkspaces(
     ...source,
     content: source.content ?? (await fetchCloudWorkspace(client, source.key)) ?? emptyContent(),
   })));
-  const { content, report, idMaps } = mergeWorkspaceContents(loaded.map(({ name, content: body }) => ({ name, content: body })));
+  const { content, report, idMaps } = mergeWorkspaceContents(
+    loaded.map(({ name, content: body }) => ({ name, content: body })),
+    { firstIsTarget: sources[0]?.key === target.key },
+  );
 
   const sets = await Promise.all(loaded.map(async (source, index) => {
     const [remote, local] = await Promise.all([fetchRemoteRevisionRecords(client, source.key).catch(() => []), readLocalRecords(source.key).catch(() => [])]);

@@ -12,6 +12,8 @@ interface BrowseSharedPanelProps {
   onChanged: () => Promise<void>;
 }
 
+const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;
+
 function Titles({ label, titles }: { label: string; titles: string[] }) {
   if (titles.length === 0) return null;
   return (
@@ -113,7 +115,7 @@ export function BrowseSharedPanel({ shared, loading, error, onChanged }: BrowseS
               </div>
               {item.description ? <p className="sharing-card-desc">{item.description}</p> : null}
               <div className="sharing-counts">
-                <span>{item.lessonCount} lessons</span><span>{item.testCount} tests</span><span>{item.roadmapCount} roadmaps</span>
+                <span>{plural(item.lessonCount, 'lesson')}</span><span>{plural(item.testCount, 'test')}</span><span>{plural(item.roadmapCount, 'roadmap')}</span>
               </div>
               {previewId === item.id ? (
                 <div className="sharing-preview">

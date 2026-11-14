@@ -7,7 +7,7 @@
 
 Skill Map is a **client-side-only React + TypeScript web app** for language and skill learning. It has no backend in production. Everything runs in the browser.
 
-Four views:
+Five views (the fifth, Sharing hub, only works signed in; see `supabase/README.md`):
 
 | View | File | Purpose |
 |------|------|---------|
@@ -15,6 +15,9 @@ Four views:
 | Lessons | `src/Lessons.tsx` | Markdown lessons (+ embedded HTML/`<audio>`) in a folder tree |
 | Tests | `src/Tests.tsx` | Multiple-choice quizzes from YAML, shuffled options, audio, review of wrong answers |
 | Revision | `src/Revision.tsx` | Five-stage spaced repetition over previously answered questions |
+| Sharing hub | `src/Sharing.tsx` | Publish a snapshot of a workspace (picked lessons/tests/roadmaps, no revision) and clone other people's snapshots into a new workspace. Logic: `services/sharingSnapshot.ts` (snapshot + sanitising), `services/sharedWorkspaces.ts` (Supabase calls) |
+
+Merging workspaces lives in the workspace menu (`components/MergeWorkspaceDialog.tsx`, pure logic in `services/workspaceMerge.ts`, cloud + revision records in `services/cloudMerge.ts`).
 
 Guiding principle: the app is a **language-learning helper, not a teacher**. Content is authored (often with AI) as plain files; the app just organises, quizzes and schedules review.
 

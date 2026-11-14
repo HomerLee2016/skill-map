@@ -164,8 +164,9 @@ export function remapRoadmapLinks(yaml: string, lessons: Map<string, string>, te
  * Merges the contents of two or more workspaces into one. The first source has priority; later ones add
  * what is new. Identical lessons, tests and roadmaps collapse into one; same-id-different-content ones are
  * kept side by side under a new id and a "(source name)" title, so no one's work is overwritten.
+ * With `firstIsTarget` the first source is the workspace being merged into: the report only counts what the others added.
  */
-export function mergeWorkspaceContents(sources: MergeSource[]): MergeResult {
+export function mergeWorkspaceContents(sources: MergeSource[], { firstIsTarget = false }: { firstIsTarget?: boolean } = {}): MergeResult {
   const lessons: LessonItem[] = [];
   const tests: TestItem[] = [];
   const roadmaps: SavedRoadmap[] = [];
@@ -174,7 +175,7 @@ export function mergeWorkspaceContents(sources: MergeSource[]): MergeResult {
   let lessonStructure: StructureTree = emptyStructureTree();
   let testsStructure: TestsStructure = emptyTestsStructure();
 
-  for (const source of sources) {
+  for (const [index, source] of sources.entries()) {
     const maps: IdMaps = { lessons: new Map(), tests: new Map(), testTitles: new Map() };
     idMaps.push(maps);
     const { content } = source;
@@ -200,6 +201,12 @@ export function mergeWorkspaceContents(sources: MergeSource[]): MergeResult {
       revision: mergeTrees(testsStructure.revision, content.testsStructure.revision, (id) => maps.tests.get(id)),
       new_tests: mergeTrees(testsStructure.new_tests, content.testsStructure.new_tests, (id) => maps.tests.get(id)),
     };
+    // What the target already held is not part of "what this merge did".
+    if (firstIsTarget && index === 0) {
+      report.lessons = emptyReport();
+      report.tests = emptyReport();
+      report.roadmaps = emptyReport();
+    }
   }
 
   lessons.sort((a, b) => a.title.localeCompare(b.title));
