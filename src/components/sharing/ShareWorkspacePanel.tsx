@@ -32,7 +32,7 @@ export function ShareWorkspacePanel({ shared, onChanged }: ShareWorkspacePanelPr
   const [selection, setSelection] = useState<ShareSelection>(EMPTY_SELECTION);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [ownerLabel, setOwnerLabel] = useState(() => user?.email?.split('@')[0] ?? '');
+  const [ownerLabel, setOwnerLabel] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
 
