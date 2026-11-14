@@ -4,6 +4,7 @@ import { useWorkspace } from '../contexts/WorkspaceContext';
 import type { PageId } from '../types';
 import { handleWorkspaceTriggerClick } from './workspaceTrigger';
 import { RemoveWorkspaceDialog } from './RemoveWorkspaceDialog';
+import { MergeWorkspaceDialog } from './MergeWorkspaceDialog';
 import { useAuth } from '../contexts/AuthContext';
 import { mergeWorkspaceLists, type WorkspaceListEntry } from '../utils/workspaceList';
 import { buildImportedWorkspace, filesFromFileList, filesFromZip } from '../services/workspaceImport';
@@ -20,6 +21,7 @@ const NAV_ITEMS: { id: PageId; label: string }[] = [
   { id: 'lessons', label: 'Lessons' },
   { id: 'tests', label: 'Tests' },
   { id: 'revision', label: 'Revision' },
+  { id: 'sharing', label: 'Sharing hub' },
 ];
 
 export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBarProps) {
@@ -41,6 +43,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
   const folderInputRef = useRef<HTMLInputElement | null>(null);
   const zipInputRef = useRef<HTMLInputElement | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<WorkspaceListEntry | null>(null);
+  const [isMergeOpen, setIsMergeOpen] = useState(false);
   const hasDirectoryPicker = typeof window !== 'undefined' && typeof (window as Window & { showDirectoryPicker?: unknown }).showDirectoryPicker === 'function';
   const workspaceEntries = mergeWorkspaceLists(workspaceHistory, cloudWorkspaces);
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
@@ -178,6 +181,15 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
             >
               + Browse from local
             </button>
+            {user && workspaceEntries.filter((entry) => entry.inCloud).length >= 2 ? (
+              <button
+                type="button"
+                className="top-bar-workspace-menu-item top-bar-workspace-menu-item--action"
+                onClick={() => { setIsWorkspaceMenuOpen(false); setIsMergeOpen(true); }}
+              >
+                ⇄ Merge workspaces…
+              </button>
+            ) : null}
             {hasDirectoryPicker ? null : (
               <button
                 type="button"
@@ -205,6 +217,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
           onChange={(event) => { void handlePickedFiles(event.target.files, true); event.target.value = ''; }}
         />
       </div>
+      {isMergeOpen ? <MergeWorkspaceDialog entries={workspaceEntries} onClose={() => setIsMergeOpen(false)} /> : null}
       {pendingRemoval ? (
         <RemoveWorkspaceDialog
           entry={pendingRemoval}

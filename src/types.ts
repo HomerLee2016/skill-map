@@ -31,4 +31,4 @@ export interface SavedRoadmap {
   yaml: string;
 }
 
-export type PageId = 'roadmap' | 'lessons' | 'tests' | 'revision';
+export type PageId = 'roadmap' | 'lessons' | 'tests' | 'revision' | 'sharing';

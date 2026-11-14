@@ -39,7 +39,7 @@ export async function fetchRemoteRevisionRecords(client: SupabaseClient, workspa
   return ((data ?? []) as RemoteRow[]).map((row) => ({ ...row.data, hash: row.hash, last_time: row.last_time }));
 }
 
-async function upsertRecords(client: SupabaseClient, workspaceKey: string, records: CompletedQuestionRecord[]): Promise<void> {
+export async function upsertRecords(client: SupabaseClient, workspaceKey: string, records: CompletedQuestionRecord[]): Promise<void> {
   // Duplicate hashes in one upsert batch make Postgres fail with 21000.
   const rows = dedupeByHash(records).map(({ id: _id, ...rest }) => ({
     workspace_key: workspaceKey,
