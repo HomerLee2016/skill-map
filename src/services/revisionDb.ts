@@ -161,6 +161,17 @@ export async function getAllCompletedQuestions(store: RevisionDexieStore = revis
   return store.completed_questions.orderBy('next_revision_time').toArray();
 }
 
+/** Every local revision record of one workspace by storage key (the active store, or a throwaway handle on another). */
+export async function getCompletedQuestionsForKey(storageKey: string): Promise<CompletedQuestionRecord[]> {
+  if (storageKey === activeWorkspaceStorageKey) return getAllCompletedQuestions();
+  const store = new RevisionDexieStore(storageKey);
+  try {
+    return await store.completed_questions.toArray();
+  } finally {
+    store.close();
+  }
+}
+
 export async function getDueRevisionQuestions(now: string = new Date().toISOString()): Promise<CompletedQuestionRecord[]> {
   return revisionStore.completed_questions.where('next_revision_time').belowOrEqual(now).toArray();
 }
