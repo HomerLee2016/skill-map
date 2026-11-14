@@ -4,6 +4,7 @@ import Roadmap from './Roadmap';
 import Lessons from './Lessons';
 import Tests from './Tests';
 import Revision from './Revision';
+import Sharing from './Sharing';
 import { AuthProvider } from './contexts/AuthContext';
 import { useWorkspace, WorkspaceProvider } from './contexts/WorkspaceContext';
 import type { PageId } from './types';
@@ -98,6 +99,12 @@ function AppContent() {
             aria-hidden={page !== 'revision'}
           >
             <Revision />
+          </div>
+          <div
+            className={page === 'sharing' ? 'page-panel page-panel--active' : 'page-panel'}
+            aria-hidden={page !== 'sharing'}
+          >
+            <Sharing active={page === 'sharing'} />
           </div>
         </main>
       </div>

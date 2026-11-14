@@ -314,3 +314,13 @@
     padding: 16px 16px 32px 40px; /* clear of the sidebar toggle */
   }
 }
+
+@media (max-width: 768px) {
+  .sharing-inner { padding: 14px 12px 40px; }
+  .sharing-title { font-size: 19px; }
+  .sharing-tab { flex: 1; padding: 10px 6px; font-size: 14px; }
+  .sharing-actions .toolbar-btn, .sharing-actions .modal-btn-cancel { flex: 1 1 100%; min-height: 40px; }
+  .sharing-checklist-items { max-height: 200px; }
+  .merge-dialog .modal-actions { flex-direction: column-reverse; }
+  .merge-dialog .modal-actions .toolbar-btn, .merge-dialog .modal-actions .modal-btn-cancel { width: 100%; min-height: 40px; }
+}
