@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ensureCloudWorkspace, fetchCloudWorkspace, pushWorkspaceContent } from './cloudWorkspace';
 import { fetchRemoteRevisionRecords, upsertRecords } from './revisionSync';
+import { countContent, type ContentCounts } from './cloudWorkspace';
 import { mergeRevisionRecordSets } from './revisionSyncMerge';
 import type { CompletedQuestionRecord } from './revisionDb';
 import { emptyStructureTree, emptyTestsStructure } from './workspaceParsing';
@@ -54,4 +55,30 @@ export async function mergeCloudWorkspaces(
   await pushWorkspaceContent(client, target.key, content);
   if (records.length > 0) await upsertRecords(client, target.key, records);
   return { targetKey: target.key, targetName: target.name, report, revisionRecords: records.length };
+}
+
+export interface DuplicateOutcome {
+  targetKey: string;
+  targetName: string;
+  counts: ContentCounts;
+  revisionRecords: number;
+}
+
+/**
+ * An exact copy of one workspace (every lesson, test, roadmap, folder tree and revision record, no de-duplication)
+ * under a new key, so it can be changed without touching the original.
+ */
+export async function duplicateCloudWorkspace(
+  client: SupabaseClient,
+  source: MergeInput,
+  target: { key: string; name: string },
+  readLocalRecords: (workspaceKey: string) => Promise<CompletedQuestionRecord[]>,
+): Promise<DuplicateOutcome> {
+  const content = source.content ?? (await fetchCloudWorkspace(client, source.key)) ?? emptyContent();
+  const [remote, local] = await Promise.all([fetchRemoteRevisionRecords(client, source.key).catch(() => []), readLocalRecords(source.key).catch(() => [])]);
+  const records = mergeRevisionRecordSets([{ records: [...local, ...remote], titles: new Map() }]);
+  await ensureCloudWorkspace(client, target.key, target.name);
+  await pushWorkspaceContent(client, target.key, structuredClone(content));
+  if (records.length > 0) await upsertRecords(client, target.key, records);
+  return { targetKey: target.key, targetName: target.name, counts: countContent(content), revisionRecords: records.length };
 }

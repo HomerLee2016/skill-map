@@ -5,6 +5,7 @@ import type { PageId } from '../types';
 import { handleWorkspaceTriggerClick } from './workspaceTrigger';
 import { RemoveWorkspaceDialog } from './RemoveWorkspaceDialog';
 import { MergeWorkspaceDialog } from './MergeWorkspaceDialog';
+import { DuplicateWorkspaceDialog } from './DuplicateWorkspaceDialog';
 import { useAuth } from '../contexts/AuthContext';
 import { mergeWorkspaceLists, type WorkspaceListEntry } from '../utils/workspaceList';
 import { buildImportedWorkspace, filesFromFileList, filesFromZip } from '../services/workspaceImport';
@@ -44,6 +45,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
   const zipInputRef = useRef<HTMLInputElement | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<WorkspaceListEntry | null>(null);
   const [isMergeOpen, setIsMergeOpen] = useState(false);
+  const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
   const hasDirectoryPicker = typeof window !== 'undefined' && typeof (window as Window & { showDirectoryPicker?: unknown }).showDirectoryPicker === 'function';
   const workspaceEntries = mergeWorkspaceLists(workspaceHistory, cloudWorkspaces);
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
@@ -181,6 +183,15 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
             >
               + Browse from local
             </button>
+            {user && workspaceEntries.some((entry) => entry.inCloud) ? (
+              <button
+                type="button"
+                className="top-bar-workspace-menu-item top-bar-workspace-menu-item--action"
+                onClick={() => { setIsWorkspaceMenuOpen(false); setIsDuplicateOpen(true); }}
+              >
+                ⧉ Duplicate workspace…
+              </button>
+            ) : null}
             {user && workspaceEntries.filter((entry) => entry.inCloud).length >= 2 ? (
               <button
                 type="button"
@@ -217,6 +228,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
           onChange={(event) => { void handlePickedFiles(event.target.files, true); event.target.value = ''; }}
         />
       </div>
+      {isDuplicateOpen ? <DuplicateWorkspaceDialog entries={workspaceEntries} onClose={() => setIsDuplicateOpen(false)} /> : null}
       {isMergeOpen ? <MergeWorkspaceDialog entries={workspaceEntries} onClose={() => setIsMergeOpen(false)} /> : null}
       {pendingRemoval ? (
         <RemoveWorkspaceDialog

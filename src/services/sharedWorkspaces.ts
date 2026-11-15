@@ -100,7 +100,7 @@ export async function fetchSharedContent(client: SupabaseClient, sharedId: strin
 }
 
 /** A key no folder name can collide with, so a clone is always a new workspace. */
-export function newWorkspaceKey(prefix: 'shared' | 'merged', random: () => string = () => crypto.randomUUID()): string {
+export function newWorkspaceKey(prefix: 'shared' | 'merged' | 'copy', random: () => string = () => crypto.randomUUID()): string {
   return `${prefix}-${random().replace(/-/g, '').slice(0, 16)}`;
 }
 

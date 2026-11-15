@@ -361,6 +361,38 @@ async function run() {
   await shot(bo.page, 'desktop-5-merge-into-existing');
   await bo.page.locator('button', { hasText: 'Close' }).click();
 
+  // ---------------------------------------------------------------- Duplicate workspace
+  const beforeLessons = rows('lessons', BO.id, merged).length;
+  const beforeRevision = rows('revision_records', BO.id, merged).length;
+  await bo.page.locator('.top-bar-workspace-trigger').click();
+  await shot(bo.page, 'desktop-7-workspace-menu');
+  await bo.page.locator('.top-bar-workspace-menu-item--action', { hasText: 'Duplicate workspace' }).click();
+  await bo.page.waitForSelector('.merge-dialog');
+  await bo.page.locator('select[aria-label="Workspace to duplicate"]').selectOption({ label: 'Spanish lv1+lv2' });
+  await bo.page.locator('input[aria-label="Name of the copy"]').fill('Spanish lv1+lv2 (sandbox)');
+  await shot(bo.page, 'desktop-8-duplicate-dialog');
+  await bo.page.locator('button', { hasText: /^Duplicate$/ }).click();
+  await bo.page.waitForSelector('.merge-report');
+  await shot(bo.page, 'desktop-9-duplicate-done');
+  const copyKey = keyOf(BO.id, 'Spanish lv1+lv2 (sandbox)');
+  check('Duplicate: a new workspace with its own key exists', Boolean(copyKey) && copyKey !== merged && copyKey!.startsWith('copy-'));
+  check('Duplicate: every lesson, test, roadmap is copied exactly', rows('lessons', BO.id, copyKey).length === beforeLessons && rows('tests', BO.id, copyKey).length === 2 && rows('roadmaps', BO.id, copyKey).length === 2 && JSON.stringify(rows('lessons', BO.id, copyKey).map((r) => [r.id, r.content]).sort()) === JSON.stringify(rows('lessons', BO.id, merged).map((r) => [r.id, r.content]).sort()));
+  check('Duplicate: revision progress is copied', rows('revision_records', BO.id, copyKey).length === beforeRevision);
+  check('Duplicate: the original is unchanged', rows('lessons', BO.id, merged).length === beforeLessons && rows('revision_records', BO.id, merged).length === beforeRevision);
+  await bo.page.locator('button', { hasText: 'Open the copy' }).click();
+  await settle(bo.page);
+  check('Duplicate: the copy opens', ((await bo.page.locator('.top-bar-workspace-label').textContent()) ?? '').includes('Spanish lv1+lv2 (sandbox)'));
+  // Changing the copy (delete one lesson in the cloud copy) leaves the original alone.
+  db.lessons = db.lessons.filter((row) => !(row.user_id === BO.id && row.workspace_key === copyKey && row.id === 'lesson-3'));
+  check('Duplicate: editing the copy does not affect the original', rows('lessons', BO.id, merged).some((row) => row.id === 'lesson-3'));
+  await bo.page.setViewportSize({ width: 390, height: 844 });
+  await bo.page.locator('.top-bar-workspace-trigger').click();
+  await bo.page.locator('.top-bar-workspace-menu-item--action', { hasText: 'Duplicate workspace' }).click();
+  await bo.page.waitForSelector('.merge-dialog');
+  await shot(bo.page, 'phone-11-duplicate-dialog');
+  await bo.page.locator('button', { hasText: 'Cancel' }).click();
+  await bo.page.setViewportSize({ width: 1280, height: 800 });
+
   // ---------------------------------------------------------------- Hostile snapshot: cleaned on clone and never executed
   const evil = {
     lessons: [{ id: 'evil', title: 'Evil lesson', content: '# Evil lesson\n<script>window.__pwned=1</script><img src=x onerror="window.__pwned=2">\n[click](javascript:window.__pwned=3)\n<iframe src="https://evil.example"></iframe>\nSafe text.' }],
