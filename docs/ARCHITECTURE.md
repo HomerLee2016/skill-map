@@ -17,7 +17,7 @@ Five views (the fifth, Sharing hub, only works signed in; see `supabase/README.m
 | Revision | `src/Revision.tsx` | Five-stage spaced repetition over previously answered questions |
 | Sharing hub | `src/Sharing.tsx` | Publish a snapshot of a workspace (picked lessons/tests/roadmaps, no revision) and clone other people's snapshots into a new workspace. Logic: `services/sharingSnapshot.ts` (snapshot + sanitising), `services/sharedWorkspaces.ts` (Supabase calls) |
 
-Merging workspaces lives in the workspace menu (`components/MergeWorkspaceDialog.tsx`, pure logic in `services/workspaceMerge.ts`, cloud + revision records in `services/cloudMerge.ts`).
+Duplicating and merging workspaces live in the workspace menu (`components/DuplicateWorkspaceDialog.tsx`, `components/MergeWorkspaceDialog.tsx`, pure logic in `services/workspaceMerge.ts`, cloud + revision records in `services/cloudMerge.ts`).
 
 Guiding principle: the app is a **language-learning helper, not a teacher**. Content is authored (often with AI) as plain files; the app just organises, quizzes and schedules review.
 

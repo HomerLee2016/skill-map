@@ -26,13 +26,14 @@ function check(name: string, ok: boolean, detail = '') {
 
 type Row = Record<string, unknown>;
 const db: Record<string, Row[]> = {
-  workspaces: [], lessons: [], tests: [], roadmaps: [], workspace_structures: [], revision_records: [], shared_workspaces: [],
+  workspaces: [], lessons: [], tests: [], roadmaps: [], workspace_structures: [], revision_records: [], shared_workspaces: [], shared_workspace_reactions: [],
 };
 const PK: Record<string, string[]> = {
   workspaces: ['user_id', 'key'],
   lessons: ['user_id', 'workspace_key', 'id'], tests: ['user_id', 'workspace_key', 'id'], roadmaps: ['user_id', 'workspace_key', 'id'],
   workspace_structures: ['user_id', 'workspace_key', 'kind'], revision_records: ['user_id', 'workspace_key', 'hash'],
   shared_workspaces: ['owner_id', 'source_workspace_key'],
+  shared_workspace_reactions: ['user_id', 'shared_id'],
 };
 
 function filterRows(rows: Row[], params: URLSearchParams): Row[] {
@@ -55,6 +56,18 @@ async function installFakeSupabase(context: BrowserContext, user: User) {
     const headers = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*', 'content-type': 'application/json' };
     if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
     const match = url.pathname.match(/^\/rest\/v1\/(\w+)$/);
+    if (match?.[1] === 'shared_workspace_stats') {
+      // The view: counts only, readable by every signed-in user.
+      const counts = new Map<string, { shared_id: unknown; upvotes: number; downvotes: number; stars: number }>();
+      for (const row of db.shared_workspace_reactions) {
+        const entry = counts.get(String(row.shared_id)) ?? { shared_id: row.shared_id, upvotes: 0, downvotes: 0, stars: 0 };
+        if (row.vote === 1) entry.upvotes += 1;
+        if (row.vote === -1) entry.downvotes += 1;
+        if (row.starred) entry.stars += 1;
+        counts.set(String(row.shared_id), entry);
+      }
+      return route.fulfill({ status: 200, headers, body: JSON.stringify([...counts.values()]) });
+    }
     if (!match || !db[match[1]]) return route.fulfill({ status: 404, headers, body: '{}' });
     const table = match[1];
     const shared = table === 'shared_workspaces';
@@ -86,6 +99,9 @@ async function installFakeSupabase(context: BrowserContext, user: User) {
       for (const row of Array.isArray(body) ? body : [body]) {
         if (row[ownerColumn] !== undefined && row[ownerColumn] !== user.id) {
           return route.fulfill({ status: 403, headers, body: JSON.stringify({ message: 'new row violates row-level security policy' }) });
+        }
+        if (table === 'shared_workspace_reactions' && db.shared_workspaces.some((share) => share.id === row.shared_id && share.owner_id === user.id)) {
+          return route.fulfill({ status: 403, headers, body: JSON.stringify({ message: 'cannot react to your own share' }) });
         }
         const full: Row = { [ownerColumn]: user.id, ...row };
         if (shared) full.published_at = new Date().toISOString();
@@ -286,6 +302,39 @@ async function run() {
   await settle(bo.page);
   const boLv2 = keyOf(BO.id, 'Spanish (from Cy) lv2');
   check('Bo: second clone exists', Boolean(boLv2) && rows('lessons', BO.id, boLv2).length === 3);
+
+  // ---------------------------------------------------------------- Votes and stars
+  await openPage(bo.page, 'Sharing hub');
+  await bo.page.waitForSelector('.sharing-card');
+  const card = (title: string) => bo.page.locator('.sharing-card', { hasText: title });
+  await card('Spanish lv2').locator('button[aria-label^="Upvote"]').click();
+  await card('Spanish lv1').locator('button[aria-label$="(0)"]', { hasText: '☆' }).click();
+  await bo.page.waitForTimeout(500);
+  const lv1Id = db.shared_workspaces.find((row) => row.name === 'Spanish lv1')!.id;
+  const lv2Id = db.shared_workspaces.find((row) => row.name === 'Spanish lv2')!.id;
+  const boRows = db.shared_workspace_reactions.filter((row) => row.user_id === BO.id);
+  check('Votes: upvote and star are saved for Bo only', boRows.length === 2 && boRows.some((r) => r.shared_id === lv2Id && r.vote === 1) && boRows.some((r) => r.shared_id === lv1Id && r.starred === true));
+  check('Votes: the card shows the new totals at once', (await card('Spanish lv2').locator('button[aria-label^="Upvote"]').innerText()).includes('1') && (await card('Spanish lv1').locator('button[aria-pressed="true"]').count()) === 1);
+  await shot(bo.page, 'phone-12-votes-stars');
+  await card('Spanish lv2').locator('button[aria-label^="Downvote"]').click();
+  await bo.page.waitForTimeout(400);
+  check('Votes: the other direction switches the vote', db.shared_workspace_reactions.find((r) => r.user_id === BO.id && r.shared_id === lv2Id)?.vote === -1);
+  await card('Spanish lv2').locator('button[aria-label^="Downvote"]').click();
+  await bo.page.waitForTimeout(400);
+  check('Votes: clicking the same vote again clears it', db.shared_workspace_reactions.find((r) => r.user_id === BO.id && r.shared_id === lv2Id)?.vote === 0);
+  await bo.page.locator('select[aria-label="Sort shared workspaces"]').selectOption('stars');
+  check('Votes: "Most starred" puts the starred one first', (await bo.page.locator('.sharing-card-title').first().innerText()) === 'Spanish lv1');
+  await bo.page.locator('.sharing-toolbar .sharing-check input').check();
+  check('Votes: "My starred only" shows just the starred one', (await bo.page.locator('.sharing-card').count()) === 1);
+  await shot(bo.page, 'phone-13-starred-only');
+  await bo.page.locator('.sharing-toolbar .sharing-check input').uncheck();
+  await bo.page.locator('select[aria-label="Sort shared workspaces"]').selectOption('newest');
+  await openPage(ann.page, 'Sharing hub');
+  await ann.page.locator('.sharing-tab', { hasText: 'Browse shared' }).click();
+  await ann.page.waitForSelector('.sharing-card');
+  check('Votes: the owner cannot vote on or star her own share', (await ann.page.locator('.sharing-card', { hasText: 'Spanish lv1' }).locator('button[aria-label^="Upvote"]').isDisabled()));
+  check('Votes: the owner sees the star total but not who starred', (await ann.page.locator('.sharing-card', { hasText: 'Spanish lv1' }).locator('button[aria-label$="(1)"]').count()) >= 1);
+  await shot(ann.page, 'desktop-10-votes-owner-view');
 
   // Bo has revised some questions in each workspace.
   const rec = (hash: string, quiz: string, last: string) => ({ user_id: BO.id, hash, last_time: last, data: { question_name: `${quiz} q`, options: ['A', 'B'], correct_answer: 'A', last_time: last, next_revision_time: '2026-11-20T00:00:00.000Z', proficiency: '2', quiz_title: quiz, hash } });

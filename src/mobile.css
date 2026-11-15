@@ -324,3 +324,8 @@
   .merge-dialog .modal-actions { flex-direction: column-reverse; }
   .merge-dialog .modal-actions .toolbar-btn, .merge-dialog .modal-actions .modal-btn-cancel { width: 100%; min-height: 40px; }
 }
+
+@media (max-width: 768px) {
+  .sharing-react { flex: 1; min-height: 40px; }
+  .sharing-toolbar { gap: 8px 12px; }
+}

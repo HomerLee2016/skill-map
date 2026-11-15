@@ -2021,3 +2021,15 @@ body, html, #root {
 .merge-list { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; padding: 8px 10px; border: 1px solid var(--panel-border); border-radius: 8px; }
 .merge-target { border: 1px solid var(--panel-border); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 8px; margin: 0; }
 .merge-report { margin: 0; padding-left: 18px; font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+.sharing-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.sharing-toolbar-item { display: inline-flex; align-items: center; gap: 8px; }
+.sharing-sort { width: auto; margin-top: 0; }
+.sharing-reactions { display: flex; gap: 8px; }
+.sharing-react {
+  padding: 4px 12px; border-radius: 999px; border: 1px solid var(--panel-border); background: transparent;
+  color: inherit; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; min-width: 52px;
+}
+.sharing-react:disabled { opacity: 0.45; cursor: default; }
+.sharing-react--on { background: var(--node-link-bg); color: var(--node-link-text); border-color: var(--node-link-border); }
+.sharing-react--down { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+.sharing-react--star { background: #fef3c7; color: #92400e; border-color: #fde68a; }

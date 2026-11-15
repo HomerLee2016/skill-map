@@ -39,3 +39,13 @@ Run after the migrations above: paste `migrations/20261114000000_sharing_hub.sql
 - Size caps: 5 MB per snapshot, 500 items per kind.
 
 Merging workspaces needs no migration: it reads and writes the merging user's own rows.
+
+## Votes and stars migration
+
+Run after the sharing hub migration: paste `migrations/20261115000000_sharing_hub_reactions.sql` into the SQL Editor and click **Run** (re-running is safe). Until it is run, the hub still works and simply hides the vote and star buttons.
+
+- `shared_workspace_reactions (user_id, shared_id, vote -1/0/1, starred)`: one private row per user and share. RLS: a user reads and writes only their own rows, so nobody can see who voted; nobody can react to their own share (enforced in the policy).
+- `shared_workspace_stats` (view, counts only): any signed-in user reads it. It runs with the owner's rights on purpose so it can count everyone's rows; it exposes no user ids.
+- Grants are included (`authenticated` only; `anon` has none).
+
+Duplicate workspace needs no migration: it writes a new `copy-<random>` workspace into the user's own rows.

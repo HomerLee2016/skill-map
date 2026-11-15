@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { supabase } from '../../lib/supabaseClient';
 import { cloneSharedWorkspace, fetchSharedContent, unpublishWorkspace, type SharedWorkspaceSummary } from '../../services/sharedWorkspaces';
+import { arrangeShared, NO_REACTION, NO_STATS, toggleStar, toggleVote, type Reaction, type SharedStats, type SortMode } from '../../services/sharedReactions';
 import type { WorkspaceContent } from '../../services/workspaceTypes';
 
 interface BrowseSharedPanelProps {
@@ -10,6 +11,10 @@ interface BrowseSharedPanelProps {
   loading: boolean;
   error: string | null;
   onChanged: () => Promise<void>;
+  /** Totals per shared workspace; null when votes and stars are not available. */
+  stats: Map<string, SharedStats> | null;
+  mine: Map<string, Reaction>;
+  onReact: (sharedId: string, next: Reaction) => Promise<void>;
 }
 
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;
@@ -25,10 +30,12 @@ function Titles({ label, titles }: { label: string; titles: string[] }) {
 }
 
 /** What other people shared: preview titles, clone into a new workspace of your own. */
-export function BrowseSharedPanel({ shared, loading, error, onChanged }: BrowseSharedPanelProps) {
+export function BrowseSharedPanel({ shared, loading, error, onChanged, stats, mine, onReact }: BrowseSharedPanelProps) {
   const { user } = useAuth();
   const { selectCloudWorkspace, refreshCloudWorkspaces } = useWorkspace();
   const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<SortMode>('newest');
+  const [starredOnly, setStarredOnly] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [preview, setPreview] = useState<WorkspaceContent | null>(null);
   const [cloningId, setCloningId] = useState<string | null>(null);
@@ -36,11 +43,13 @@ export function BrowseSharedPanel({ shared, loading, error, onChanged }: BrowseS
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
 
-  const visible = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return shared;
-    return shared.filter((item) => `${item.name} ${item.description} ${item.ownerLabel}`.toLowerCase().includes(needle));
-  }, [shared, query]);
+  const visible = useMemo(
+    () => arrangeShared(shared, stats ?? new Map(), mine, { query, sort: stats ? sort : 'newest', starredOnly: stats ? starredOnly : false }),
+    [shared, stats, mine, query, sort, starredOnly],
+  );
+
+  /** You cannot vote on or star your own share (the database refuses it too). */
+  const isOwn = (item: SharedWorkspaceSummary) => item.ownerId === user?.id;
 
   const togglePreview = async (item: SharedWorkspaceSummary) => {
     if (previewId === item.id) { setPreviewId(null); return; }
@@ -97,18 +106,34 @@ export function BrowseSharedPanel({ shared, loading, error, onChanged }: BrowseS
         placeholder="Search shared workspaces"
         aria-label="Search shared workspaces"
       />
+      {stats ? (
+        <div className="sharing-toolbar">
+          <label className="sharing-toolbar-item">
+            <span className="sharing-muted">Sort</span>
+            <select className="modal-input sharing-sort" value={sort} onChange={(event) => setSort(event.target.value as SortMode)} aria-label="Sort shared workspaces">
+              <option value="newest">Newest</option>
+              <option value="top">Top rated</option>
+              <option value="stars">Most starred</option>
+            </select>
+          </label>
+          <label className="sharing-check sharing-toolbar-item">
+            <input type="checkbox" checked={starredOnly} onChange={(event) => setStarredOnly(event.target.checked)} />
+            <span>My starred only</span>
+          </label>
+        </div>
+      ) : null}
       {message ? <p className={message.error ? 'tree-error' : 'sharing-ok'} role="status">{message.text}</p> : null}
       {error ? <p className="tree-error">{error}</p> : null}
       {loading && shared.length === 0 ? <p className="sharing-muted">Loading…</p> : null}
       {!loading && !error && visible.length === 0 ? <p className="sharing-muted">{shared.length === 0 ? 'Nobody has shared a workspace yet.' : 'No match.'}</p> : null}
       <ul className="sharing-cards">
         {visible.map((item) => {
-          const mine = item.ownerId === user?.id;
+          const own = item.ownerId === user?.id;
           return (
             <li key={item.id} className="sharing-card">
               <div className="sharing-card-head">
                 <h3 className="sharing-card-title">{item.name}</h3>
-                {mine ? <span className="sharing-badge">Yours</span> : null}
+                {own ? <span className="sharing-badge">Yours</span> : null}
               </div>
               <div className="sharing-muted">
                 by {item.ownerLabel} · updated {new Date(item.updatedAt).toLocaleDateString()}
@@ -117,6 +142,21 @@ export function BrowseSharedPanel({ shared, loading, error, onChanged }: BrowseS
               <div className="sharing-counts">
                 <span>{plural(item.lessonCount, 'lesson')}</span><span>{plural(item.testCount, 'test')}</span><span>{plural(item.roadmapCount, 'roadmap')}</span>
               </div>
+              {stats ? (
+                <div className="sharing-reactions">
+                  {(() => {
+                    const total = stats.get(item.id) ?? NO_STATS;
+                    const reaction = mine.get(item.id) ?? NO_REACTION;
+                    return (
+                      <>
+                        <button type="button" className={reaction.vote === 1 ? 'sharing-react sharing-react--on' : 'sharing-react'} disabled={isOwn(item)} aria-pressed={reaction.vote === 1} aria-label={`Upvote (${total.upvotes})`} onClick={() => { void onReact(item.id, toggleVote(reaction, 1)); }}>▲ {total.upvotes}</button>
+                        <button type="button" className={reaction.vote === -1 ? 'sharing-react sharing-react--on sharing-react--down' : 'sharing-react'} disabled={isOwn(item)} aria-pressed={reaction.vote === -1} aria-label={`Downvote (${total.downvotes})`} onClick={() => { void onReact(item.id, toggleVote(reaction, -1)); }}>▼ {total.downvotes}</button>
+                        <button type="button" className={reaction.starred ? 'sharing-react sharing-react--on sharing-react--star' : 'sharing-react'} disabled={isOwn(item)} aria-pressed={reaction.starred} aria-label={`${reaction.starred ? 'Unstar' : 'Star'} (${total.stars})`} onClick={() => { void onReact(item.id, toggleStar(reaction)); }}>{reaction.starred ? '★' : '☆'} {total.stars}</button>
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : null}
               {previewId === item.id ? (
                 <div className="sharing-preview">
                   {preview ? (
@@ -142,7 +182,7 @@ export function BrowseSharedPanel({ shared, loading, error, onChanged }: BrowseS
               ) : (
                 <div className="sharing-actions">
                   <button type="button" className="modal-btn-cancel" onClick={() => { void togglePreview(item); }}>{previewId === item.id ? 'Hide contents' : 'Preview'}</button>
-                  {mine ? (
+                  {own ? (
                     <button type="button" className="toolbar-btn sharing-btn-danger" onClick={() => { void unpublish(item); }}>Unpublish</button>
                   ) : (
                     <button type="button" className="toolbar-btn" onClick={() => startClone(item)}>Clone to new workspace</button>
