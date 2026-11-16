@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
-import { supabase } from '../../lib/supabaseClient';
 import { formatPublishedAt, myPublished, unpublishedOptions, type WorkspaceOption } from '../../services/publishedList';
-import { unpublishWorkspace, type SharedWorkspaceSummary } from '../../services/sharedWorkspaces';
+import type { SharedWorkspaceSummary } from '../../services/sharedWorkspaces';
 import { PublishWorkspaceDialog } from './PublishWorkspaceDialog';
+import { UnpublishDialog } from './UnpublishDialog';
 
 interface ShareWorkspacePanelProps {
   shared: SharedWorkspaceSummary[];
@@ -28,27 +27,9 @@ export function ShareWorkspacePanel({ shared, onChanged }: ShareWorkspacePanelPr
   const mine = useMemo(() => myPublished(shared, user?.id), [shared, user?.id]);
   const available = useMemo(() => unpublishedOptions(options, mine), [options, mine]);
   const [dialog, setDialog] = useState<Dialog | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
+  const [message, setMessage] = useState<{ text: string } | null>(null);
 
   const close = () => setDialog(null);
-
-  const handleUnpublish = async (item: SharedWorkspaceSummary) => {
-    if (!supabase) return;
-    setBusy(true);
-    setMessage(null);
-    try {
-      await unpublishWorkspace(supabase, item.id);
-      await onChanged();
-      setMessage({ text: `Unpublished "${item.name}". It no longer appears in the hub.` });
-      close();
-    } catch (error) {
-      setMessage({ text: error instanceof Error ? error.message : 'Could not unpublish', error: true });
-      close();
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const afterPublish = (text: string) => async () => {
     await onChanged();
@@ -67,7 +48,7 @@ export function ShareWorkspacePanel({ shared, onChanged }: ShareWorkspacePanelPr
         </button>
       </div>
       {publishHint ? <p className="sharing-muted">{publishHint}</p> : null}
-      {message ? <p className={message.error ? 'tree-error' : 'sharing-ok'} role="status">{message.text}</p> : null}
+      {message ? <p className="sharing-ok" role="status">{message.text}</p> : null}
 
       <h3 className="sharing-section-title">Published by you</h3>
       {mine.length === 0 ? (
@@ -110,21 +91,12 @@ export function ShareWorkspacePanel({ shared, onChanged }: ShareWorkspacePanelPr
       {dialog?.kind === 'edit' ? (
         <PublishWorkspaceDialog options={options.filter((entry) => entry.key === dialog.item.sourceWorkspaceKey)} published={dialog.item} onClose={close} onDone={afterPublish('Snapshot updated. Friends see the new version.')} />
       ) : null}
-      {dialog?.kind === 'unpublish' ? createPortal(
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Unpublish workspace">
-          <div className="modal-dialog">
-            <h3 className="modal-title">Unpublish workspace?</h3>
-            <p className="sharing-muted">
-              "{dialog.item.name}", published {formatPublishedAt(dialog.item.publishedAt)}, will no longer appear in the hub.
-              Workspaces people already cloned keep their copy. Your own workspace is not changed.
-            </p>
-            <div className="modal-actions">
-              <button type="button" className="modal-btn-cancel" onClick={close} disabled={busy}>Cancel</button>
-              <button type="button" className="toolbar-btn sharing-btn-danger" disabled={busy} onClick={() => { void handleUnpublish(dialog.item); }}>{busy ? 'Working…' : 'Unpublish'}</button>
-            </div>
-          </div>
-        </div>,
-        document.body,
+      {dialog?.kind === 'unpublish' ? (
+        <UnpublishDialog
+          item={dialog.item}
+          onClose={close}
+          onDone={async (item) => { await onChanged(); setMessage({ text: `Unpublished "${item.name}". It no longer appears in the hub.` }); }}
+        />
       ) : null}
     </div>
   );

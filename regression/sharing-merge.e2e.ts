@@ -283,20 +283,21 @@ async function run() {
   await bo.page.waitForSelector('.top-bar-hamburger');
   await settle(bo.page);
   await openPage(bo.page, 'Sharing hub');
-  await bo.page.waitForSelector('.sharing-card');
-  check('Bo: sees both shared workspaces', (await bo.page.locator('.sharing-card').count()) === 2);
+  await bo.page.waitForSelector('.sharing-row');
+  check('Bo: sees both shared workspaces', (await bo.page.locator('.sharing-row').count()) === 2);
   check('Bo: sees the owner label, not the email', (await bodyText(bo.page)).includes('by Ann') && !(await bodyText(bo.page)).includes('ann@example.com'));
   await shot(bo.page, 'phone-1-browse');
-  await bo.page.locator('.sharing-card', { hasText: 'Spanish lv1' }).locator('button', { hasText: 'Preview' }).click();
-  await bo.page.waitForSelector('.sharing-preview li');
-  const preview = await bo.page.locator('.sharing-preview').innerText();
+  await bo.page.locator('.sharing-row', { hasText: 'Spanish lv1' }).locator('button', { hasText: 'Preview' }).click();
+  await bo.page.waitForSelector('.sharing-modal .sharing-preview li');
+  check('Bo: preview opens as a pop-up modal', (await bo.page.locator('.modal-overlay .sharing-modal').count()) === 1);
+  const preview = await bo.page.locator('.sharing-modal .sharing-preview').innerText();
   check('Bo: preview lists titles', preview.includes('Spanish Greetings') && preview.includes('Greetings Quiz') && !preview.includes('Private Notes'));
   await shot(bo.page, 'phone-2-preview');
 
-  await bo.page.locator('.sharing-card', { hasText: 'Spanish lv1' }).locator('button', { hasText: 'Clone to new workspace' }).click();
+  await bo.page.locator('.sharing-modal button', { hasText: 'Clone to new workspace' }).click();
   await bo.page.locator('input[aria-label="New workspace name"]').fill('Spanish (from Ann) lv1');
   await shot(bo.page, 'phone-3-clone-form');
-  await bo.page.locator('button', { hasText: /^Clone$/ }).click();
+  await bo.page.locator('.sharing-modal button', { hasText: /^Clone$/ }).click();
   await bo.page.waitForSelector('.sharing-ok');
   await settle(bo.page);
   const boLv1 = keyOf(BO.id, 'Spanish (from Ann) lv1');
@@ -323,10 +324,10 @@ async function run() {
 
   // Bo clones lv2 as well (second friend)
   await openPage(bo.page, 'Sharing hub');
-  await bo.page.waitForSelector('.sharing-card');
-  await bo.page.locator('.sharing-card', { hasText: 'Spanish lv2' }).locator('button', { hasText: 'Clone to new workspace' }).click();
+  await bo.page.waitForSelector('.sharing-row');
+  await bo.page.locator('.sharing-row', { hasText: 'Spanish lv2' }).locator('button', { hasText: /^Clone$/ }).click();
   await bo.page.locator('input[aria-label="New workspace name"]').fill('Spanish (from Cy) lv2');
-  await bo.page.locator('button', { hasText: /^Clone$/ }).click();
+  await bo.page.locator('.sharing-modal button', { hasText: /^Clone$/ }).click();
   await bo.page.waitForSelector('.sharing-ok');
   await settle(bo.page);
   const boLv2 = keyOf(BO.id, 'Spanish (from Cy) lv2');
@@ -334,8 +335,8 @@ async function run() {
 
   // ---------------------------------------------------------------- Votes and stars
   await openPage(bo.page, 'Sharing hub');
-  await bo.page.waitForSelector('.sharing-card');
-  const card = (title: string) => bo.page.locator('.sharing-card', { hasText: title });
+  await bo.page.waitForSelector('.sharing-row');
+  const card = (title: string) => bo.page.locator('.sharing-row', { hasText: title });
   await card('Spanish lv2').locator('button[aria-label^="Upvote"]').click();
   await card('Spanish lv1').locator('button[aria-label$="(0)"]', { hasText: '☆' }).click();
   await bo.page.waitForTimeout(500);
@@ -351,18 +352,69 @@ async function run() {
   await card('Spanish lv2').locator('button[aria-label^="Downvote"]').click();
   await bo.page.waitForTimeout(400);
   check('Votes: clicking the same vote again clears it', db.shared_workspace_reactions.find((r) => r.user_id === BO.id && r.shared_id === lv2Id)?.vote === 0);
-  await bo.page.locator('select[aria-label="Sort shared workspaces"]').selectOption('stars');
-  check('Votes: "Most starred" puts the starred one first', (await bo.page.locator('.sharing-card-title').first().innerText()) === 'Spanish lv1');
-  await bo.page.locator('.sharing-toolbar .sharing-check input').check();
-  check('Votes: "My starred only" shows just the starred one', (await bo.page.locator('.sharing-card').count()) === 1);
+  await bo.page.locator('button[aria-label="Sort"]').click();
+  await shot(bo.page, 'phone-18-sort-popover');
+  await bo.page.locator('.popover-panel label', { hasText: 'Most starred' }).click();
+  await bo.page.keyboard.press('Escape');
+  check('Votes: "Most starred" puts the starred one first', (await bo.page.locator('.sharing-row-title').first().innerText()) === 'Spanish lv1');
+  await bo.page.locator('button[aria-label="Filter"]').click();
+  await bo.page.locator('.popover-panel .sharing-check input').check();
+  await shot(bo.page, 'phone-19-filter-popover');
+  await bo.page.keyboard.press('Escape');
+  check('Filter icon shows a badge while a filter is on', (await bo.page.locator('button[aria-label="Filter"] .icon-badge').innerText()) === '1');
+  check('Votes: "My starred only" shows just the starred one', (await bo.page.locator('.sharing-row').count()) === 1);
   await shot(bo.page, 'phone-13-starred-only');
-  await bo.page.locator('.sharing-toolbar .sharing-check input').uncheck();
-  await bo.page.locator('select[aria-label="Sort shared workspaces"]').selectOption('newest');
+  await bo.page.locator('button[aria-label="Filter"]').click();
+  await bo.page.locator('.popover-panel .sharing-check input').uncheck();
+  await bo.page.keyboard.press('Escape');
+  await bo.page.locator('button[aria-label="Sort"]').click();
+  await bo.page.locator('.popover-panel label', { hasText: 'Newest published' }).click();
+  await bo.page.keyboard.press('Escape');
+
+  // Filters by title, author and publish date; paging with 10/20/50 and show more / hide.
+  const rowCount = () => bo.page.locator('.sharing-row').count();
+  await bo.page.locator('button[aria-label="Filter"]').click();
+  await bo.page.locator('input[aria-label="Filter by title"]').fill('lv2');
+  check('Filter: title "lv2" leaves one row', (await rowCount()) === 1);
+  await bo.page.locator('input[aria-label="Filter by title"]').fill('');
+  await bo.page.locator('input[aria-label="Filter by author"]').fill('nobody');
+  check('Filter: an author nobody has shows "No match"', (await rowCount()) === 0 && (await bodyText(bo.page)).includes('No match'));
+  await bo.page.locator('input[aria-label="Filter by author"]').fill('ann');
+  check('Filter: author "ann" (any case) finds Ann\'s rows', (await rowCount()) >= 2);
+  await bo.page.locator('input[aria-label="Filter by author"]').fill('');
+  await bo.page.locator('input[aria-label="Published after"]').fill('2999-01-01');
+  check('Filter: published after a future day leaves nothing', (await rowCount()) === 0);
+  await bo.page.locator('input[aria-label="Published after"]').fill('');
+  await bo.page.locator('input[aria-label="Published before"]').fill('2000-01-01');
+  check('Filter: published before 2000 leaves nothing', (await rowCount()) === 0);
+  await bo.page.locator('.popover-panel button', { hasText: 'Clear filters' }).click();
+  check('Filter: clearing brings every row back', (await rowCount()) === 2);
+  await bo.page.keyboard.press('Escape');
+  const filler = Array.from({ length: 12 }, (_, index) => ({
+    id: randomUUID(), owner_id: ANN.id, source_workspace_key: `filler-${index}`, name: `Filler ${String(index).padStart(2, '0')}`, description: '', owner_label: 'Ann',
+    lesson_count: 1, test_count: 0, roadmap_count: 0, published_at: new Date(Date.now() - (index + 1) * 60000).toISOString(), updated_at: new Date(Date.now() - (index + 1) * 60000).toISOString(),
+  }));
+  db.shared_workspaces.push(...filler);
+  await openPage(bo.page, 'Sharing hub');
+  await bo.page.locator('.sharing-tab', { hasText: 'Share my workspace' }).click();
+  await bo.page.locator('.sharing-tab', { hasText: 'Browse shared' }).click();
+  await bo.page.waitForSelector('.sharing-row');
+  await bo.page.waitForTimeout(500);
+  check('Paging: only the top 10 rows are drawn', (await rowCount()) === 10);
+  await shot(bo.page, 'phone-20-top-10');
+  await bo.page.locator('button', { hasText: /Show \d+ more/ }).click();
+  check('Paging: "Show more" reveals the rest', (await rowCount()) === 14);
+  await bo.page.locator('button', { hasText: 'Hide extra rows' }).click();
+  check('Paging: "Hide extra rows" goes back to 10', (await rowCount()) === 10);
+  await bo.page.locator('select[aria-label="Rows to show"]').selectOption('20');
+  check('Paging: Top 20 draws all 14', (await rowCount()) === 14 && (await bo.page.locator('button', { hasText: /Show \d+ more/ }).count()) === 0);
+  await bo.page.locator('select[aria-label="Rows to show"]').selectOption('10');
+  db.shared_workspaces = db.shared_workspaces.filter((row) => !String(row.source_workspace_key).startsWith('filler-'));
   await openPage(ann.page, 'Sharing hub');
   await ann.page.locator('.sharing-tab', { hasText: 'Browse shared' }).click();
-  await ann.page.waitForSelector('.sharing-card');
-  check('Votes: the owner cannot vote on or star her own share', (await ann.page.locator('.sharing-card', { hasText: 'Spanish lv1' }).locator('button[aria-label^="Upvote"]').isDisabled()));
-  check('Votes: the owner sees the star total but not who starred', (await ann.page.locator('.sharing-card', { hasText: 'Spanish lv1' }).locator('button[aria-label$="(1)"]').count()) >= 1);
+  await ann.page.waitForSelector('.sharing-row');
+  check('Votes: the owner cannot vote on or star her own share', (await ann.page.locator('.sharing-row', { hasText: 'Spanish lv1' }).locator('button[aria-label^="Upvote"]').isDisabled()));
+  check('Votes: the owner sees the star total but not who starred', (await ann.page.locator('.sharing-row', { hasText: 'Spanish lv1' }).locator('button[aria-label$="(1)"]').count()) >= 1);
   await shot(ann.page, 'desktop-10-votes-owner-view');
 
   // Bo has revised some questions in each workspace.
@@ -420,7 +472,7 @@ async function run() {
   // desktop view of the same screens (layout is width based)
   await bo.page.setViewportSize({ width: 1280, height: 800 });
   await openPage(bo.page, 'Sharing hub');
-  await bo.page.waitForSelector('.sharing-card');
+  await bo.page.waitForSelector('.sharing-row');
   await shot(bo.page, 'desktop-3-browse');
   await bo.page.locator('.top-bar-workspace-trigger').click();
   await bo.page.locator('.top-bar-workspace-menu-item--action', { hasText: 'Merge workspaces' }).click();
@@ -485,12 +537,12 @@ async function run() {
   await bo.page.waitForSelector('.top-bar-workspace-trigger');
   await settle(bo.page);
   await openPage(bo.page, 'Sharing hub');
-  await bo.page.waitForSelector('.sharing-card');
-  const hostile = bo.page.locator('.sharing-card', { hasText: 'Totally safe' });
+  await bo.page.waitForSelector('.sharing-row');
+  const hostile = bo.page.locator('.sharing-row', { hasText: 'Totally safe' });
   await hostile.locator('button', { hasText: 'Preview' }).click();
-  await hostile.locator('button', { hasText: 'Clone to new workspace' }).click();
+  await bo.page.locator('.sharing-modal button', { hasText: 'Clone to new workspace' }).click();
   await bo.page.locator('input[aria-label="New workspace name"]').fill('Hostile clone');
-  await bo.page.locator('button', { hasText: /^Clone$/ }).click();
+  await bo.page.locator('.sharing-modal button', { hasText: /^Clone$/ }).click();
   await bo.page.waitForSelector('.sharing-ok');
   await settle(bo.page);
   const hostileKey = keyOf(BO.id, 'Hostile clone');
@@ -508,10 +560,11 @@ async function run() {
   // ---------------------------------------------------------------- Unpublish
   await openPage(ann.page, 'Sharing hub');
   await ann.page.locator('.sharing-tab', { hasText: 'Browse shared' }).click();
-  await ann.page.waitForSelector('.sharing-card');
-  check('Ann: her own cards say "Yours" and have no Clone', (await ann.page.locator('.sharing-card', { hasText: 'Spanish lv1' }).innerText()).includes('Yours') && (await ann.page.locator('.sharing-card', { hasText: 'Spanish lv1' }).locator('button', { hasText: 'Clone' }).count()) === 0);
+  await ann.page.waitForSelector('.sharing-row');
+  check('Ann: her own cards say "Yours" and have no Clone', (await ann.page.locator('.sharing-row', { hasText: 'Spanish lv1' }).innerText()).includes('Yours') && (await ann.page.locator('.sharing-row', { hasText: 'Spanish lv1' }).locator('button', { hasText: 'Clone' }).count()) === 0);
   await shot(ann.page, 'desktop-6-browse-own');
-  await ann.page.locator('.sharing-card', { hasText: 'Spanish lv1' }).locator('button', { hasText: 'Unpublish' }).click();
+  await ann.page.locator('.sharing-row', { hasText: 'Spanish lv1' }).locator('button', { hasText: 'Unpublish' }).click();
+  await ann.page.locator('[aria-label="Unpublish workspace"] button', { hasText: /^Unpublish$/ }).click();
   await ann.page.waitForTimeout(800);
   check('Ann: unpublished lv1 is gone from the hub', !db.shared_workspaces.some((row) => row.name === 'Spanish lv1'));
   check('Bo: his clone survives the unpublish', rows('lessons', BO.id, boLv1).length === 4);
