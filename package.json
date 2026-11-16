@@ -14,7 +14,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
     "@uiw/react-textarea-code-editor": "^3.1.2",
-    "dexie": "^4.4.4",
+    "dexie": "^4.4.7",
     "dexie-react-hooks": "^4.4.0",
     "fflate": "^0.8.3",
     "react": "^19.3.1",
