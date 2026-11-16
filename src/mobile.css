@@ -320,6 +320,7 @@
   .sharing-title { font-size: 19px; }
   .sharing-tab { flex: 1; padding: 10px 6px; font-size: 14px; }
   .sharing-actions .toolbar-btn, .sharing-actions .modal-btn-cancel { flex: 1 1 100%; min-height: 40px; }
+  .icon-btn { width: 40px; height: 40px; }
   .sharing-checklist-items { max-height: 200px; }
   .merge-dialog .modal-actions { flex-direction: column-reverse; }
   .merge-dialog .modal-actions .toolbar-btn, .merge-dialog .modal-actions .modal-btn-cancel { width: 100%; min-height: 40px; }

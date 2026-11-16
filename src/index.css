@@ -2007,6 +2007,18 @@ body, html, #root {
 .sharing-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .sharing-btn-danger { background: #dc2626; }
 .sharing-btn-danger:hover { background: #b91c1c; filter: none; }
+.sharing-section-title { margin: 8px 0 0; font-size: 15px; }
+.publish-dialog { width: min(720px, 100%); }
+.published-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.published-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--panel-border); border-radius: 10px; padding: 10px 12px; background: var(--panel-bg); }
+.published-info { min-width: 0; }
+.published-title { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+.published-meta { font-size: 12px; color: var(--lessons-muted, var(--tip-text)); overflow-wrap: anywhere; }
+.published-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 1px solid var(--panel-border); border-radius: 8px; background: transparent; color: var(--lessons-text); cursor: pointer; }
+.icon-btn:hover:not(:disabled) { background: var(--node-link-bg); }
+.icon-btn:disabled { opacity: 0.4; cursor: default; }
+.icon-btn--danger { color: #dc2626; }
 .sharing-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
 .sharing-card { border: 1px solid var(--panel-border); border-radius: 12px; padding: 14px; background: var(--panel-bg); display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .sharing-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

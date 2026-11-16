@@ -205,12 +205,31 @@ async function newUserContext(user: User, phone: boolean) {
   return { context, page };
 }
 
+/** Opens the "Publish new workspace" modal and fills it in. The caller clicks "Publish snapshot". */
 async function publish(page: Page, workspaceName: string, title: string, untick: string[] = []) {
   await openPage(page, 'Sharing hub');
   await page.locator('.sharing-tab', { hasText: 'Share my workspace' }).click();
+  await page.locator('button', { hasText: 'Publish new workspace' }).click();
+  await page.waitForSelector('.publish-dialog');
   await page.locator('select[aria-label="Workspace to share"]').selectOption({ label: workspaceName });
   await page.waitForSelector('.sharing-checklists');
   await page.waitForTimeout(400);
+  await fillDialog(page, title, untick);
+  await shot(page, 'desktop-1-publish-modal');
+}
+
+/** Opens the pencil modal of a published row and fills it in. The caller clicks "Update snapshot". */
+async function editPublished(page: Page, currentTitle: string, title: string, untick: string[] = []) {
+  await openPage(page, 'Sharing hub');
+  await page.locator('.sharing-tab', { hasText: 'Share my workspace' }).click();
+  await page.locator('.published-row', { hasText: currentTitle }).locator('button[aria-label^="Edit published"]').click();
+  await page.waitForSelector('.publish-dialog');
+  await page.waitForSelector('.sharing-checklists');
+  await page.waitForTimeout(400);
+  await fillDialog(page, title, untick);
+}
+
+async function fillDialog(page: Page, title: string, untick: string[]) {
   for (const label of untick) await page.locator('.sharing-check', { hasText: label }).locator('input').uncheck();
   await page.locator('input[aria-label="Shared title"]').fill(title);
   await page.locator('textarea[aria-label="Shared description"]').fill(`${title}: greetings, numbers and a map.`);
@@ -247,6 +266,16 @@ async function run() {
   await ann.page.locator('button', { hasText: 'Publish snapshot' }).click();
   await ann.page.waitForSelector('.sharing-ok');
   check('Ann: two published snapshots', db.shared_workspaces.length === 2);
+  check('Ann: the publish modal closed after publishing', (await ann.page.locator('.publish-dialog').count()) === 0);
+  const rowsText = await ann.page.locator('.published-row').allInnerTexts();
+  check('Ann: the published list shows both with a date', rowsText.length === 2 && rowsText.every((text) => /Published .*2026/.test(text)), rowsText.join(' | '));
+  await shot(ann.page, 'desktop-2b-published-list');
+  check('Ann: published workspaces are not offered for a new publish', await (async () => {
+    await ann.page.locator('button', { hasText: 'Publish new workspace' }).click();
+    const none = await ann.page.locator('select[aria-label="Workspace to share"] option', { hasText: /^spanish-lv[12]$/ }).count();
+    await ann.page.locator('.publish-dialog button', { hasText: 'Cancel' }).click();
+    return none === 0;
+  })());
 
   // ---------------------------------------------------------------- Bo (phone): browse, preview, clone
   const bo = await newUserContext(BO, true);
@@ -282,13 +311,13 @@ async function run() {
   await shot(bo.page, 'phone-5-cloned-lessons');
 
   // Snapshot, not real time: Ann changes her lv1 afterwards and re-publishes; Bo's clone does not move.
-  await publish(ann.page, 'spanish-lv1', 'Spanish lv1 (updated)', ['Spanish Numbers', 'Private Notes']);
+  await editPublished(ann.page, 'Spanish lv1', 'Spanish lv1 (updated)', ['Spanish Numbers', 'Private Notes']);
   await ann.page.locator('button', { hasText: 'Update snapshot' }).click();
   await ann.page.waitForSelector('.sharing-ok');
   check('Ann: re-publishing updates the same snapshot', db.shared_workspaces.filter((row) => String(row.name).startsWith('Spanish lv1')).length === 1 && db.shared_workspaces.some((row) => row.name === 'Spanish lv1 (updated)' && row.lesson_count === 1));
   check('Bo: his clone is unchanged by the re-publish', rows('lessons', BO.id, boLv1).length === 2);
   // Put it back for the merge scenario.
-  await publish(ann.page, 'spanish-lv1', 'Spanish lv1', ['Private Notes']);
+  await editPublished(ann.page, 'Spanish lv1 (updated)', 'Spanish lv1', ['Private Notes']);
   await ann.page.locator('button', { hasText: 'Update snapshot' }).click();
   await ann.page.waitForSelector('.sharing-ok');
 
@@ -486,6 +515,40 @@ async function run() {
   await ann.page.waitForTimeout(800);
   check('Ann: unpublished lv1 is gone from the hub', !db.shared_workspaces.some((row) => row.name === 'Spanish lv1'));
   check('Bo: his clone survives the unpublish', rows('lessons', BO.id, boLv1).length === 4);
+
+  // The same screens on a phone-sized viewport.
+  await openPage(ann.page, 'Sharing hub');
+  await ann.page.locator('.sharing-tab', { hasText: 'Share my workspace' }).click();
+  await ann.page.setViewportSize({ width: 390, height: 844 });
+  await ann.page.waitForTimeout(300);
+  await shot(ann.page, 'phone-14-published-list');
+  await ann.page.locator('button', { hasText: 'Publish new workspace' }).click();
+  await ann.page.waitForSelector('.publish-dialog');
+  await shot(ann.page, 'phone-15-publish-modal');
+  await ann.page.locator('.publish-dialog button', { hasText: 'Cancel' }).click();
+  await ann.page.locator('.published-row', { hasText: 'Spanish lv2' }).locator('button[aria-label^="Edit published"]').click();
+  await ann.page.waitForSelector('.sharing-checklists');
+  await ann.page.waitForTimeout(400);
+  await shot(ann.page, 'phone-16-edit-modal');
+  await ann.page.locator('.publish-dialog button', { hasText: 'Cancel' }).click();
+  await ann.page.locator('.published-row', { hasText: 'Spanish lv2' }).locator('button[aria-label^="Unpublish"]').click();
+  await shot(ann.page, 'phone-17-unpublish-confirm');
+  await ann.page.locator('[aria-label="Unpublish workspace"] button', { hasText: 'Cancel' }).click();
+  await ann.page.setViewportSize({ width: 1280, height: 800 });
+
+  // Unpublish from the published list: the bin asks first, Cancel keeps it, confirming removes it.
+  await openPage(ann.page, 'Sharing hub');
+  await ann.page.locator('.sharing-tab', { hasText: 'Share my workspace' }).click();
+  await ann.page.locator('.published-row', { hasText: 'Spanish lv2' }).locator('button[aria-label^="Unpublish"]').click();
+  await ann.page.waitForSelector('[aria-label="Unpublish workspace"]');
+  await shot(ann.page, 'desktop-11-unpublish-confirm');
+  await ann.page.locator('[aria-label="Unpublish workspace"] button', { hasText: 'Cancel' }).click();
+  check('Ann: cancelling the confirmation keeps lv2 published', db.shared_workspaces.some((row) => row.name === 'Spanish lv2'));
+  await ann.page.locator('.published-row', { hasText: 'Spanish lv2' }).locator('button[aria-label^="Unpublish"]').click();
+  await ann.page.locator('[aria-label="Unpublish workspace"] button', { hasText: /^Unpublish$/ }).click();
+  await ann.page.waitForTimeout(800);
+  check('Ann: confirming unpublishes lv2 and its row disappears', !db.shared_workspaces.some((row) => row.name === 'Spanish lv2') && (await ann.page.locator('.published-row', { hasText: 'Spanish lv2' }).count()) === 0);
+  await shot(ann.page, 'desktop-12-list-empty');
 
   await Promise.all(contexts.map((context) => context.close()));
   console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILED`);
