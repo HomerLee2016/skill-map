@@ -4,7 +4,7 @@ import { formatPublishedAt, myPublished, unpublishedOptions } from './publishedL
 import type { SharedWorkspaceSummary } from './sharedWorkspaces';
 
 function item(id: string, ownerId: string, key: string, publishedAt: string): SharedWorkspaceSummary {
-  return { id, ownerId, sourceWorkspaceKey: key, name: 'Spanish', description: '', ownerLabel: 'Ann', lessonCount: 1, testCount: 0, roadmapCount: 0, publishedAt, updatedAt: publishedAt };
+  return { id, ownerId, sourceWorkspaceKey: key, name: 'Spanish', description: '', ownerLabel: 'Ann', tags: [], lessonCount: 1, testCount: 0, roadmapCount: 0, publishedAt, updatedAt: publishedAt };
 }
 
 test('myPublished keeps only my snapshots, newest first, and tells same-named ones apart by date', () => {

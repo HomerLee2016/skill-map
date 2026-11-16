@@ -5,6 +5,7 @@ import { formatPublishedAt } from '../../services/publishedList';
 import { cloneSharedWorkspace, type SharedWorkspaceSummary } from '../../services/sharedWorkspaces';
 import type { WorkspaceContent } from '../../services/workspaceTypes';
 import { Modal } from './Modal';
+import { TagChips } from './TagInput';
 
 function Titles({ label, titles }: { label: string; titles: string[] }) {
   if (titles.length === 0) return null;
@@ -31,6 +32,7 @@ export function PreviewModal({ item, content, canClone, onClone, onClose }: Prev
     <Modal title={`Preview ${item.name}`} className="sharing-modal" onBackdrop={onClose}>
       <h3 className="modal-title">{item.name}</h3>
       <div className="sharing-muted">by {item.ownerLabel} · published {formatPublishedAt(item.publishedAt)}</div>
+      <TagChips tags={item.tags} />
       {item.description ? <p className="sharing-card-desc">{item.description}</p> : null}
       <div className="sharing-preview">
         {content ? (

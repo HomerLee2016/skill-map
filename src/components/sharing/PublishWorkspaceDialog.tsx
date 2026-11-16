@@ -9,12 +9,15 @@ import { buildSnapshot, countSelection, selectAll, type ShareSelection } from '.
 import type { WorkspaceContent } from '../../services/workspaceTypes';
 import { ItemChecklist } from './ItemChecklist';
 import { Modal } from './Modal';
+import { TagInput } from './TagInput';
 
 interface PublishWorkspaceDialogProps {
   /** Workspaces the user can pick from (new publish) or the one workspace being updated (edit). */
   options: WorkspaceOption[];
   /** Set when editing an existing snapshot; the workspace is then fixed. */
   published?: SharedWorkspaceSummary;
+  /** Tags already in use in the hub, offered while typing. */
+  tagSuggestions?: string[];
   onClose: () => void;
   onDone: () => Promise<void>;
 }
@@ -22,7 +25,7 @@ interface PublishWorkspaceDialogProps {
 const EMPTY_SELECTION: ShareSelection = { lessonIds: new Set(), testIds: new Set(), roadmapIds: new Set() };
 
 /** Modal form: pick a workspace, tick what to share, publish a snapshot (or update the one already published). */
-export function PublishWorkspaceDialog({ options, published, onClose, onDone }: PublishWorkspaceDialogProps) {
+export function PublishWorkspaceDialog({ options, published, tagSuggestions, onClose, onDone }: PublishWorkspaceDialogProps) {
   const { user } = useAuth();
   const { workspace, workspaceKey } = useWorkspace();
   const [selectedKey, setSelectedKey] = useState(published?.sourceWorkspaceKey ?? '');
@@ -37,6 +40,7 @@ export function PublishWorkspaceDialog({ options, published, onClose, onDone }: 
   const name = customName ?? published?.name ?? activeName;
   const [description, setDescription] = useState(published?.description ?? '');
   const [ownerLabel, setOwnerLabel] = useState(published?.ownerLabel === 'Anonymous' ? '' : published?.ownerLabel ?? '');
+  const [tags, setTags] = useState<string[]>(published?.tags ?? []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,6 +76,7 @@ export function PublishWorkspaceDialog({ options, published, onClose, onDone }: 
         name: name || activeName,
         description,
         ownerLabel,
+        tags,
         snapshot: buildSnapshot(content, selection),
       });
       await onDone();
@@ -115,6 +120,11 @@ export function PublishWorkspaceDialog({ options, published, onClose, onDone }: 
             Description (optional)
             <textarea className="modal-input modal-textarea" value={description} maxLength={2000} onChange={(event) => setDescription(event.target.value)} aria-label="Shared description" />
           </label>
+          <div className="modal-label">
+            Tags (optional)
+            <TagInput tags={tags} onChange={setTags} suggestions={tagSuggestions} />
+            <span className="sharing-muted">Short labels that help people find it, e.g. spanish, beginner.</span>
+          </div>
           <label className="modal-label">
             Shown to others as
             <input className="modal-input" value={ownerLabel} maxLength={100} onChange={(event) => setOwnerLabel(event.target.value)} placeholder="Anonymous" aria-label="Shown as" />

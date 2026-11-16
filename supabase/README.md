@@ -48,4 +48,8 @@ Run after the sharing hub migration: paste `migrations/20261115000000_sharing_hu
 - `shared_workspace_stats` (view, counts only): any signed-in user reads it. It runs with the owner's rights on purpose so it can count everyone's rows; it exposes no user ids.
 - Grants are included (`authenticated` only; `anon` has none).
 
+## Tags migration
+
+Run after the sharing hub migration: paste `migrations/20261116000000_sharing_hub_tags.sql` into the SQL Editor and click **Run** (re-running is safe). It adds a `tags` column (at most 10 tags per workspace) to `shared_workspaces`. Until it is run, the hub still works and simply shows no tags.
+
 Duplicate workspace needs no migration: it writes a new `copy-<random>` workspace into the user's own rows.

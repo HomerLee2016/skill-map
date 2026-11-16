@@ -4,7 +4,7 @@ import { activeFilterCount, applyReaction, arrangeShared, toggleStar, toggleVote
 import type { SharedWorkspaceSummary } from './sharedWorkspaces';
 
 const item = (id: string, name: string, updatedAt: string): SharedWorkspaceSummary => ({
-  id, ownerId: 'o', sourceWorkspaceKey: id, name, description: '', ownerLabel: 'Ann',
+  id, ownerId: 'o', sourceWorkspaceKey: id, name, description: '', ownerLabel: 'Ann', tags: [],
   lessonCount: 0, testCount: 0, roadmapCount: 0, publishedAt: updatedAt, updatedAt,
 });
 
@@ -42,12 +42,16 @@ test('browse list: filter by title, author and publish day, sort by title, autho
   const a = make('a', 'Spanish basics', 'Ann', '2026-03-10T12:00:00Z');
   const b = make('b', 'Japanese', 'Bo', '2026-03-20T12:00:00Z');
   const c = make('c', 'Spanish advanced', 'Cy', '2026-04-05T12:00:00Z');
+  a.tags = ['spanish', 'grammar'];
+  b.tags = ['language'];
   const none = new Map<string, SharedStats>();
   const mine = new Map<string, Reaction>();
   const ids = (list: SharedWorkspaceSummary[]) => list.map((x) => x.id);
   const base = { sort: 'newest' as const, starredOnly: false };
   assert.deepEqual(ids(arrangeShared([a, b, c], none, mine, { ...base, title: 'SPANISH' })), ['c', 'a']);
   assert.deepEqual(ids(arrangeShared([a, b, c], none, mine, { ...base, author: 'bo' })), ['b']);
+  assert.deepEqual(ids(arrangeShared([a, b, c], none, mine, { ...base, tag: 'LANG' })), ['b']);
+  assert.deepEqual(ids(arrangeShared([a, b, c], none, mine, { ...base, tag: 'gram' })), ['a']);
   assert.deepEqual(ids(arrangeShared([a, b, c], none, mine, { ...base, publishedAfter: '2026-03-15' })), ['c', 'b']);
   assert.deepEqual(ids(arrangeShared([a, b, c], none, mine, { ...base, publishedBefore: '2026-03-20' })), ['b', 'a']);
   assert.deepEqual(ids(arrangeShared([a, b, c], none, mine, { ...base, publishedAfter: '2026-03-12', publishedBefore: '2026-03-25' })), ['b']);
@@ -58,5 +62,5 @@ test('browse list: filter by title, author and publish day, sort by title, autho
 
 test('filter badge counts only the filters that are on', () => {
   assert.equal(activeFilterCount({ starredOnly: false }), 0);
-  assert.equal(activeFilterCount({ title: ' ', author: 'x', publishedAfter: '2026-01-01', starredOnly: true }), 3);
+  assert.equal(activeFilterCount({ title: ' ', author: 'x', tag: 'y', publishedAfter: '2026-01-01', starredOnly: true }), 4);
 });

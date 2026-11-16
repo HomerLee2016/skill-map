@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import type { Reaction, SharedStats } from '../../services/sharedReactions';
 import { fetchSharedContent, type SharedWorkspaceSummary } from '../../services/sharedWorkspaces';
+import { tagCounts } from '../../services/sharedTags';
 import type { WorkspaceContent } from '../../services/workspaceTypes';
 import { BrowseToolbar } from './BrowseToolbar';
 import { SharedTable } from './SharedTable';
@@ -48,7 +49,7 @@ export function BrowseSharedPanel({ shared, loading, error, onChanged, stats, mi
 
   return (
     <div className="sharing-browse">
-      <BrowseToolbar view={view} hasReactions={Boolean(stats)} total={shared.length} />
+      <BrowseToolbar view={view} hasReactions={Boolean(stats)} total={shared.length} tags={tagCounts(shared)} />
       {message ? <p className={message.error ? 'tree-error' : 'sharing-ok'} role="status">{message.text}</p> : null}
       {error ? <p className="tree-error">{error}</p> : null}
       {loading && shared.length === 0 ? <p className="sharing-muted">Loading…</p> : null}
@@ -63,6 +64,7 @@ export function BrowseSharedPanel({ shared, loading, error, onChanged, stats, mi
           onPreview={(item) => { void openPreview(item); }}
           onClone={(item) => { setMessage(null); setCloning(item); }}
           onUnpublish={setUnpublishing}
+          onTag={view.set.tag}
         />
       ) : null}
       {hidden > 0 ? (

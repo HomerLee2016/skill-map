@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 import { activeFilterCount, arrangeShared, type Reaction, type SharedStats, type SortMode } from '../../services/sharedReactions';
 import type { SharedWorkspaceSummary } from '../../services/sharedWorkspaces';
 
-export type FilterKey = 'title' | 'author' | 'publishedAfter' | 'publishedBefore' | 'starredOnly';
-const NONE_ON: Record<FilterKey, boolean> = { title: false, author: false, publishedAfter: false, publishedBefore: false, starredOnly: false };
+export type FilterKey = 'title' | 'author' | 'tag' | 'publishedAfter' | 'publishedBefore' | 'starredOnly';
+const NONE_ON: Record<FilterKey, boolean> = { title: false, author: false, tag: false, publishedAfter: false, publishedBefore: false, starredOnly: false };
 
 export const PAGE_SIZES = [10, 20, 50] as const;
 export const BASIC_SORTS: SortMode[] = ['newest', 'oldest', 'title', 'author'];
@@ -15,6 +15,7 @@ export const BASIC_SORTS: SortMode[] = ['newest', 'oldest', 'title', 'author'];
 export function useBrowseView(shared: SharedWorkspaceSummary[], stats: Map<string, SharedStats> | null, mine: Map<string, Reaction>) {
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
+  const [tag, setTag] = useState('');
   const [publishedAfter, setPublishedAfter] = useState('');
   const [publishedBefore, setPublishedBefore] = useState('');
   const [sort, setSort] = useState<SortMode>('newest');
@@ -28,14 +29,15 @@ export function useBrowseView(shared: SharedWorkspaceSummary[], stats: Map<strin
   const effectiveSort: SortMode = stats || BASIC_SORTS.includes(sort) ? sort : 'newest';
   const appliedTitle = on.title ? title : '';
   const appliedAuthor = on.author ? author : '';
+  const appliedTag = on.tag ? tag : '';
   const appliedAfter = on.publishedAfter ? publishedAfter : '';
   const appliedBefore = on.publishedBefore ? publishedBefore : '';
   const appliedStarred = Boolean(stats) && on.starredOnly && starredOnly;
-  const filterCount = activeFilterCount({ title: appliedTitle, author: appliedAuthor, publishedAfter: appliedAfter, publishedBefore: appliedBefore, starredOnly: appliedStarred });
+  const filterCount = activeFilterCount({ title: appliedTitle, author: appliedAuthor, tag: appliedTag, publishedAfter: appliedAfter, publishedBefore: appliedBefore, starredOnly: appliedStarred });
 
   const visible = useMemo(
-    () => arrangeShared(shared, stats ?? new Map(), mine, { title: appliedTitle, author: appliedAuthor, publishedAfter: appliedAfter, publishedBefore: appliedBefore, starredOnly: appliedStarred, sort: effectiveSort }),
-    [shared, stats, mine, appliedTitle, appliedAuthor, appliedAfter, appliedBefore, appliedStarred, effectiveSort],
+    () => arrangeShared(shared, stats ?? new Map(), mine, { title: appliedTitle, author: appliedAuthor, tag: appliedTag, publishedAfter: appliedAfter, publishedBefore: appliedBefore, starredOnly: appliedStarred, sort: effectiveSort }),
+    [shared, stats, mine, appliedTitle, appliedAuthor, appliedTag, appliedAfter, appliedBefore, appliedStarred, effectiveSort],
   );
 
   /** Wraps a setter so changing it also goes back to the first page of rows. */
@@ -43,11 +45,12 @@ export function useBrowseView(shared: SharedWorkspaceSummary[], stats: Map<strin
   const turn = (key: FilterKey, value: boolean) => { setOn((current) => ({ ...current, [key]: value })); setShown(pageSize); };
 
   return {
-    values: { title, author, publishedAfter, publishedBefore, starredOnly, sort: effectiveSort, pageSize },
+    values: { title, author, tag, publishedAfter, publishedBefore, starredOnly, sort: effectiveSort, pageSize },
     on,
     set: {
       title: (value: string) => { setTitle(value); turn('title', value !== ''); },
       author: (value: string) => { setAuthor(value); turn('author', value !== ''); },
+      tag: (value: string) => { setTag(value); turn('tag', value !== ''); },
       publishedAfter: (value: string) => { setPublishedAfter(value); turn('publishedAfter', value !== ''); },
       publishedBefore: (value: string) => { setPublishedBefore(value); turn('publishedBefore', value !== ''); },
       starredOnly: (value: boolean) => { setStarredOnly(value); turn('starredOnly', value); },
@@ -56,7 +59,7 @@ export function useBrowseView(shared: SharedWorkspaceSummary[], stats: Map<strin
       sort: reset(setSort),
       pageSize: (size: number) => { setPageSize(size); setShown(size); },
     },
-    clearFilters: () => { setTitle(''); setAuthor(''); setPublishedAfter(''); setPublishedBefore(''); setStarredOnly(false); setOn(NONE_ON); setShown(pageSize); },
+    clearFilters: () => { setTitle(''); setAuthor(''); setTag(''); setPublishedAfter(''); setPublishedBefore(''); setStarredOnly(false); setOn(NONE_ON); setShown(pageSize); },
     filterCount,
     visible,
     rows: visible.slice(0, shown),

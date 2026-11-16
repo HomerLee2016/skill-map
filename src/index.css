@@ -2025,6 +2025,12 @@ body, html, #root {
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .popover-menu { position: relative; }
 .popover-panel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; width: 260px; max-width: calc(100vw - 32px); box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--panel-border); border-radius: 12px; background: var(--panel-bg); color: var(--lessons-text); box-shadow: var(--panel-shadow); }
+.tag-list { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.tag-chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--node-link-border, var(--panel-border)); background: var(--node-link-bg); color: var(--node-link-text); font: inherit; font-size: 12px; font-weight: 600; }
+.tag-chip--btn { cursor: pointer; }
+.tag-chip--btn:hover { filter: brightness(1.1); }
+.tag-chip-remove { border: none; background: none; padding: 0 2px; color: inherit; font: inherit; font-size: 14px; line-height: 1; cursor: pointer; }
+.tag-input { display: flex; flex-direction: column; }
 .filter-option { display: flex; align-items: flex-start; gap: 10px; }
 .filter-option > input[type="checkbox"] { margin-top: 4px; flex-shrink: 0; }
 .filter-option-body { flex: 1; min-width: 0; }

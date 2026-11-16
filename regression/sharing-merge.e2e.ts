@@ -206,7 +206,7 @@ async function newUserContext(user: User, phone: boolean) {
 }
 
 /** Opens the "Publish new workspace" modal and fills it in. The caller clicks "Publish snapshot". */
-async function publish(page: Page, workspaceName: string, title: string, untick: string[] = []) {
+async function publish(page: Page, workspaceName: string, title: string, untick: string[] = [], tags: string[] = []) {
   await openPage(page, 'Sharing hub');
   await page.locator('.sharing-tab', { hasText: 'Share my workspace' }).click();
   await page.locator('button', { hasText: 'Publish new workspace' }).click();
@@ -215,6 +215,10 @@ async function publish(page: Page, workspaceName: string, title: string, untick:
   await page.waitForSelector('.sharing-checklists');
   await page.waitForTimeout(400);
   await fillDialog(page, title, untick);
+  for (const tag of tags) {
+    await page.locator('input[aria-label="Add tag"]').fill(tag);
+    await page.keyboard.press('Enter');
+  }
   await shot(page, 'desktop-1-publish-modal');
 }
 
@@ -249,7 +253,7 @@ async function run() {
   await pickFolder(ann.page, 'spanish-lv1');
   check('Ann: both workspaces are in her cloud account', Boolean(keyOf(ANN.id, 'spanish-lv1') && keyOf(ANN.id, 'spanish-lv2')));
 
-  await publish(ann.page, 'spanish-lv1', 'Spanish lv1', ['Private Notes']);
+  await publish(ann.page, 'spanish-lv1', 'Spanish lv1', ['Private Notes'], ['Spanish', ' #Beginner ', 'spanish']);
   await shot(ann.page, 'desktop-1-share-tab');
   await ann.page.locator('button', { hasText: 'Publish snapshot' }).click();
   await ann.page.waitForSelector('.sharing-ok');
@@ -258,14 +262,17 @@ async function run() {
   const snapshot = JSON.stringify(lv1?.content ?? {});
   check('Ann: the unticked lesson is not in the snapshot', !snapshot.includes('Private Notes'));
   check('Ann: no revision data in the snapshot', !snapshot.includes('revision_records') && !snapshot.includes('proficiency'));
+  check('Ann: tags are saved normalised, lowercase and without duplicates', JSON.stringify(lv1?.tags) === JSON.stringify(['spanish', 'beginner']), JSON.stringify(lv1?.tags));
   check('Ann: her email is not in the shared row', !JSON.stringify(lv1).includes('ann@example.com'));
   await shot(ann.page, 'desktop-2-published');
 
   // Publishing lv2 as well (second snapshot), then lv1 again with fewer items updates instead of duplicating.
-  await publish(ann.page, 'spanish-lv2', 'Spanish lv2');
+  await publish(ann.page, 'spanish-lv2', 'Spanish lv2', [], ['spanish', 'advanced']);
   await ann.page.locator('button', { hasText: 'Publish snapshot' }).click();
   await ann.page.waitForSelector('.sharing-ok');
   check('Ann: two published snapshots', db.shared_workspaces.length === 2);
+  await shot(ann.page, 'desktop-2c-published-list-with-tags');
+  check('Ann: the published list shows the tags', (await ann.page.locator('.published-row', { hasText: 'Spanish lv1' }).locator('.tag-chip').allInnerTexts()).join(',') === 'spanish,beginner');
   check('Ann: the publish modal closed after publishing', (await ann.page.locator('.publish-dialog').count()) === 0);
   const rowsText = await ann.page.locator('.published-row').allInnerTexts();
   check('Ann: the published list shows both with a date', rowsText.length === 2 && rowsText.every((text) => /Published .*2026/.test(text)), rowsText.join(' | '));
@@ -383,6 +390,9 @@ async function run() {
   await bo.page.locator('input[aria-label="Apply filter: Title contains"]').check();
   check('Filter: ticking it again applies it', (await rowCount()) === 1);
   await bo.page.locator('input[aria-label="Filter by title"]').fill('');
+  await bo.page.locator('input[aria-label="Filter by tag"]').fill('begin');
+  check('Filter: tag "begin" leaves only the beginner workspace and ticks its box', (await rowCount()) === 1 && await bo.page.locator('input[aria-label="Apply filter: Tag contains"]').isChecked());
+  await bo.page.locator('input[aria-label="Filter by tag"]').fill('');
   await bo.page.locator('input[aria-label="Filter by author"]').fill('nobody');
   check('Filter: an author nobody has shows "No match"', (await rowCount()) === 0 && (await bodyText(bo.page)).includes('No match'));
   await bo.page.locator('input[aria-label="Filter by author"]').fill('ann');
@@ -395,6 +405,15 @@ async function run() {
   check('Filter: published before 2000 leaves nothing', (await rowCount()) === 0);
   await bo.page.locator('.popover-panel button', { hasText: 'Clear filters' }).click();
   check('Filter: clearing brings every row back', (await rowCount()) === 2);
+  await bo.page.keyboard.press('Escape');
+  await bo.page.keyboard.press('Escape');
+  check('Tags: rows show their tags', (await bo.page.locator('.sharing-row', { hasText: 'Spanish lv2' }).locator('.tag-chip').allInnerTexts()).join(',') === 'spanish,advanced');
+  await bo.page.locator('.sharing-row', { hasText: 'Spanish lv2' }).locator('.tag-chip', { hasText: 'advanced' }).click();
+  check('Tags: clicking a tag chip filters by it', (await rowCount()) === 1 && (await bo.page.locator('button[aria-label="Filter"] .icon-badge').innerText()) === '1');
+  await shot(bo.page, 'phone-22-tag-chip-filter');
+  await bo.page.locator('button[aria-label="Filter"]').click();
+  check('Tags: the tag filter shows the picked tag, ticked', (await bo.page.locator('input[aria-label="Filter by tag"]').inputValue()) === 'advanced' && await bo.page.locator('input[aria-label="Apply filter: Tag contains"]').isChecked());
+  await bo.page.locator('.popover-panel button', { hasText: 'Clear filters' }).click();
   await bo.page.keyboard.press('Escape');
   const filler = Array.from({ length: 12 }, (_, index) => ({
     id: randomUUID(), owner_id: ANN.id, source_workspace_key: `filler-${index}`, name: `Filler ${String(index).padStart(2, '0')}`, description: '', owner_label: 'Ann',

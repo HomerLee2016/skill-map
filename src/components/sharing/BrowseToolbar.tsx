@@ -36,10 +36,12 @@ interface BrowseToolbarProps {
   /** Votes and stars available: adds "My starred only" and the vote-based sorts. */
   hasReactions: boolean;
   total: number;
+  /** Tags in use, offered while typing the tag filter. */
+  tags: { tag: string; count: number }[];
 }
 
 /** Filter and sort icons (each opens a small panel), the rows-to-show picker and the result count. */
-export function BrowseToolbar({ view, hasReactions, total }: BrowseToolbarProps) {
+export function BrowseToolbar({ view, hasReactions, total, tags }: BrowseToolbarProps) {
   const { values, set, filterCount, visible } = view;
   const sortChoices: SortMode[] = hasReactions ? [...BASIC_SORTS, 'top', 'stars'] : BASIC_SORTS;
   return (
@@ -50,6 +52,10 @@ export function BrowseToolbar({ view, hasReactions, total }: BrowseToolbarProps)
         </FilterOption>
         <FilterOption name="author" label="Author contains" view={view}>
           <input className="modal-input" value={values.author} onChange={(event) => set.author(event.target.value)} aria-label="Filter by author" />
+        </FilterOption>
+        <FilterOption name="tag" label="Tag contains" view={view}>
+          <input className="modal-input" list="browse-tag-options" value={values.tag} onChange={(event) => set.tag(event.target.value)} aria-label="Filter by tag" />
+          <datalist id="browse-tag-options">{tags.map(({ tag, count }) => <option key={tag} value={tag}>{`${tag} (${count})`}</option>)}</datalist>
         </FilterOption>
         <FilterOption name="publishedAfter" label="Published on or after" view={view}>
           <input className="modal-input" type="date" value={values.publishedAfter} max={values.publishedBefore || undefined} onChange={(event) => set.publishedAfter(event.target.value)} aria-label="Published after" />

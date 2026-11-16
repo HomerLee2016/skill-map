@@ -73,6 +73,8 @@ export interface BrowseOptions {
   title?: string;
   /** Author label contains (case-insensitive). */
   author?: string;
+  /** Has a tag containing this text (case-insensitive). */
+  tag?: string;
   /** Published on or after this local day, "YYYY-MM-DD". */
   publishedAfter?: string;
   /** Published on or before this local day, "YYYY-MM-DD". */
@@ -90,8 +92,8 @@ export function localDay(iso: string): string {
 }
 
 /** How many filters are switched on, for the badge on the filter icon. */
-export function activeFilterCount(options: Pick<BrowseOptions, 'title' | 'author' | 'publishedAfter' | 'publishedBefore' | 'starredOnly'>): number {
-  return [options.title?.trim(), options.author?.trim(), options.publishedAfter, options.publishedBefore, options.starredOnly].filter(Boolean).length;
+export function activeFilterCount(options: Pick<BrowseOptions, 'title' | 'author' | 'tag' | 'publishedAfter' | 'publishedBefore' | 'starredOnly'>): number {
+  return [options.title?.trim(), options.author?.trim(), options.tag?.trim(), options.publishedAfter, options.publishedBefore, options.starredOnly].filter(Boolean).length;
 }
 
 /** Search, filters and sorting for the browse list. Ties fall back to newest published first. */
@@ -99,16 +101,18 @@ export function arrangeShared(
   items: SharedWorkspaceSummary[],
   stats: Map<string, SharedStats>,
   mine: Map<string, Reaction>,
-  { title = '', author = '', publishedAfter = '', publishedBefore = '', sort, starredOnly }: BrowseOptions,
+  { title = '', author = '', tag = '', publishedAfter = '', publishedBefore = '', sort, starredOnly }: BrowseOptions,
 ): SharedWorkspaceSummary[] {
   const titleNeedle = title.trim().toLowerCase();
   const authorNeedle = author.trim().toLowerCase();
+  const tagNeedle = tag.trim().toLowerCase();
   const get = (id: string) => stats.get(id) ?? NO_STATS;
   const newest = (a: SharedWorkspaceSummary, b: SharedWorkspaceSummary) => b.publishedAt.localeCompare(a.publishedAt);
   return items
     .filter((item) => {
       if (titleNeedle && !item.name.toLowerCase().includes(titleNeedle)) return false;
       if (authorNeedle && !item.ownerLabel.toLowerCase().includes(authorNeedle)) return false;
+      if (tagNeedle && !item.tags.some((entry) => entry.includes(tagNeedle))) return false;
       const day = localDay(item.publishedAt);
       if (publishedAfter && day < publishedAfter) return false;
       if (publishedBefore && day > publishedBefore) return false;

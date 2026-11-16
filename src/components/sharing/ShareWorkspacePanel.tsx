@@ -3,7 +3,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { formatPublishedAt, myPublished, unpublishedOptions, type WorkspaceOption } from '../../services/publishedList';
 import type { SharedWorkspaceSummary } from '../../services/sharedWorkspaces';
+import { tagCounts } from '../../services/sharedTags';
 import { PublishWorkspaceDialog } from './PublishWorkspaceDialog';
+import { TagChips } from './TagInput';
 import { UnpublishDialog } from './UnpublishDialog';
 
 interface ShareWorkspacePanelProps {
@@ -25,6 +27,7 @@ export function ShareWorkspacePanel({ shared, onChanged }: ShareWorkspacePanelPr
   }, [cloudWorkspaces, hasLocalContent, workspaceKey, workspaceSelectionLabel]);
 
   const mine = useMemo(() => myPublished(shared, user?.id), [shared, user?.id]);
+  const suggestions = useMemo(() => tagCounts(shared).map((entry) => entry.tag), [shared]);
   const available = useMemo(() => unpublishedOptions(options, mine), [options, mine]);
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [message, setMessage] = useState<{ text: string } | null>(null);
@@ -66,6 +69,7 @@ export function ShareWorkspacePanel({ shared, onChanged }: ShareWorkspacePanelPr
                     Published {formatPublishedAt(item.publishedAt)}
                     {changed ? ` · updated ${formatPublishedAt(item.updatedAt)}` : ''}
                   </div>
+                  <TagChips tags={item.tags} />
                   <div className="published-meta">
                     {item.lessonCount} lessons, {item.testCount} tests, {item.roadmapCount} roadmaps
                     {source ? ` · from workspace "${source.name}"` : ' · source workspace not in your account'}
@@ -86,10 +90,10 @@ export function ShareWorkspacePanel({ shared, onChanged }: ShareWorkspacePanelPr
       )}
 
       {dialog?.kind === 'publish' ? (
-        <PublishWorkspaceDialog options={available} onClose={close} onDone={afterPublish('Published. Other signed-in users can now find it under "Browse shared".')} />
+        <PublishWorkspaceDialog options={available} tagSuggestions={suggestions} onClose={close} onDone={afterPublish('Published. Other signed-in users can now find it under "Browse shared".')} />
       ) : null}
       {dialog?.kind === 'edit' ? (
-        <PublishWorkspaceDialog options={options.filter((entry) => entry.key === dialog.item.sourceWorkspaceKey)} published={dialog.item} onClose={close} onDone={afterPublish('Snapshot updated. Friends see the new version.')} />
+        <PublishWorkspaceDialog options={options.filter((entry) => entry.key === dialog.item.sourceWorkspaceKey)} published={dialog.item} tagSuggestions={suggestions} onClose={close} onDone={afterPublish('Snapshot updated. Friends see the new version.')} />
       ) : null}
       {dialog?.kind === 'unpublish' ? (
         <UnpublishDialog

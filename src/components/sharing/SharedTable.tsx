@@ -2,6 +2,7 @@ import { formatPublishedAt } from '../../services/publishedList';
 import type { Reaction, SharedStats } from '../../services/sharedReactions';
 import type { SharedWorkspaceSummary } from '../../services/sharedWorkspaces';
 import { ReactionButtons } from './ReactionButtons';
+import { TagChips } from './TagInput';
 
 interface SharedTableProps {
   rows: SharedWorkspaceSummary[];
@@ -13,10 +14,12 @@ interface SharedTableProps {
   onPreview: (item: SharedWorkspaceSummary) => void;
   onClone: (item: SharedWorkspaceSummary) => void;
   onUnpublish: (item: SharedWorkspaceSummary) => void;
+  /** A tag chip was clicked: filter by it. */
+  onTag: (tag: string) => void;
 }
 
 /** One compact row per shared workspace; stacks into blocks on a phone. */
-export function SharedTable({ rows, userId, stats, mine, onReact, onPreview, onClone, onUnpublish }: SharedTableProps) {
+export function SharedTable({ rows, userId, stats, mine, onReact, onPreview, onClone, onUnpublish, onTag }: SharedTableProps) {
   return (
     <table className="sharing-table">
       <thead>
@@ -30,6 +33,7 @@ export function SharedTable({ rows, userId, stats, mine, onReact, onPreview, onC
               <td className="sharing-cell-title">
                 <span className="sharing-row-title">{item.name}</span>
                 {own ? <span className="sharing-badge">Yours</span> : null}
+                <TagChips tags={item.tags} onPick={onTag} />
               </td>
               <td className="sharing-cell-author">by {item.ownerLabel}</td>
               <td className="sharing-cell-date">{formatPublishedAt(item.publishedAt)}</td>
