@@ -71,3 +71,12 @@ export function splitLegacyRecords(
       .map((record) => record.id as number),
   };
 }
+
+/** Revision records follow their questions: same question = same hash, the newest answer wins; renamed tests keep their link. */
+export function mergeRevisionRecordSets(sets: { records: CompletedQuestionRecord[]; titles: Map<string, string> }[]): CompletedQuestionRecord[] {
+  return dedupeByHash(sets.flatMap(({ records, titles }) => records.map((record) => {
+    const title = titles.get(record.quiz_title);
+    const { id: _id, ...rest } = record;
+    return title ? { ...rest, quiz_title: title } : rest;
+  })));
+}
