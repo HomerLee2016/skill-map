@@ -1,10 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { supabase } from '../../lib/supabaseClient';
-import { cloneSharedWorkspace, fetchSharedContent, unpublishWorkspace, type SharedWorkspaceSummary } from '../../services/sharedWorkspaces';
-import { arrangeShared, NO_REACTION, NO_STATS, toggleStar, toggleVote, type Reaction, type SharedStats, type SortMode } from '../../services/sharedReactions';
+import type { Reaction, SharedStats } from '../../services/sharedReactions';
+import { fetchSharedContent, type SharedWorkspaceSummary } from '../../services/sharedWorkspaces';
+import { tagCounts } from '../../services/sharedTags';
 import type { WorkspaceContent } from '../../services/workspaceTypes';
+import { BrowseToolbar } from './BrowseToolbar';
+import { SharedTable } from './SharedTable';
+import { CloneModal, PreviewModal } from './SharedWorkspaceModals';
+import { UnpublishDialog } from './UnpublishDialog';
+import { useBrowseView } from './useBrowseView';
 
 interface BrowseSharedPanelProps {
   shared: SharedWorkspaceSummary[];
@@ -17,182 +22,81 @@ interface BrowseSharedPanelProps {
   onReact: (sharedId: string, next: Reaction) => Promise<void>;
 }
 
-const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;
-
-function Titles({ label, titles }: { label: string; titles: string[] }) {
-  if (titles.length === 0) return null;
-  return (
-    <div className="sharing-preview-group">
-      <strong>{label}</strong>
-      <ul>{titles.map((title, index) => <li key={`${title}-${index}`}>{title}</li>)}</ul>
-    </div>
-  );
-}
-
-/** What other people shared: preview titles, clone into a new workspace of your own. */
+/** What other people shared: a filterable, sortable table with preview and clone pop-ups. */
 export function BrowseSharedPanel({ shared, loading, error, onChanged, stats, mine, onReact }: BrowseSharedPanelProps) {
   const { user } = useAuth();
-  const { selectCloudWorkspace, refreshCloudWorkspaces } = useWorkspace();
-  const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<SortMode>('newest');
-  const [starredOnly, setStarredOnly] = useState(false);
-  const [previewId, setPreviewId] = useState<string | null>(null);
-  const [preview, setPreview] = useState<WorkspaceContent | null>(null);
-  const [cloningId, setCloningId] = useState<string | null>(null);
-  const [cloneName, setCloneName] = useState('');
-  const [busy, setBusy] = useState(false);
+  const view = useBrowseView(shared, stats, mine);
+  const [preview, setPreview] = useState<{ item: SharedWorkspaceSummary; content: WorkspaceContent | null } | null>(null);
+  const [cloning, setCloning] = useState<SharedWorkspaceSummary | null>(null);
+  const [unpublishing, setUnpublishing] = useState<SharedWorkspaceSummary | null>(null);
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
 
-  const visible = useMemo(
-    () => arrangeShared(shared, stats ?? new Map(), mine, { query, sort: stats ? sort : 'newest', starredOnly: stats ? starredOnly : false }),
-    [shared, stats, mine, query, sort, starredOnly],
-  );
-
-  /** You cannot vote on or star your own share (the database refuses it too). */
-  const isOwn = (item: SharedWorkspaceSummary) => item.ownerId === user?.id;
-
-  const togglePreview = async (item: SharedWorkspaceSummary) => {
-    if (previewId === item.id) { setPreviewId(null); return; }
-    setPreviewId(item.id);
-    setPreview(null);
+  const openPreview = async (item: SharedWorkspaceSummary) => {
+    setMessage(null);
+    setPreview({ item, content: null });
     if (!supabase) return;
     try {
-      setPreview(await fetchSharedContent(supabase, item.id));
+      const content = await fetchSharedContent(supabase, item.id);
+      setPreview((current) => (current?.item.id === item.id ? { item, content } : current));
     } catch (err) {
+      setPreview(null);
       setMessage({ text: err instanceof Error ? err.message : 'Could not load the preview', error: true });
     }
   };
 
-  const startClone = (item: SharedWorkspaceSummary) => {
-    setCloningId(item.id);
-    setCloneName(item.name);
-    setMessage(null);
-  };
-
-  const confirmClone = async (item: SharedWorkspaceSummary) => {
-    if (!supabase) return;
-    setBusy(true);
-    setMessage(null);
-    try {
-      const created = await cloneSharedWorkspace(supabase, item.id, cloneName);
-      await refreshCloudWorkspaces();
-      await selectCloudWorkspace(created);
-      setCloningId(null);
-      setMessage({ text: `Cloned into a new workspace "${created.name}" and opened it. Your other workspaces are untouched.` });
-    } catch (err) {
-      setMessage({ text: err instanceof Error ? err.message : 'Could not clone', error: true });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const unpublish = async (item: SharedWorkspaceSummary) => {
-    if (!supabase || !window.confirm(`Stop sharing "${item.name}"?`)) return;
-    try {
-      await unpublishWorkspace(supabase, item.id);
-      await onChanged();
-    } catch (err) {
-      setMessage({ text: err instanceof Error ? err.message : 'Could not unpublish', error: true });
-    }
-  };
+  const { visible, rows } = view;
+  const hidden = visible.length - rows.length;
 
   return (
     <div className="sharing-browse">
-      <input
-        className="modal-input sharing-search"
-        type="search"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder="Search shared workspaces"
-        aria-label="Search shared workspaces"
-      />
-      {stats ? (
-        <div className="sharing-toolbar">
-          <label className="sharing-toolbar-item">
-            <span className="sharing-muted">Sort</span>
-            <select className="modal-input sharing-sort" value={sort} onChange={(event) => setSort(event.target.value as SortMode)} aria-label="Sort shared workspaces">
-              <option value="newest">Newest</option>
-              <option value="top">Top rated</option>
-              <option value="stars">Most starred</option>
-            </select>
-          </label>
-          <label className="sharing-check sharing-toolbar-item">
-            <input type="checkbox" checked={starredOnly} onChange={(event) => setStarredOnly(event.target.checked)} />
-            <span>My starred only</span>
-          </label>
-        </div>
-      ) : null}
+      <BrowseToolbar view={view} hasReactions={Boolean(stats)} total={shared.length} tags={tagCounts(shared)} />
       {message ? <p className={message.error ? 'tree-error' : 'sharing-ok'} role="status">{message.text}</p> : null}
       {error ? <p className="tree-error">{error}</p> : null}
       {loading && shared.length === 0 ? <p className="sharing-muted">Loading…</p> : null}
       {!loading && !error && visible.length === 0 ? <p className="sharing-muted">{shared.length === 0 ? 'Nobody has shared a workspace yet.' : 'No match.'}</p> : null}
-      <ul className="sharing-cards">
-        {visible.map((item) => {
-          const own = item.ownerId === user?.id;
-          return (
-            <li key={item.id} className="sharing-card">
-              <div className="sharing-card-head">
-                <h3 className="sharing-card-title">{item.name}</h3>
-                {own ? <span className="sharing-badge">Yours</span> : null}
-              </div>
-              <div className="sharing-muted">
-                by {item.ownerLabel} · updated {new Date(item.updatedAt).toLocaleDateString()}
-              </div>
-              {item.description ? <p className="sharing-card-desc">{item.description}</p> : null}
-              <div className="sharing-counts">
-                <span>{plural(item.lessonCount, 'lesson')}</span><span>{plural(item.testCount, 'test')}</span><span>{plural(item.roadmapCount, 'roadmap')}</span>
-              </div>
-              {stats ? (
-                <div className="sharing-reactions">
-                  {(() => {
-                    const total = stats.get(item.id) ?? NO_STATS;
-                    const reaction = mine.get(item.id) ?? NO_REACTION;
-                    return (
-                      <>
-                        <button type="button" className={reaction.vote === 1 ? 'sharing-react sharing-react--on' : 'sharing-react'} disabled={isOwn(item)} aria-pressed={reaction.vote === 1} aria-label={`Upvote (${total.upvotes})`} onClick={() => { void onReact(item.id, toggleVote(reaction, 1)); }}>▲ {total.upvotes}</button>
-                        <button type="button" className={reaction.vote === -1 ? 'sharing-react sharing-react--on sharing-react--down' : 'sharing-react'} disabled={isOwn(item)} aria-pressed={reaction.vote === -1} aria-label={`Downvote (${total.downvotes})`} onClick={() => { void onReact(item.id, toggleVote(reaction, -1)); }}>▼ {total.downvotes}</button>
-                        <button type="button" className={reaction.starred ? 'sharing-react sharing-react--on sharing-react--star' : 'sharing-react'} disabled={isOwn(item)} aria-pressed={reaction.starred} aria-label={`${reaction.starred ? 'Unstar' : 'Star'} (${total.stars})`} onClick={() => { void onReact(item.id, toggleStar(reaction)); }}>{reaction.starred ? '★' : '☆'} {total.stars}</button>
-                      </>
-                    );
-                  })()}
-                </div>
-              ) : null}
-              {previewId === item.id ? (
-                <div className="sharing-preview">
-                  {preview ? (
-                    <>
-                      <Titles label="Lessons" titles={preview.lessons.map((lesson) => lesson.title)} />
-                      <Titles label="Tests" titles={preview.tests.map((test) => test.title)} />
-                      <Titles label="Roadmaps" titles={preview.roadmaps.map((roadmap) => roadmap.name)} />
-                    </>
-                  ) : <span className="sharing-muted">Loading…</span>}
-                </div>
-              ) : null}
-              {cloningId === item.id ? (
-                <div className="sharing-clone-form">
-                  <label className="modal-label">
-                    Name of your new workspace
-                    <input className="modal-input" value={cloneName} maxLength={200} onChange={(event) => setCloneName(event.target.value)} aria-label="New workspace name" />
-                  </label>
-                  <div className="sharing-actions">
-                    <button type="button" className="toolbar-btn" disabled={busy} onClick={() => { void confirmClone(item); }}>{busy ? 'Cloning…' : 'Clone'}</button>
-                    <button type="button" className="modal-btn-cancel" disabled={busy} onClick={() => setCloningId(null)}>Cancel</button>
-                  </div>
-                </div>
-              ) : (
-                <div className="sharing-actions">
-                  <button type="button" className="modal-btn-cancel" onClick={() => { void togglePreview(item); }}>{previewId === item.id ? 'Hide contents' : 'Preview'}</button>
-                  {own ? (
-                    <button type="button" className="toolbar-btn sharing-btn-danger" onClick={() => { void unpublish(item); }}>Unpublish</button>
-                  ) : (
-                    <button type="button" className="toolbar-btn" onClick={() => startClone(item)}>Clone to new workspace</button>
-                  )}
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+      {rows.length > 0 ? (
+        <SharedTable
+          rows={rows}
+          userId={user?.id}
+          stats={stats}
+          mine={mine}
+          onReact={onReact}
+          onPreview={(item) => { void openPreview(item); }}
+          onClone={(item) => { setMessage(null); setCloning(item); }}
+          onUnpublish={setUnpublishing}
+          onTag={view.set.tag}
+        />
+      ) : null}
+      {hidden > 0 ? (
+        <div className="sharing-actions">
+          <button type="button" className="modal-btn-cancel" onClick={view.showMore}>Show {Math.min(view.values.pageSize, hidden)} more ({hidden} hidden)</button>
+        </div>
+      ) : null}
+      {view.expanded && visible.length > view.values.pageSize ? (
+        <div className="sharing-actions">
+          <button type="button" className="sharing-link-btn" onClick={view.hideExtra}>Hide extra rows</button>
+        </div>
+      ) : null}
+
+      {preview ? (
+        <PreviewModal
+          item={preview.item}
+          content={preview.content}
+          canClone={preview.item.ownerId !== user?.id}
+          onClone={() => { setCloning(preview.item); setPreview(null); }}
+          onClose={() => setPreview(null)}
+        />
+      ) : null}
+      {cloning ? (
+        <CloneModal
+          item={cloning}
+          onClose={() => setCloning(null)}
+          onCloned={(name) => { setCloning(null); setMessage({ text: `Cloned into a new workspace "${name}" and opened it. Your other workspaces are untouched.` }); }}
+        />
+      ) : null}
+      {unpublishing ? (
+        <UnpublishDialog item={unpublishing} onClose={() => setUnpublishing(null)} onDone={async () => { await onChanged(); }} />
+      ) : null}
     </div>
   );
 }

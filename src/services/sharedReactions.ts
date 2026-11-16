@@ -15,7 +15,7 @@ export interface SharedStats {
   stars: number;
 }
 
-export type SortMode = 'newest' | 'top' | 'stars';
+export type SortMode = 'newest' | 'oldest' | 'title' | 'author' | 'top' | 'stars';
 
 export const NO_REACTION: Reaction = { vote: 0, starred: false };
 export const NO_STATS: SharedStats = { upvotes: 0, downvotes: 0, stars: 0 };
@@ -69,27 +69,61 @@ export function applyReaction(stats: SharedStats, before: Reaction, after: React
 export const score = (stats: SharedStats) => stats.upvotes - stats.downvotes;
 
 export interface BrowseOptions {
-  query: string;
+  /** Title contains (case-insensitive). */
+  title?: string;
+  /** Author label contains (case-insensitive). */
+  author?: string;
+  /** Has a tag containing this text (case-insensitive). */
+  tag?: string;
+  /** Published on or after this local day, "YYYY-MM-DD". */
+  publishedAfter?: string;
+  /** Published on or before this local day, "YYYY-MM-DD". */
+  publishedBefore?: string;
   sort: SortMode;
   starredOnly: boolean;
 }
 
-/** Search, "my starred" filter and sorting for the browse list. Ties fall back to newest first. */
+/** The local calendar day of an ISO timestamp as "YYYY-MM-DD" (empty when unreadable). */
+export function localDay(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** How many filters are switched on, for the badge on the filter icon. */
+export function activeFilterCount(options: Pick<BrowseOptions, 'title' | 'author' | 'tag' | 'publishedAfter' | 'publishedBefore' | 'starredOnly'>): number {
+  return [options.title?.trim(), options.author?.trim(), options.tag?.trim(), options.publishedAfter, options.publishedBefore, options.starredOnly].filter(Boolean).length;
+}
+
+/** Search, filters and sorting for the browse list. Ties fall back to newest published first. */
 export function arrangeShared(
   items: SharedWorkspaceSummary[],
   stats: Map<string, SharedStats>,
   mine: Map<string, Reaction>,
-  { query, sort, starredOnly }: BrowseOptions,
+  { title = '', author = '', tag = '', publishedAfter = '', publishedBefore = '', sort, starredOnly }: BrowseOptions,
 ): SharedWorkspaceSummary[] {
-  const needle = query.trim().toLowerCase();
+  const titleNeedle = title.trim().toLowerCase();
+  const authorNeedle = author.trim().toLowerCase();
+  const tagNeedle = tag.trim().toLowerCase();
   const get = (id: string) => stats.get(id) ?? NO_STATS;
-  const newest = (a: SharedWorkspaceSummary, b: SharedWorkspaceSummary) => b.updatedAt.localeCompare(a.updatedAt);
+  const newest = (a: SharedWorkspaceSummary, b: SharedWorkspaceSummary) => b.publishedAt.localeCompare(a.publishedAt);
   return items
-    .filter((item) => (!needle || `${item.name} ${item.description} ${item.ownerLabel}`.toLowerCase().includes(needle))
-      && (!starredOnly || mine.get(item.id)?.starred))
+    .filter((item) => {
+      if (titleNeedle && !item.name.toLowerCase().includes(titleNeedle)) return false;
+      if (authorNeedle && !item.ownerLabel.toLowerCase().includes(authorNeedle)) return false;
+      if (tagNeedle && !item.tags.some((entry) => entry.includes(tagNeedle))) return false;
+      const day = localDay(item.publishedAt);
+      if (publishedAfter && day < publishedAfter) return false;
+      if (publishedBefore && day > publishedBefore) return false;
+      return !starredOnly || Boolean(mine.get(item.id)?.starred);
+    })
     .sort((a, b) => {
       if (sort === 'top') return score(get(b.id)) - score(get(a.id)) || newest(a, b);
       if (sort === 'stars') return get(b.id).stars - get(a.id).stars || newest(a, b);
+      if (sort === 'oldest') return a.publishedAt.localeCompare(b.publishedAt);
+      if (sort === 'title') return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) || newest(a, b);
+      if (sort === 'author') return a.ownerLabel.localeCompare(b.ownerLabel, undefined, { sensitivity: 'base' }) || newest(a, b);
       return newest(a, b);
     });
 }

@@ -205,12 +205,35 @@ async function newUserContext(user: User, phone: boolean) {
   return { context, page };
 }
 
-async function publish(page: Page, workspaceName: string, title: string, untick: string[] = []) {
+/** Opens the "Publish new workspace" modal and fills it in. The caller clicks "Publish snapshot". */
+async function publish(page: Page, workspaceName: string, title: string, untick: string[] = [], tags: string[] = []) {
   await openPage(page, 'Sharing hub');
   await page.locator('.sharing-tab', { hasText: 'Share my workspace' }).click();
+  await page.locator('button', { hasText: 'Publish new workspace' }).click();
+  await page.waitForSelector('.publish-dialog');
   await page.locator('select[aria-label="Workspace to share"]').selectOption({ label: workspaceName });
   await page.waitForSelector('.sharing-checklists');
   await page.waitForTimeout(400);
+  await fillDialog(page, title, untick);
+  for (const tag of tags) {
+    await page.locator('input[aria-label="Add tag"]').fill(tag);
+    await page.keyboard.press('Enter');
+  }
+  await shot(page, 'desktop-1-publish-modal');
+}
+
+/** Opens the pencil modal of a published row and fills it in. The caller clicks "Update snapshot". */
+async function editPublished(page: Page, currentTitle: string, title: string, untick: string[] = []) {
+  await openPage(page, 'Sharing hub');
+  await page.locator('.sharing-tab', { hasText: 'Share my workspace' }).click();
+  await page.locator('.published-row', { hasText: currentTitle }).locator('button[aria-label^="Edit published"]').click();
+  await page.waitForSelector('.publish-dialog');
+  await page.waitForSelector('.sharing-checklists');
+  await page.waitForTimeout(400);
+  await fillDialog(page, title, untick);
+}
+
+async function fillDialog(page: Page, title: string, untick: string[]) {
   for (const label of untick) await page.locator('.sharing-check', { hasText: label }).locator('input').uncheck();
   await page.locator('input[aria-label="Shared title"]').fill(title);
   await page.locator('textarea[aria-label="Shared description"]').fill(`${title}: greetings, numbers and a map.`);
@@ -230,7 +253,7 @@ async function run() {
   await pickFolder(ann.page, 'spanish-lv1');
   check('Ann: both workspaces are in her cloud account', Boolean(keyOf(ANN.id, 'spanish-lv1') && keyOf(ANN.id, 'spanish-lv2')));
 
-  await publish(ann.page, 'spanish-lv1', 'Spanish lv1', ['Private Notes']);
+  await publish(ann.page, 'spanish-lv1', 'Spanish lv1', ['Private Notes'], ['Spanish', ' #Beginner ', 'spanish']);
   await shot(ann.page, 'desktop-1-share-tab');
   await ann.page.locator('button', { hasText: 'Publish snapshot' }).click();
   await ann.page.waitForSelector('.sharing-ok');
@@ -239,14 +262,27 @@ async function run() {
   const snapshot = JSON.stringify(lv1?.content ?? {});
   check('Ann: the unticked lesson is not in the snapshot', !snapshot.includes('Private Notes'));
   check('Ann: no revision data in the snapshot', !snapshot.includes('revision_records') && !snapshot.includes('proficiency'));
+  check('Ann: tags are saved normalised, lowercase and without duplicates', JSON.stringify(lv1?.tags) === JSON.stringify(['spanish', 'beginner']), JSON.stringify(lv1?.tags));
   check('Ann: her email is not in the shared row', !JSON.stringify(lv1).includes('ann@example.com'));
   await shot(ann.page, 'desktop-2-published');
 
   // Publishing lv2 as well (second snapshot), then lv1 again with fewer items updates instead of duplicating.
-  await publish(ann.page, 'spanish-lv2', 'Spanish lv2');
+  await publish(ann.page, 'spanish-lv2', 'Spanish lv2', [], ['spanish', 'advanced']);
   await ann.page.locator('button', { hasText: 'Publish snapshot' }).click();
   await ann.page.waitForSelector('.sharing-ok');
   check('Ann: two published snapshots', db.shared_workspaces.length === 2);
+  await shot(ann.page, 'desktop-2c-published-list-with-tags');
+  check('Ann: the published list shows the tags', (await ann.page.locator('.published-row', { hasText: 'Spanish lv1' }).locator('.tag-chip').allInnerTexts()).join(',') === 'spanish,beginner');
+  check('Ann: the publish modal closed after publishing', (await ann.page.locator('.publish-dialog').count()) === 0);
+  const rowsText = await ann.page.locator('.published-row').allInnerTexts();
+  check('Ann: the published list shows both with a date', rowsText.length === 2 && rowsText.every((text) => /Published .*2026/.test(text)), rowsText.join(' | '));
+  await shot(ann.page, 'desktop-2b-published-list');
+  check('Ann: published workspaces are not offered for a new publish', await (async () => {
+    await ann.page.locator('button', { hasText: 'Publish new workspace' }).click();
+    const none = await ann.page.locator('select[aria-label="Workspace to share"] option', { hasText: /^spanish-lv[12]$/ }).count();
+    await ann.page.locator('.publish-dialog button', { hasText: 'Cancel' }).click();
+    return none === 0;
+  })());
 
   // ---------------------------------------------------------------- Bo (phone): browse, preview, clone
   const bo = await newUserContext(BO, true);
@@ -254,20 +290,21 @@ async function run() {
   await bo.page.waitForSelector('.top-bar-hamburger');
   await settle(bo.page);
   await openPage(bo.page, 'Sharing hub');
-  await bo.page.waitForSelector('.sharing-card');
-  check('Bo: sees both shared workspaces', (await bo.page.locator('.sharing-card').count()) === 2);
+  await bo.page.waitForSelector('.sharing-row');
+  check('Bo: sees both shared workspaces', (await bo.page.locator('.sharing-row').count()) === 2);
   check('Bo: sees the owner label, not the email', (await bodyText(bo.page)).includes('by Ann') && !(await bodyText(bo.page)).includes('ann@example.com'));
   await shot(bo.page, 'phone-1-browse');
-  await bo.page.locator('.sharing-card', { hasText: 'Spanish lv1' }).locator('button', { hasText: 'Preview' }).click();
-  await bo.page.waitForSelector('.sharing-preview li');
-  const preview = await bo.page.locator('.sharing-preview').innerText();
+  await bo.page.locator('.sharing-row', { hasText: 'Spanish lv1' }).locator('button', { hasText: 'Preview' }).click();
+  await bo.page.waitForSelector('.sharing-modal .sharing-preview li');
+  check('Bo: preview opens as a pop-up modal', (await bo.page.locator('.modal-overlay .sharing-modal').count()) === 1);
+  const preview = await bo.page.locator('.sharing-modal .sharing-preview').innerText();
   check('Bo: preview lists titles', preview.includes('Spanish Greetings') && preview.includes('Greetings Quiz') && !preview.includes('Private Notes'));
   await shot(bo.page, 'phone-2-preview');
 
-  await bo.page.locator('.sharing-card', { hasText: 'Spanish lv1' }).locator('button', { hasText: 'Clone to new workspace' }).click();
+  await bo.page.locator('.sharing-modal button', { hasText: 'Clone to new workspace' }).click();
   await bo.page.locator('input[aria-label="New workspace name"]').fill('Spanish (from Ann) lv1');
   await shot(bo.page, 'phone-3-clone-form');
-  await bo.page.locator('button', { hasText: /^Clone$/ }).click();
+  await bo.page.locator('.sharing-modal button', { hasText: /^Clone$/ }).click();
   await bo.page.waitForSelector('.sharing-ok');
   await settle(bo.page);
   const boLv1 = keyOf(BO.id, 'Spanish (from Ann) lv1');
@@ -282,22 +319,22 @@ async function run() {
   await shot(bo.page, 'phone-5-cloned-lessons');
 
   // Snapshot, not real time: Ann changes her lv1 afterwards and re-publishes; Bo's clone does not move.
-  await publish(ann.page, 'spanish-lv1', 'Spanish lv1 (updated)', ['Spanish Numbers', 'Private Notes']);
+  await editPublished(ann.page, 'Spanish lv1', 'Spanish lv1 (updated)', ['Spanish Numbers', 'Private Notes']);
   await ann.page.locator('button', { hasText: 'Update snapshot' }).click();
   await ann.page.waitForSelector('.sharing-ok');
   check('Ann: re-publishing updates the same snapshot', db.shared_workspaces.filter((row) => String(row.name).startsWith('Spanish lv1')).length === 1 && db.shared_workspaces.some((row) => row.name === 'Spanish lv1 (updated)' && row.lesson_count === 1));
   check('Bo: his clone is unchanged by the re-publish', rows('lessons', BO.id, boLv1).length === 2);
   // Put it back for the merge scenario.
-  await publish(ann.page, 'spanish-lv1', 'Spanish lv1', ['Private Notes']);
+  await editPublished(ann.page, 'Spanish lv1 (updated)', 'Spanish lv1', ['Private Notes']);
   await ann.page.locator('button', { hasText: 'Update snapshot' }).click();
   await ann.page.waitForSelector('.sharing-ok');
 
   // Bo clones lv2 as well (second friend)
   await openPage(bo.page, 'Sharing hub');
-  await bo.page.waitForSelector('.sharing-card');
-  await bo.page.locator('.sharing-card', { hasText: 'Spanish lv2' }).locator('button', { hasText: 'Clone to new workspace' }).click();
+  await bo.page.waitForSelector('.sharing-row');
+  await bo.page.locator('.sharing-row', { hasText: 'Spanish lv2' }).locator('button', { hasText: /^Clone$/ }).click();
   await bo.page.locator('input[aria-label="New workspace name"]').fill('Spanish (from Cy) lv2');
-  await bo.page.locator('button', { hasText: /^Clone$/ }).click();
+  await bo.page.locator('.sharing-modal button', { hasText: /^Clone$/ }).click();
   await bo.page.waitForSelector('.sharing-ok');
   await settle(bo.page);
   const boLv2 = keyOf(BO.id, 'Spanish (from Cy) lv2');
@@ -305,8 +342,8 @@ async function run() {
 
   // ---------------------------------------------------------------- Votes and stars
   await openPage(bo.page, 'Sharing hub');
-  await bo.page.waitForSelector('.sharing-card');
-  const card = (title: string) => bo.page.locator('.sharing-card', { hasText: title });
+  await bo.page.waitForSelector('.sharing-row');
+  const card = (title: string) => bo.page.locator('.sharing-row', { hasText: title });
   await card('Spanish lv2').locator('button[aria-label^="Upvote"]').click();
   await card('Spanish lv1').locator('button[aria-label$="(0)"]', { hasText: '☆' }).click();
   await bo.page.waitForTimeout(500);
@@ -322,18 +359,87 @@ async function run() {
   await card('Spanish lv2').locator('button[aria-label^="Downvote"]').click();
   await bo.page.waitForTimeout(400);
   check('Votes: clicking the same vote again clears it', db.shared_workspace_reactions.find((r) => r.user_id === BO.id && r.shared_id === lv2Id)?.vote === 0);
-  await bo.page.locator('select[aria-label="Sort shared workspaces"]').selectOption('stars');
-  check('Votes: "Most starred" puts the starred one first', (await bo.page.locator('.sharing-card-title').first().innerText()) === 'Spanish lv1');
-  await bo.page.locator('.sharing-toolbar .sharing-check input').check();
-  check('Votes: "My starred only" shows just the starred one', (await bo.page.locator('.sharing-card').count()) === 1);
+  await bo.page.locator('button[aria-label="Sort"]').click();
+  await shot(bo.page, 'phone-18-sort-popover');
+  await bo.page.locator('.popover-panel label', { hasText: 'Most starred' }).click();
+  await bo.page.keyboard.press('Escape');
+  check('Votes: "Most starred" puts the starred one first', (await bo.page.locator('.sharing-row-title').first().innerText()) === 'Spanish lv1');
+  await bo.page.locator('button[aria-label="Filter"]').click();
+  await bo.page.locator('input[aria-label="Apply My starred only"]').check();
+  await shot(bo.page, 'phone-19-filter-popover');
+  await bo.page.keyboard.press('Escape');
+  check('Filter icon shows a badge while a filter is on', (await bo.page.locator('button[aria-label="Filter"] .icon-badge').innerText()) === '1');
+  check('Votes: "My starred only" shows just the starred one', (await bo.page.locator('.sharing-row').count()) === 1);
   await shot(bo.page, 'phone-13-starred-only');
-  await bo.page.locator('.sharing-toolbar .sharing-check input').uncheck();
-  await bo.page.locator('select[aria-label="Sort shared workspaces"]').selectOption('newest');
+  await bo.page.locator('button[aria-label="Filter"]').click();
+  await bo.page.locator('input[aria-label="Apply My starred only"]').uncheck();
+  await bo.page.keyboard.press('Escape');
+  await bo.page.locator('button[aria-label="Sort"]').click();
+  await bo.page.locator('.popover-panel label', { hasText: 'Newest published' }).click();
+  await bo.page.keyboard.press('Escape');
+
+  // Filters by title, author and publish date; paging with 10/20/50 and show more / hide.
+  const rowCount = () => bo.page.locator('.sharing-row').count();
+  await bo.page.locator('button[aria-label="Filter"]').click();
+  await bo.page.locator('input[aria-label="Filter by title"]').fill('lv2');
+  check('Filter: title "lv2" leaves one row', (await rowCount()) === 1);
+  check('Filter: typing a value ticks its checkbox', await bo.page.locator('input[aria-label="Apply filter: Title contains"]').isChecked());
+  await shot(bo.page, 'phone-21-filter-checkbox-on');
+  await bo.page.locator('input[aria-label="Apply filter: Title contains"]').uncheck();
+  check('Filter: unticking stops applying it but keeps the text', (await rowCount()) === 2 && (await bo.page.locator('input[aria-label="Filter by title"]').inputValue()) === 'lv2');
+  await bo.page.locator('input[aria-label="Apply filter: Title contains"]').check();
+  check('Filter: ticking it again applies it', (await rowCount()) === 1);
+  await bo.page.locator('input[aria-label="Filter by title"]').fill('');
+  await bo.page.locator('input[aria-label="Filter by tag"]').fill('begin');
+  check('Filter: tag "begin" leaves only the beginner workspace and ticks its box', (await rowCount()) === 1 && await bo.page.locator('input[aria-label="Apply filter: Tag contains"]').isChecked());
+  await bo.page.locator('input[aria-label="Filter by tag"]').fill('');
+  await bo.page.locator('input[aria-label="Filter by author"]').fill('nobody');
+  check('Filter: an author nobody has shows "No match"', (await rowCount()) === 0 && (await bodyText(bo.page)).includes('No match'));
+  await bo.page.locator('input[aria-label="Filter by author"]').fill('ann');
+  check('Filter: author "ann" (any case) finds Ann\'s rows', (await rowCount()) >= 2);
+  await bo.page.locator('input[aria-label="Filter by author"]').fill('');
+  await bo.page.locator('input[aria-label="Published after"]').fill('2999-01-01');
+  check('Filter: published after a future day leaves nothing', (await rowCount()) === 0);
+  await bo.page.locator('input[aria-label="Published after"]').fill('');
+  await bo.page.locator('input[aria-label="Published before"]').fill('2000-01-01');
+  check('Filter: published before 2000 leaves nothing', (await rowCount()) === 0);
+  await bo.page.locator('.popover-panel button', { hasText: 'Clear filters' }).click();
+  check('Filter: clearing brings every row back', (await rowCount()) === 2);
+  await bo.page.keyboard.press('Escape');
+  await bo.page.keyboard.press('Escape');
+  check('Tags: rows show their tags', (await bo.page.locator('.sharing-row', { hasText: 'Spanish lv2' }).locator('.tag-chip').allInnerTexts()).join(',') === 'spanish,advanced');
+  await bo.page.locator('.sharing-row', { hasText: 'Spanish lv2' }).locator('.tag-chip', { hasText: 'advanced' }).click();
+  check('Tags: clicking a tag chip filters by it', (await rowCount()) === 1 && (await bo.page.locator('button[aria-label="Filter"] .icon-badge').innerText()) === '1');
+  await shot(bo.page, 'phone-22-tag-chip-filter');
+  await bo.page.locator('button[aria-label="Filter"]').click();
+  check('Tags: the tag filter shows the picked tag, ticked', (await bo.page.locator('input[aria-label="Filter by tag"]').inputValue()) === 'advanced' && await bo.page.locator('input[aria-label="Apply filter: Tag contains"]').isChecked());
+  await bo.page.locator('.popover-panel button', { hasText: 'Clear filters' }).click();
+  await bo.page.keyboard.press('Escape');
+  const filler = Array.from({ length: 12 }, (_, index) => ({
+    id: randomUUID(), owner_id: ANN.id, source_workspace_key: `filler-${index}`, name: `Filler ${String(index).padStart(2, '0')}`, description: '', owner_label: 'Ann',
+    lesson_count: 1, test_count: 0, roadmap_count: 0, published_at: new Date(Date.now() - (index + 1) * 60000).toISOString(), updated_at: new Date(Date.now() - (index + 1) * 60000).toISOString(),
+  }));
+  db.shared_workspaces.push(...filler);
+  await openPage(bo.page, 'Sharing hub');
+  await bo.page.locator('.sharing-tab', { hasText: 'Share my workspace' }).click();
+  await bo.page.locator('.sharing-tab', { hasText: 'Browse shared' }).click();
+  await bo.page.waitForSelector('.sharing-row');
+  await bo.page.waitForTimeout(500);
+  check('Paging: only the top 10 rows are drawn', (await rowCount()) === 10);
+  await shot(bo.page, 'phone-20-top-10');
+  await bo.page.locator('button', { hasText: /Show \d+ more/ }).click();
+  check('Paging: "Show more" reveals the rest', (await rowCount()) === 14);
+  await bo.page.locator('button', { hasText: 'Hide extra rows' }).click();
+  check('Paging: "Hide extra rows" goes back to 10', (await rowCount()) === 10);
+  await bo.page.locator('select[aria-label="Rows to show"]').selectOption('20');
+  check('Paging: Top 20 draws all 14', (await rowCount()) === 14 && (await bo.page.locator('button', { hasText: /Show \d+ more/ }).count()) === 0);
+  await bo.page.locator('select[aria-label="Rows to show"]').selectOption('10');
+  db.shared_workspaces = db.shared_workspaces.filter((row) => !String(row.source_workspace_key).startsWith('filler-'));
   await openPage(ann.page, 'Sharing hub');
   await ann.page.locator('.sharing-tab', { hasText: 'Browse shared' }).click();
-  await ann.page.waitForSelector('.sharing-card');
-  check('Votes: the owner cannot vote on or star her own share', (await ann.page.locator('.sharing-card', { hasText: 'Spanish lv1' }).locator('button[aria-label^="Upvote"]').isDisabled()));
-  check('Votes: the owner sees the star total but not who starred', (await ann.page.locator('.sharing-card', { hasText: 'Spanish lv1' }).locator('button[aria-label$="(1)"]').count()) >= 1);
+  await ann.page.waitForSelector('.sharing-row');
+  check('Votes: the owner cannot vote on or star her own share', (await ann.page.locator('.sharing-row', { hasText: 'Spanish lv1' }).locator('button[aria-label^="Upvote"]').isDisabled()));
+  check('Votes: the owner sees the star total but not who starred', (await ann.page.locator('.sharing-row', { hasText: 'Spanish lv1' }).locator('button[aria-label$="(1)"]').count()) >= 1);
   await shot(ann.page, 'desktop-10-votes-owner-view');
 
   // Bo has revised some questions in each workspace.
@@ -391,7 +497,7 @@ async function run() {
   // desktop view of the same screens (layout is width based)
   await bo.page.setViewportSize({ width: 1280, height: 800 });
   await openPage(bo.page, 'Sharing hub');
-  await bo.page.waitForSelector('.sharing-card');
+  await bo.page.waitForSelector('.sharing-row');
   await shot(bo.page, 'desktop-3-browse');
   await bo.page.locator('.top-bar-workspace-trigger').click();
   await bo.page.locator('.top-bar-workspace-menu-item--action', { hasText: 'Merge workspaces' }).click();
@@ -456,12 +562,12 @@ async function run() {
   await bo.page.waitForSelector('.top-bar-workspace-trigger');
   await settle(bo.page);
   await openPage(bo.page, 'Sharing hub');
-  await bo.page.waitForSelector('.sharing-card');
-  const hostile = bo.page.locator('.sharing-card', { hasText: 'Totally safe' });
+  await bo.page.waitForSelector('.sharing-row');
+  const hostile = bo.page.locator('.sharing-row', { hasText: 'Totally safe' });
   await hostile.locator('button', { hasText: 'Preview' }).click();
-  await hostile.locator('button', { hasText: 'Clone to new workspace' }).click();
+  await bo.page.locator('.sharing-modal button', { hasText: 'Clone to new workspace' }).click();
   await bo.page.locator('input[aria-label="New workspace name"]').fill('Hostile clone');
-  await bo.page.locator('button', { hasText: /^Clone$/ }).click();
+  await bo.page.locator('.sharing-modal button', { hasText: /^Clone$/ }).click();
   await bo.page.waitForSelector('.sharing-ok');
   await settle(bo.page);
   const hostileKey = keyOf(BO.id, 'Hostile clone');
@@ -479,13 +585,48 @@ async function run() {
   // ---------------------------------------------------------------- Unpublish
   await openPage(ann.page, 'Sharing hub');
   await ann.page.locator('.sharing-tab', { hasText: 'Browse shared' }).click();
-  await ann.page.waitForSelector('.sharing-card');
-  check('Ann: her own cards say "Yours" and have no Clone', (await ann.page.locator('.sharing-card', { hasText: 'Spanish lv1' }).innerText()).includes('Yours') && (await ann.page.locator('.sharing-card', { hasText: 'Spanish lv1' }).locator('button', { hasText: 'Clone' }).count()) === 0);
+  await ann.page.waitForSelector('.sharing-row');
+  check('Ann: her own cards say "Yours" and have no Clone', (await ann.page.locator('.sharing-row', { hasText: 'Spanish lv1' }).innerText()).includes('Yours') && (await ann.page.locator('.sharing-row', { hasText: 'Spanish lv1' }).locator('button', { hasText: 'Clone' }).count()) === 0);
   await shot(ann.page, 'desktop-6-browse-own');
-  await ann.page.locator('.sharing-card', { hasText: 'Spanish lv1' }).locator('button', { hasText: 'Unpublish' }).click();
+  await ann.page.locator('.sharing-row', { hasText: 'Spanish lv1' }).locator('button', { hasText: 'Unpublish' }).click();
+  await ann.page.locator('[aria-label="Unpublish workspace"] button', { hasText: /^Unpublish$/ }).click();
   await ann.page.waitForTimeout(800);
   check('Ann: unpublished lv1 is gone from the hub', !db.shared_workspaces.some((row) => row.name === 'Spanish lv1'));
   check('Bo: his clone survives the unpublish', rows('lessons', BO.id, boLv1).length === 4);
+
+  // The same screens on a phone-sized viewport.
+  await openPage(ann.page, 'Sharing hub');
+  await ann.page.locator('.sharing-tab', { hasText: 'Share my workspace' }).click();
+  await ann.page.setViewportSize({ width: 390, height: 844 });
+  await ann.page.waitForTimeout(300);
+  await shot(ann.page, 'phone-14-published-list');
+  await ann.page.locator('button', { hasText: 'Publish new workspace' }).click();
+  await ann.page.waitForSelector('.publish-dialog');
+  await shot(ann.page, 'phone-15-publish-modal');
+  await ann.page.locator('.publish-dialog button', { hasText: 'Cancel' }).click();
+  await ann.page.locator('.published-row', { hasText: 'Spanish lv2' }).locator('button[aria-label^="Edit published"]').click();
+  await ann.page.waitForSelector('.sharing-checklists');
+  await ann.page.waitForTimeout(400);
+  await shot(ann.page, 'phone-16-edit-modal');
+  await ann.page.locator('.publish-dialog button', { hasText: 'Cancel' }).click();
+  await ann.page.locator('.published-row', { hasText: 'Spanish lv2' }).locator('button[aria-label^="Unpublish"]').click();
+  await shot(ann.page, 'phone-17-unpublish-confirm');
+  await ann.page.locator('[aria-label="Unpublish workspace"] button', { hasText: 'Cancel' }).click();
+  await ann.page.setViewportSize({ width: 1280, height: 800 });
+
+  // Unpublish from the published list: the bin asks first, Cancel keeps it, confirming removes it.
+  await openPage(ann.page, 'Sharing hub');
+  await ann.page.locator('.sharing-tab', { hasText: 'Share my workspace' }).click();
+  await ann.page.locator('.published-row', { hasText: 'Spanish lv2' }).locator('button[aria-label^="Unpublish"]').click();
+  await ann.page.waitForSelector('[aria-label="Unpublish workspace"]');
+  await shot(ann.page, 'desktop-11-unpublish-confirm');
+  await ann.page.locator('[aria-label="Unpublish workspace"] button', { hasText: 'Cancel' }).click();
+  check('Ann: cancelling the confirmation keeps lv2 published', db.shared_workspaces.some((row) => row.name === 'Spanish lv2'));
+  await ann.page.locator('.published-row', { hasText: 'Spanish lv2' }).locator('button[aria-label^="Unpublish"]').click();
+  await ann.page.locator('[aria-label="Unpublish workspace"] button', { hasText: /^Unpublish$/ }).click();
+  await ann.page.waitForTimeout(800);
+  check('Ann: confirming unpublishes lv2 and its row disappears', !db.shared_workspaces.some((row) => row.name === 'Spanish lv2') && (await ann.page.locator('.published-row', { hasText: 'Spanish lv2' }).count()) === 0);
+  await shot(ann.page, 'desktop-12-list-empty');
 
   await Promise.all(contexts.map((context) => context.close()));
   console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILED`);

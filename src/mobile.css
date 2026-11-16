@@ -320,6 +320,16 @@
   .sharing-title { font-size: 19px; }
   .sharing-tab { flex: 1; padding: 10px 6px; font-size: 14px; }
   .sharing-actions .toolbar-btn, .sharing-actions .modal-btn-cancel { flex: 1 1 100%; min-height: 40px; }
+  .icon-btn { width: 40px; height: 40px; }
+  .sharing-table thead { display: none; }
+  .sharing-table, .sharing-table tbody { display: block; }
+  .sharing-row { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 10px 0; border-bottom: 1px solid var(--panel-border); }
+  .sharing-table td { display: block; padding: 0; border: none; }
+  .sharing-cell-title { flex: 1 1 100%; min-width: 0; }
+  .sharing-cell-counts { flex: 1 1 100%; }
+  .sharing-cell-votes, .sharing-cell-actions { flex: 1 1 100%; margin-top: 4px; }
+  .sharing-row-actions .toolbar-btn, .sharing-row-actions .modal-btn-cancel { flex: 1; min-height: 40px; }
+  .popover-panel { left: 0; }
   .sharing-checklist-items { max-height: 200px; }
   .merge-dialog .modal-actions { flex-direction: column-reverse; }
   .merge-dialog .modal-actions .toolbar-btn, .merge-dialog .modal-actions .modal-btn-cancel { width: 100%; min-height: 40px; }

@@ -1,166 +1,106 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
-import { supabase } from '../../lib/supabaseClient';
-import { fetchCloudWorkspace } from '../../services/cloudWorkspace';
-import { publishWorkspace, unpublishWorkspace, type SharedWorkspaceSummary } from '../../services/sharedWorkspaces';
-import { buildSnapshot, countSelection, selectAll, type ShareSelection } from '../../services/sharingSnapshot';
-import type { WorkspaceContent } from '../../services/workspaceTypes';
-import { ItemChecklist } from './ItemChecklist';
+import { formatPublishedAt, myPublished, unpublishedOptions, type WorkspaceOption } from '../../services/publishedList';
+import type { SharedWorkspaceSummary } from '../../services/sharedWorkspaces';
+import { tagCounts } from '../../services/sharedTags';
+import { PublishWorkspaceDialog } from './PublishWorkspaceDialog';
+import { TagChips } from './TagInput';
+import { UnpublishDialog } from './UnpublishDialog';
 
 interface ShareWorkspacePanelProps {
   shared: SharedWorkspaceSummary[];
   onChanged: () => Promise<void>;
 }
 
-const EMPTY_SELECTION: ShareSelection = { lessonIds: new Set(), testIds: new Set(), roadmapIds: new Set() };
+type Dialog = { kind: 'publish' } | { kind: 'edit'; item: SharedWorkspaceSummary } | { kind: 'unpublish'; item: SharedWorkspaceSummary };
 
-/** Pick one of your workspaces, tick what to share, publish a snapshot. */
+/** "Publish new workspace" button on top, then everything you have published with edit and unpublish actions. */
 export function ShareWorkspacePanel({ shared, onChanged }: ShareWorkspacePanelProps) {
   const { user } = useAuth();
-  const { workspace, workspaceKey, workspaceSelectionLabel, cloudWorkspaces, hasLocalContent } = useWorkspace();
-  const options = useMemo(() => {
+  const { workspaceKey, workspaceSelectionLabel, cloudWorkspaces, hasLocalContent } = useWorkspace();
+  const options = useMemo<WorkspaceOption[]>(() => {
     const list = cloudWorkspaces.map((entry) => ({ key: entry.key, name: entry.name }));
     // The open folder workspace may not be in the cloud yet; its content is on screen, so it can still be shared.
     if (hasLocalContent && !list.some((entry) => entry.key === workspaceKey)) list.unshift({ key: workspaceKey, name: workspaceSelectionLabel });
     return list;
   }, [cloudWorkspaces, hasLocalContent, workspaceKey, workspaceSelectionLabel]);
 
-  const [selectedKey, setSelectedKey] = useState('');
-  const [content, setContent] = useState<WorkspaceContent | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [selection, setSelection] = useState<ShareSelection>(EMPTY_SELECTION);
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [ownerLabel, setOwnerLabel] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
+  const mine = useMemo(() => myPublished(shared, user?.id), [shared, user?.id]);
+  const suggestions = useMemo(() => tagCounts(shared).map((entry) => entry.tag), [shared]);
+  const available = useMemo(() => unpublishedOptions(options, mine), [options, mine]);
+  const [dialog, setDialog] = useState<Dialog | null>(null);
+  const [message, setMessage] = useState<{ text: string } | null>(null);
 
-  const activeKey = options.some((entry) => entry.key === selectedKey) ? selectedKey : (options.find((entry) => entry.key === workspaceKey) ?? options[0])?.key ?? '';
-  const activeName = options.find((entry) => entry.key === activeKey)?.name ?? '';
-  const published = shared.find((item) => item.ownerId === user?.id && item.sourceWorkspaceKey === activeKey);
+  const close = () => setDialog(null);
 
-  // Load the chosen workspace's content: the open one is already in memory, others come from the cloud.
-  useEffect(() => {
-    if (!activeKey) { setContent(null); return; }
-    let cancelled = false;
-    setContent(null);
-    setLoadError(null);
-    setMessage(null);
-    const load = async (): Promise<WorkspaceContent | null> => {
-      if (activeKey === workspaceKey) return workspace;
-      return supabase ? fetchCloudWorkspace(supabase, activeKey) : null;
-    };
-    load().then((loaded) => {
-      if (cancelled) return;
-      setContent(loaded);
-      setSelection(loaded ? selectAll(loaded) : EMPTY_SELECTION);
-    }).catch((error: unknown) => {
-      if (!cancelled) setLoadError(error instanceof Error ? error.message : 'Could not read this workspace');
-    });
-    return () => { cancelled = true; };
-  }, [activeKey, workspaceKey, workspace]);
-
-  // Name and description follow the workspace (or what was published before).
-  useEffect(() => {
-    setName(published?.name ?? activeName);
-    setDescription(published?.description ?? '');
-    if (published) setOwnerLabel(published.ownerLabel);
-    // Only when the workspace changes or its published state appears/disappears.
-  }, [activeKey, Boolean(published)]);
-
-  const total = countSelection(selection);
-
-  const handlePublish = async () => {
-    if (!supabase || !user || !content) return;
-    setBusy(true);
-    setMessage(null);
-    try {
-      await publishWorkspace(supabase, user.id, {
-        sourceWorkspaceKey: activeKey,
-        name: name || activeName,
-        description,
-        ownerLabel,
-        snapshot: buildSnapshot(content, selection),
-      });
-      await onChanged();
-      setMessage({ text: published ? 'Snapshot updated. Friends see the new version.' : 'Published. Other signed-in users can now find it under "Browse shared".' });
-    } catch (error) {
-      setMessage({ text: error instanceof Error ? error.message : 'Could not publish', error: true });
-    } finally {
-      setBusy(false);
-    }
+  const afterPublish = (text: string) => async () => {
+    await onChanged();
+    setMessage({ text });
   };
 
-  const handleUnpublish = async () => {
-    if (!supabase || !published) return;
-    if (!window.confirm(`Stop sharing "${published.name}"? Workspaces people already cloned keep their copy.`)) return;
-    setBusy(true);
-    setMessage(null);
-    try {
-      await unpublishWorkspace(supabase, published.id);
-      await onChanged();
-      setMessage({ text: 'Unpublished. It no longer appears in the hub.' });
-    } catch (error) {
-      setMessage({ text: error instanceof Error ? error.message : 'Could not unpublish', error: true });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  if (options.length === 0) {
-    return <p className="sharing-muted">Open or sync a workspace first. Only workspaces in your account (or the one that is open) can be shared.</p>;
-  }
+  const publishHint = options.length === 0
+    ? 'Open or sync a workspace first. Only workspaces in your account (or the one that is open) can be shared.'
+    : available.length === 0 ? 'Every workspace you can share is already published. Edit one below to refresh its snapshot.' : null;
 
   return (
     <div className="sharing-form">
-      <label className="modal-label">
-        Workspace to share
-        <select className="modal-input" value={activeKey} onChange={(event) => setSelectedKey(event.target.value)} aria-label="Workspace to share">
-          {options.map((entry) => <option key={entry.key} value={entry.key}>{entry.name}</option>)}
-        </select>
-      </label>
-      {published ? (
-        <p className="sharing-note">
-          Currently shared: {published.lessonCount} lessons, {published.testCount} tests, {published.roadmapCount} roadmaps
-          (updated {new Date(published.updatedAt).toLocaleString()}). Publishing again replaces that snapshot.
-        </p>
+      <div className="sharing-actions">
+        <button type="button" className="toolbar-btn" disabled={available.length === 0} onClick={() => { setMessage(null); setDialog({ kind: 'publish' }); }}>
+          Publish new workspace
+        </button>
+      </div>
+      {publishHint ? <p className="sharing-muted">{publishHint}</p> : null}
+      {message ? <p className="sharing-ok" role="status">{message.text}</p> : null}
+
+      <h3 className="sharing-section-title">Published by you</h3>
+      {mine.length === 0 ? (
+        <p className="sharing-muted">Nothing published yet. Use "Publish new workspace" to share a snapshot with other signed-in users.</p>
+      ) : (
+        <ul className="published-list">
+          {mine.map((item) => {
+            const source = options.find((entry) => entry.key === item.sourceWorkspaceKey);
+            const changed = item.updatedAt !== item.publishedAt;
+            return (
+              <li key={item.id} className="published-row">
+                <div className="published-info">
+                  <div className="published-title">{item.name}</div>
+                  <div className="published-meta">
+                    Published {formatPublishedAt(item.publishedAt)}
+                    {changed ? ` · updated ${formatPublishedAt(item.updatedAt)}` : ''}
+                  </div>
+                  <TagChips tags={item.tags} />
+                  <div className="published-meta">
+                    {item.lessonCount} lessons, {item.testCount} tests, {item.roadmapCount} roadmaps
+                    {source ? ` · from workspace "${source.name}"` : ' · source workspace not in your account'}
+                  </div>
+                </div>
+                <div className="published-actions">
+                  <button type="button" className="icon-btn" aria-label={`Edit published ${item.name}`} title={source ? 'Edit' : 'The source workspace is gone, so it cannot be updated'} disabled={!source} onClick={() => { setMessage(null); setDialog({ kind: 'edit', item }); }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                  </button>
+                  <button type="button" className="icon-btn icon-btn--danger" aria-label={`Unpublish ${item.name}`} title="Unpublish" onClick={() => { setMessage(null); setDialog({ kind: 'unpublish', item }); }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /></svg>
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {dialog?.kind === 'publish' ? (
+        <PublishWorkspaceDialog options={available} tagSuggestions={suggestions} onClose={close} onDone={afterPublish('Published. Other signed-in users can now find it under "Browse shared".')} />
       ) : null}
-      {loadError ? <p className="tree-error">{loadError}</p> : null}
-      {!content && !loadError ? <p className="sharing-muted">Loading…</p> : null}
-      {content ? (
-        <>
-          <p className="sharing-muted">
-            Tick what to include. This is a snapshot taken now, not live. Revision progress is never shared.
-          </p>
-          <div className="sharing-checklists">
-            <ItemChecklist title="Lessons" items={content.lessons} selected={selection.lessonIds} onChange={(lessonIds) => setSelection({ ...selection, lessonIds })} />
-            <ItemChecklist title="Tests" items={content.tests} selected={selection.testIds} onChange={(testIds) => setSelection({ ...selection, testIds })} />
-            <ItemChecklist title="Roadmaps" items={content.roadmaps.map((roadmap) => ({ id: roadmap.id, title: roadmap.name }))} selected={selection.roadmapIds} onChange={(roadmapIds) => setSelection({ ...selection, roadmapIds })} />
-          </div>
-          <label className="modal-label">
-            Title
-            <input className="modal-input" value={name} maxLength={200} onChange={(event) => setName(event.target.value)} aria-label="Shared title" />
-          </label>
-          <label className="modal-label">
-            Description (optional)
-            <textarea className="modal-input modal-textarea" value={description} maxLength={2000} onChange={(event) => setDescription(event.target.value)} aria-label="Shared description" />
-          </label>
-          <label className="modal-label">
-            Shown to others as
-            <input className="modal-input" value={ownerLabel} maxLength={100} onChange={(event) => setOwnerLabel(event.target.value)} placeholder="Anonymous" aria-label="Shown as" />
-            <span className="sharing-muted">Your email is never shown. Leave empty to appear as Anonymous.</span>
-          </label>
-          {message ? <p className={message.error ? 'tree-error' : 'sharing-ok'} role="status">{message.text}</p> : null}
-          <div className="sharing-actions">
-            <button type="button" className="toolbar-btn" disabled={busy || total === 0} onClick={() => { void handlePublish(); }}>
-              {busy ? 'Working…' : published ? 'Update snapshot' : 'Publish snapshot'}
-            </button>
-            {published ? (
-              <button type="button" className="toolbar-btn sharing-btn-danger" disabled={busy} onClick={() => { void handleUnpublish(); }}>Unpublish</button>
-            ) : null}
-          </div>
-        </>
+      {dialog?.kind === 'edit' ? (
+        <PublishWorkspaceDialog options={options.filter((entry) => entry.key === dialog.item.sourceWorkspaceKey)} published={dialog.item} tagSuggestions={suggestions} onClose={close} onDone={afterPublish('Snapshot updated. Friends see the new version.')} />
+      ) : null}
+      {dialog?.kind === 'unpublish' ? (
+        <UnpublishDialog
+          item={dialog.item}
+          onClose={close}
+          onDone={async (item) => { await onChanged(); setMessage({ text: `Unpublished "${item.name}". It no longer appears in the hub.` }); }}
+        />
       ) : null}
     </div>
   );
