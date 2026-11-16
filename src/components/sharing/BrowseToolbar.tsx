@@ -1,6 +1,6 @@
 import type { SortMode } from '../../services/sharedReactions';
 import { PopoverMenu } from './PopoverMenu';
-import { BASIC_SORTS, PAGE_SIZES, type useBrowseView } from './useBrowseView';
+import { BASIC_SORTS, PAGE_SIZES, type FilterKey, type useBrowseView } from './useBrowseView';
 
 const SORT_LABELS: Record<SortMode, string> = {
   newest: 'Newest published',
@@ -18,6 +18,19 @@ const SortIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 4v16" /><path d="m3 16 4 4 4-4" /><path d="M17 20V4" /><path d="m13 8 4-4 4 4" /></svg>
 );
 
+/** One filter: a tick box at the left says whether it is applied, the field on the right holds its value. */
+function FilterOption({ name, label, view, children }: { name: FilterKey; label: string; view: ReturnType<typeof useBrowseView>; children: React.ReactNode }) {
+  return (
+    <div className="filter-option">
+      <input type="checkbox" checked={view.on[name]} onChange={(event) => view.set.enabled(name, event.target.checked)} aria-label={`Apply filter: ${label}`} />
+      <label className="modal-label filter-option-body">
+        {label}
+        {children}
+      </label>
+    </div>
+  );
+}
+
 interface BrowseToolbarProps {
   view: ReturnType<typeof useBrowseView>;
   /** Votes and stars available: adds "My starred only" and the vote-based sorts. */
@@ -32,27 +45,23 @@ export function BrowseToolbar({ view, hasReactions, total }: BrowseToolbarProps)
   return (
     <div className="sharing-toolbar sharing-toolbar--icons">
       <PopoverMenu label="Filter" icon={<FilterIcon />} badge={filterCount}>
-        <label className="modal-label">
-          Title contains
+        <FilterOption name="title" label="Title contains" view={view}>
           <input className="modal-input" value={values.title} onChange={(event) => set.title(event.target.value)} aria-label="Filter by title" />
-        </label>
-        <label className="modal-label">
-          Author contains
+        </FilterOption>
+        <FilterOption name="author" label="Author contains" view={view}>
           <input className="modal-input" value={values.author} onChange={(event) => set.author(event.target.value)} aria-label="Filter by author" />
-        </label>
-        <label className="modal-label">
-          Published on or after
+        </FilterOption>
+        <FilterOption name="publishedAfter" label="Published on or after" view={view}>
           <input className="modal-input" type="date" value={values.publishedAfter} max={values.publishedBefore || undefined} onChange={(event) => set.publishedAfter(event.target.value)} aria-label="Published after" />
-        </label>
-        <label className="modal-label">
-          Published on or before
+        </FilterOption>
+        <FilterOption name="publishedBefore" label="Published on or before" view={view}>
           <input className="modal-input" type="date" value={values.publishedBefore} min={values.publishedAfter || undefined} onChange={(event) => set.publishedBefore(event.target.value)} aria-label="Published before" />
-        </label>
+        </FilterOption>
         {hasReactions ? (
-          <label className="sharing-check">
-            <input type="checkbox" checked={values.starredOnly} onChange={(event) => set.starredOnly(event.target.checked)} />
-            <span>My starred only</span>
-          </label>
+          <div className="filter-option">
+            <input type="checkbox" checked={view.on.starredOnly && values.starredOnly} onChange={(event) => set.starredOnly(event.target.checked)} aria-label="Apply My starred only" />
+            <span className="modal-label">My starred only</span>
+          </div>
         ) : null}
         <button type="button" className="sharing-link-btn" onClick={view.clearFilters} disabled={filterCount === 0}>Clear filters</button>
       </PopoverMenu>
