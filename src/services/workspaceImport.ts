@@ -86,10 +86,25 @@ export function filesFromFileList(list: FileList | File[]): ImportedFile[] {
   }));
 }
 
+const MAX_ZIP_BYTES = 20_000_000;
+const MAX_FILE_BYTES = 2_000_000;
+const MAX_UNPACKED_BYTES = 50_000_000;
+const MAX_ZIP_FILES = 5000;
+
 /** Files inside a .zip (only the text formats the workspace uses are unpacked). */
 export async function filesFromZip(zip: File): Promise<ImportedFile[]> {
+  if (zip.size > MAX_ZIP_BYTES) throw new Error('That zip is too large to import (max 20 MB).');
+  // Entries are checked by their declared size before anything is inflated, so a zip bomb is never unpacked.
+  let budget = MAX_UNPACKED_BYTES;
+  let count = 0;
   const entries = unzipSync(new Uint8Array(await zip.arrayBuffer()), {
-    filter: (entry) => /\.(md|yaml)$/i.test(entry.name),
+    filter: (entry) => {
+      if (!/\.(md|yaml)$/i.test(entry.name)) return false;
+      budget -= entry.originalSize;
+      count += 1;
+      if (budget < 0 || entry.originalSize > MAX_FILE_BYTES || count > MAX_ZIP_FILES) throw new Error('That zip holds too much text to import (limits: 2 MB per file, 50 MB in total, 5000 files).');
+      return true;
+    },
   });
   return Object.entries(entries).map(([path, bytes]) => ({ path, text: async () => strFromU8(bytes) }));
 }

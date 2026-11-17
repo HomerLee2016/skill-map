@@ -31,3 +31,13 @@ test('files outside the workspace folders are not imported', async () => {
   const imported = await buildImportedWorkspace([file('Spanish/other/a.md', '# A')], 'x');
   assert.equal(imported.content.lessons.length + imported.content.tests.length, 0);
 });
+
+test('a zip that would unpack to too much text is refused before inflating', async () => {
+  const { zipSync, strToU8 } = await import('fflate');
+  const bomb = zipSync({ 'lessons/big.md': strToU8('a'.repeat(3_000_000)) });
+  const upload = new File([bomb.slice().buffer], 'bomb.zip');
+  const { filesFromZip } = await import('./workspaceImport');
+  await assert.rejects(() => filesFromZip(upload), /too much text/);
+  const fine = new File([zipSync({ 'lessons/a.md': strToU8('# A'), 'logo.png': strToU8('png') }).slice().buffer], 'ok.zip');
+  assert.deepEqual((await filesFromZip(fine)).map((entry) => entry.path), ['lessons/a.md']);
+});

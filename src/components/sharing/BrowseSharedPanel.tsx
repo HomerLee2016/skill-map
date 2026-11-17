@@ -7,7 +7,7 @@ import { tagCounts } from '../../services/sharedTags';
 import type { WorkspaceContent } from '../../services/workspaceTypes';
 import { BrowseToolbar } from './BrowseToolbar';
 import { SharedTable } from './SharedTable';
-import { CloneModal, PreviewModal } from './SharedWorkspaceModals';
+import { CloneModal, PreviewModal, ReportModal } from './SharedWorkspaceModals';
 import { UnpublishDialog } from './UnpublishDialog';
 import { useBrowseView } from './useBrowseView';
 
@@ -28,6 +28,7 @@ export function BrowseSharedPanel({ shared, loading, error, onChanged, stats, mi
   const view = useBrowseView(shared, stats, mine);
   const [preview, setPreview] = useState<{ item: SharedWorkspaceSummary; content: WorkspaceContent | null } | null>(null);
   const [cloning, setCloning] = useState<SharedWorkspaceSummary | null>(null);
+  const [reporting, setReporting] = useState<SharedWorkspaceSummary | null>(null);
   const [unpublishing, setUnpublishing] = useState<SharedWorkspaceSummary | null>(null);
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
 
@@ -64,6 +65,7 @@ export function BrowseSharedPanel({ shared, loading, error, onChanged, stats, mi
           onPreview={(item) => { void openPreview(item); }}
           onClone={(item) => { setMessage(null); setCloning(item); }}
           onUnpublish={setUnpublishing}
+          onReport={(item) => { setMessage(null); setReporting(item); }}
           onTag={view.set.tag}
         />
       ) : null}
@@ -84,6 +86,7 @@ export function BrowseSharedPanel({ shared, loading, error, onChanged, stats, mi
           content={preview.content}
           canClone={preview.item.ownerId !== user?.id}
           onClone={() => { setCloning(preview.item); setPreview(null); }}
+          onReport={() => { setReporting(preview.item); setPreview(null); }}
           onClose={() => setPreview(null)}
         />
       ) : null}
@@ -92,6 +95,13 @@ export function BrowseSharedPanel({ shared, loading, error, onChanged, stats, mi
           item={cloning}
           onClose={() => setCloning(null)}
           onCloned={(name) => { setCloning(null); setMessage({ text: `Cloned into a new workspace "${name}" and opened it. Your other workspaces are untouched.` }); }}
+        />
+      ) : null}
+      {reporting ? (
+        <ReportModal
+          item={reporting}
+          onClose={() => setReporting(null)}
+          onReported={() => { setReporting(null); setMessage({ text: 'Thank you. Your report was sent.' }); void onChanged(); }}
         />
       ) : null}
       {unpublishing ? (

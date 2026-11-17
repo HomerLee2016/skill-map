@@ -4,6 +4,7 @@ import { fetchRemoteRevisionRecords, upsertRecords } from './revisionSync';
 import { countContent, type ContentCounts } from './cloudWorkspace';
 import { mergeRevisionRecordSets } from './revisionSyncMerge';
 import type { CompletedQuestionRecord } from './revisionDb';
+import { sanitizeSharedContent } from './sharingSnapshot';
 import { emptyStructureTree, emptyTestsStructure } from './workspaceParsing';
 import { mergeWorkspaceContents, type MergeReport } from './workspaceMerge';
 import type { WorkspaceContent } from './workspaceTypes';
@@ -38,7 +39,8 @@ export async function mergeCloudWorkspaces(
 ): Promise<MergeOutcome> {
   const loaded = await Promise.all(sources.map(async (source) => ({
     ...source,
-    content: source.content ?? (await fetchCloudWorkspace(client, source.key)) ?? emptyContent(),
+    // Only whitelisted fields are copied into the merged workspace (same cleaning as a clone, progress kept).
+    content: sanitizeSharedContent(source.content ?? (await fetchCloudWorkspace(client, source.key)) ?? emptyContent(), { resetProgress: false }),
   })));
   const { content, report, idMaps } = mergeWorkspaceContents(
     loaded.map(({ name, content: body }) => ({ name, content: body })),

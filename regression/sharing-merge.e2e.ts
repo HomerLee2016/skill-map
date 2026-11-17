@@ -26,7 +26,7 @@ function check(name: string, ok: boolean, detail = '') {
 
 type Row = Record<string, unknown>;
 const db: Record<string, Row[]> = {
-  workspaces: [], lessons: [], tests: [], roadmaps: [], workspace_structures: [], revision_records: [], shared_workspaces: [], shared_workspace_reactions: [],
+  workspaces: [], lessons: [], tests: [], roadmaps: [], workspace_structures: [], revision_records: [], shared_workspaces: [], shared_workspace_reactions: [], shared_workspace_reports: [],
 };
 const PK: Record<string, string[]> = {
   workspaces: ['user_id', 'key'],
@@ -34,6 +34,7 @@ const PK: Record<string, string[]> = {
   workspace_structures: ['user_id', 'workspace_key', 'kind'], revision_records: ['user_id', 'workspace_key', 'hash'],
   shared_workspaces: ['owner_id', 'source_workspace_key'],
   shared_workspace_reactions: ['user_id', 'shared_id'],
+  shared_workspace_reports: ['reporter_id', 'shared_id'],
 };
 
 function filterRows(rows: Row[], params: URLSearchParams): Row[] {
@@ -71,9 +72,10 @@ async function installFakeSupabase(context: BrowserContext, user: User) {
     if (!match || !db[match[1]]) return route.fulfill({ status: 404, headers, body: '{}' });
     const table = match[1];
     const shared = table === 'shared_workspaces';
-    const ownerColumn = shared ? 'owner_id' : 'user_id';
+    const ownerColumn = shared ? 'owner_id' : table === 'shared_workspace_reports' ? 'reporter_id' : 'user_id';
     // RLS: shared snapshots are readable by every signed-in user, everything else only by its owner.
-    const readable = db[table].filter((row) => shared || row[ownerColumn] === user.id);
+    // (migration 20261117000000: hidden shares are visible to their owner only.)
+    const readable = db[table].filter((row) => (shared ? !row.hidden || row.owner_id === user.id : row[ownerColumn] === user.id));
     const writable = db[table].filter((row) => row[ownerColumn] === user.id);
     if (request.method() === 'GET') {
       let rows = filterRows(readable, url.searchParams);
@@ -103,6 +105,14 @@ async function installFakeSupabase(context: BrowserContext, user: User) {
         if (table === 'shared_workspace_reactions' && db.shared_workspaces.some((share) => share.id === row.shared_id && share.owner_id === user.id)) {
           return route.fulfill({ status: 403, headers, body: JSON.stringify({ message: 'cannot react to your own share' }) });
         }
+        if (table === 'shared_workspace_reports') {
+          if (db.shared_workspaces.some((share) => share.id === row.shared_id && share.owner_id === user.id)) {
+            return route.fulfill({ status: 403, headers, body: JSON.stringify({ message: 'new row violates row-level security policy' }) });
+          }
+          if (db[table].some((other) => other.reporter_id === user.id && other.shared_id === row.shared_id)) {
+            return route.fulfill({ status: 409, headers, body: JSON.stringify({ message: 'duplicate key value violates unique constraint' }) });
+          }
+        }
         const full: Row = { [ownerColumn]: user.id, ...row };
         if (shared) full.published_at = new Date().toISOString();
         const same = (other: Row) => PK[table].every((col) => other[col] === full[col]);
@@ -130,6 +140,11 @@ const QUIZ = (title: string, question: string) => `quiz_title: ${title}\nquestio
 
 /** lv1 and lv2 as two friends would have written them: lv2 reuses file names (same id, different content) and one identical lesson. */
 const FOLDERS: Record<string, Record<string, Record<string, string>>> = {
+  'spanish-evil': {
+    lessons: { 'trap.md': '# Trap\n\n<img src=x onerror="alert(1)">\n\n[go](javascript:alert(2))\n' },
+    tests: {},
+    roadmaps: {},
+  },
   'spanish-lv1': {
     lessons: { 'lesson-1.md': '# Spanish Greetings\n\nHola!\n', 'lesson-2.md': '# Spanish Numbers\n\nUno, dos.\n', 'lesson-private.md': '# Private Notes\n\nNot for sharing.\n' },
     tests: { 'quiz-1.yaml': QUIZ('Greetings Quiz', 'Hola means?') },
@@ -581,6 +596,58 @@ async function run() {
   await bo.page.waitForTimeout(800);
   const pwned = await bo.page.evaluate(() => (window as unknown as { __pwned?: number }).__pwned);
   check('Hostile: nothing from the stranger executed in the page', pwned === undefined, String(pwned));
+
+  // ---------------------------------------------------------------- Hardening: report, take-down, rejected publish
+  await openPage(bo.page, 'Sharing hub');
+  await bo.page.locator('.sharing-tab', { hasText: 'Browse shared' }).click();
+  await bo.page.waitForSelector('.sharing-row');
+  const trap = bo.page.locator('.sharing-row', { hasText: 'Totally safe' });
+  await trap.locator('button', { hasText: 'Report' }).click();
+  await bo.page.waitForSelector('[aria-label="Report workspace"], .sharing-modal select[aria-label="Report reason"]');
+  await bo.page.locator('select[aria-label="Report reason"]').selectOption('malicious');
+  await bo.page.locator('textarea[aria-label="Report details"]').fill('Tries to run a script when previewed.');
+  await shot(bo.page, 'hardening-phone-1-report-modal');
+  await bo.page.locator('.sharing-modal button', { hasText: 'Send report' }).click();
+  await bo.page.waitForSelector('.sharing-ok');
+  check('Report: a report row is saved with the reason and note', db.shared_workspace_reports.length === 1 && db.shared_workspace_reports[0].reason === 'malicious' && db.shared_workspace_reports[0].reporter_id === BO.id && String(db.shared_workspace_reports[0].note).includes('script'));
+  check('Report: Bo sees a thank-you message', (await bodyText(bo.page)).includes('Your report was sent'));
+  await shot(bo.page, 'hardening-phone-2-report-sent');
+  await trap.locator('button', { hasText: 'Report' }).click();
+  await bo.page.locator('.sharing-modal button', { hasText: 'Send report' }).click();
+  await bo.page.waitForSelector('.sharing-modal .tree-error');
+  check('Report: reporting the same share twice is refused politely', (await bo.page.locator('.sharing-modal .tree-error').innerText()).includes('already reported'));
+  await bo.page.locator('.sharing-modal button', { hasText: 'Cancel' }).click();
+  check('Report: Ann cannot report her own share (no button)', await (async () => {
+    await openPage(ann.page, 'Sharing hub');
+    await ann.page.locator('.sharing-tab', { hasText: 'Browse shared' }).click();
+    await ann.page.waitForSelector('.sharing-row');
+    return (await ann.page.locator('.sharing-row', { hasText: 'Totally safe' }).locator('button', { hasText: 'Report' }).count()) === 0;
+  })());
+
+  // The server hides a share after 3 reports or on your say-so (hidden = true): others stop seeing it, the owner sees a badge.
+  db.shared_workspaces.find((row) => row.name === 'Totally safe')!.hidden = true;
+  await bo.page.locator('.sharing-tab', { hasText: 'Share my workspace' }).click();
+  await bo.page.locator('.sharing-tab', { hasText: 'Browse shared' }).click();
+  await bo.page.waitForSelector('.sharing-row');
+  check('Take-down: a hidden share disappears for other users', (await bo.page.locator('.sharing-row', { hasText: 'Totally safe' }).count()) === 0);
+  await ann.page.locator('.sharing-tab', { hasText: 'Share my workspace' }).click();
+  await ann.page.locator('.sharing-tab', { hasText: 'Browse shared' }).click();
+  await ann.page.waitForSelector('.sharing-row');
+  check('Take-down: the owner still sees it, marked "Taken down"', (await ann.page.locator('.sharing-row', { hasText: 'Totally safe' }).innerText()).includes('Taken down'));
+  await shot(ann.page, 'hardening-desktop-1-owner-sees-taken-down');
+  db.shared_workspaces = db.shared_workspaces.filter((row) => row.name !== 'Totally safe');
+
+  // Publishing content that is not plain Markdown is refused with a reason (the database refuses it too).
+  await pickFolder(ann.page, 'spanish-evil');
+  await publish(ann.page, 'spanish-evil', 'Evil', []);
+  await ann.page.locator('button', { hasText: 'Publish snapshot' }).click();
+  await ann.page.waitForSelector('.publish-dialog .tree-error');
+  const refusal = await ann.page.locator('.publish-dialog .tree-error').innerText();
+  check('Publish: raw HTML, images and script links are refused with a clear reason', /Cannot publish/.test(refusal) && /raw HTML/.test(refusal) && /image/.test(refusal) && /http/.test(refusal), refusal.replace(/\n/g, ' | '));
+  check('Publish: nothing was stored for the refused workspace', !db.shared_workspaces.some((row) => row.source_workspace_key === 'spanish-evil'));
+  await shot(ann.page, 'hardening-desktop-2-publish-refused');
+  await ann.page.locator('.publish-dialog button', { hasText: 'Cancel' }).click();
+  await pickFolder(ann.page, 'spanish-lv1');
 
   // ---------------------------------------------------------------- Unpublish
   await openPage(ann.page, 'Sharing hub');

@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
-import { isAllowedAudioUrl } from '../../src/worker.ts';
+import { isAllowedAudioUrl } from '../../src/utils/audioUrl.ts';
 
 const ROUTE = '/api/audio-proxy';
 
@@ -28,18 +28,25 @@ async function handleAudioProxy(req: IncomingMessage, res: ServerResponse, next:
   try {
     const response = await fetch(remoteUrl, { redirect: 'manual' });
     if (!response.ok) {
-      res.statusCode = response.status;
-      res.end(await response.text());
+      res.statusCode = response.status >= 400 && response.status < 600 ? response.status : 502;
+      res.end('Audio upstream error');
       return;
     }
 
+    const contentType = response.headers.get('content-type') || 'audio/mpeg';
+    if (!contentType.toLowerCase().startsWith('audio/')) {
+      res.statusCode = 502;
+      res.end('Unexpected upstream content type');
+      return;
+    }
     res.statusCode = 200;
-    res.setHeader('Content-Type', response.headers.get('content-type') || 'audio/mpeg');
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Cache-Control', 'public, max-age=3600');
     res.end(Buffer.from(await response.arrayBuffer()));
-  } catch (error) {
+  } catch {
     res.statusCode = 500;
-    res.end((error instanceof Error && error.message) || 'Audio proxy failed');
+    res.end('Audio proxy failed');
   }
 }
 

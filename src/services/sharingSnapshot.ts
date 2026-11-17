@@ -1,6 +1,7 @@
 import YAML from 'yaml';
 import type { StructureFolder, StructureTree } from '../utils/folderStructure';
 import { safeExternalUrl } from '../utils/safeUrl';
+import { allowedAudioUrlOrUndefined, cleanLessonMarkdown, CONTROL_CHARS, LIMITS, lessonProblems, parseUntrustedYaml } from './sharingValidation';
 import { emptyStructureTree, emptyTestsStructure, parseStructureTree } from './workspaceParsing';
 import type { LessonItem, SavedRoadmap, TestItem, TestQuestion, TestsStructure, WorkspaceContent } from './workspaceTypes';
 
@@ -11,14 +12,13 @@ export interface ShareSelection {
   roadmapIds: Set<string>;
 }
 
-export const MAX_SHARED_ITEMS = 500;
-const MAX_ID = 200;
-const MAX_TITLE = 500;
-const MAX_LESSON = 1_000_000;
-const MAX_YAML = 500_000;
-const MAX_QUESTIONS = 2000;
-const MAX_OPTIONS = 20;
-const MAX_TEXT = 5000;
+export const MAX_SHARED_ITEMS = LIMITS.items;
+const MAX_ID = LIMITS.id;
+const MAX_TITLE = LIMITS.title;
+const MAX_LESSON = LIMITS.lessonChars;
+const MAX_QUESTIONS = LIMITS.questions;
+const MAX_OPTIONS = LIMITS.options;
+const MAX_TEXT = LIMITS.text;
 
 function pruneFolder(folder: StructureFolder, keep: Set<string>): StructureFolder {
   return {
@@ -57,9 +57,6 @@ export function buildSnapshot(content: WorkspaceContent, selection: ShareSelecti
 
 // --- sanitising: shared content is written by strangers, so it is cleaned on clone as well as on render ---
 
-/** Control characters other than tab and newline. */
-const CONTROL_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
-
 function cleanText(value: unknown, max: number): string {
   return typeof value === 'string' ? value.replace(CONTROL_CHARS, '').slice(0, max) : '';
 }
@@ -70,26 +67,9 @@ export function cleanId(value: unknown): string {
   return id && !['__proto__', 'constructor', 'prototype'].includes(id) ? id : '';
 }
 
-const DANGEROUS_TAGS = /<\s*\/?\s*(script|iframe|object|embed|style|link|meta|base|form|frame|frameset|applet|svg|math)\b[^>]*>/gi;
-const SCRIPT_BLOCK = /<\s*(script|style|iframe|object|embed|svg|math)\b[\s\S]*?<\s*\/\s*\1\s*>/gi;
-const EVENT_ATTRIBUTE = /\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi;
-const SCRIPT_URL = /\b(href|src|xlink:href|action|formaction)\s*=\s*(["']?)\s*(javascript|vbscript|data)\s*:[^"'\s>]*\2/gi;
-const SCRIPT_MD_LINK = /\]\(\s*(javascript|vbscript|data)\s*:[^)]*\)/gi;
-
-/** Defence in depth for lesson markdown: the lesson view also sanitises, so this only removes what can never be wanted. */
+/** Clone-time clean-up of a lesson: Markdown stays, everything the publish rules reject is removed. */
 export function sanitizeLessonMarkdown(markdown: string): string {
-  let current = markdown.replace(CONTROL_CHARS, '');
-  for (let pass = 0; pass < 5; pass += 1) {
-    const next = current
-      .replace(SCRIPT_BLOCK, '')
-      .replace(DANGEROUS_TAGS, '')
-      .replace(EVENT_ATTRIBUTE, '')
-      .replace(SCRIPT_URL, '')
-      .replace(SCRIPT_MD_LINK, '](#)');
-    if (next === current) break;
-    current = next;
-  }
-  return current;
+  return cleanLessonMarkdown(markdown);
 }
 
 function sanitizeLessons(raw: unknown): LessonItem[] {
@@ -126,6 +106,8 @@ function sanitizeQuestions(raw: unknown): TestQuestion[] {
       correct_answer: correct,
     };
     if (typeof q.explanation === 'string') question.explanation = cleanText(q.explanation, MAX_TEXT);
+    const audio = allowedAudioUrlOrUndefined(q.audio_track_url);
+    if (audio) question.audio_track_url = audio;
     out.push(question);
   }
   return out;
@@ -154,7 +136,7 @@ function sanitizeIdList(value: unknown): string[] | undefined {
 
 /** Rebuilds a roadmap node from the fields the app knows, so nothing else in the stranger's YAML survives. */
 function sanitizeNode(raw: unknown, resetFinished: boolean, depth = 0): Record<string, unknown> | null {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw) || depth > 30) return null;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw) || depth > LIMITS.nodeDepth) return null;
   const node = raw as Record<string, unknown>;
   const id = cleanId(typeof node.id === 'number' ? String(node.id) : node.id);
   if (!id) return null;
@@ -182,15 +164,10 @@ function sanitizeNode(raw: unknown, resetFinished: boolean, depth = 0): Record<s
 
 /** Re-serialises a roadmap from whitelisted fields; null when the YAML is not a roadmap at all. */
 export function sanitizeRoadmapYaml(yaml: string, resetFinished = false): string | null {
-  if (yaml.length > MAX_YAML) return null;
-  let parsed: unknown;
-  try {
-    parsed = YAML.parse(yaml);
-  } catch {
-    return null;
-  }
+  const parsed = parseUntrustedYaml(yaml);
+  if (parsed === undefined) return null;
   if (Array.isArray(parsed)) {
-    const nodes = parsed.slice(0, 2000).map((node) => sanitizeNode(node, resetFinished)).filter(Boolean);
+    const nodes = parsed.slice(0, LIMITS.nodes).map((node) => sanitizeNode(node, resetFinished)).filter(Boolean);
     return nodes.length > 0 ? YAML.stringify(nodes) : null;
   }
   const node = sanitizeNode(parsed, resetFinished);
@@ -214,7 +191,7 @@ function sanitizeRoadmaps(raw: unknown, resetFinished: boolean): SavedRoadmap[] 
 }
 
 function sanitizeFolder(raw: unknown, depth: number): StructureFolder | null {
-  if (!raw || typeof raw !== 'object' || depth > 12) return null;
+  if (!raw || typeof raw !== 'object' || depth > LIMITS.folderDepth) return null;
   const folder = raw as StructureFolder;
   const name = cleanText(folder.name, 200).trim();
   if (!name) return null;
@@ -262,4 +239,41 @@ export function selectAll(content: WorkspaceContent): ShareSelection {
 
 export function countSelection(selection: ShareSelection): number {
   return selection.lessonIds.size + selection.testIds.size + selection.roadmapIds.size;
+}
+
+const byteLength = (value: string) => new TextEncoder().encode(value).length;
+
+/**
+ * Everything that stops a snapshot being published, as readable sentences (empty = fine). Publishing rejects these
+ * instead of silently cutting content; the database re-checks the same rules.
+ */
+export function findPublishProblems(snapshot: WorkspaceContent): string[] {
+  const problems: string[] = [];
+  if (snapshot.lessons.length + snapshot.tests.length + snapshot.roadmaps.length === 0) problems.push('Nothing is selected to publish.');
+  for (const [label, list] of [['lessons', snapshot.lessons], ['tests', snapshot.tests], ['roadmaps', snapshot.roadmaps]] as const) {
+    if (list.length > MAX_SHARED_ITEMS) problems.push(`Too many ${label}: at most ${MAX_SHARED_ITEMS} can be published.`);
+  }
+  const badId = (id: string) => (cleanId(id) !== id ? `"${id.slice(0, 40)}" is not a valid name (letters, numbers, . _ - and spaces only).` : null);
+  for (const lesson of snapshot.lessons) {
+    const id = badId(lesson.id);
+    if (id) problems.push(`Lesson ${id}`);
+    for (const problem of lessonProblems(lesson.content)) problems.push(`Lesson "${lesson.title}" ${problem}.`);
+  }
+  for (const test of snapshot.tests) {
+    const id = badId(test.id);
+    if (id) problems.push(`Test ${id}`);
+    const kept = sanitizeQuestions(test.questions);
+    if (test.questions.length > MAX_QUESTIONS) problems.push(`Test "${test.title}" has more than ${MAX_QUESTIONS} questions.`);
+    else if (kept.length !== test.questions.length) problems.push(`Test "${test.title}" has ${test.questions.length - kept.length} malformed question(s) (each needs a question, options and a correct answer, within the length limits).`);
+    else if (test.questions.some((q, index) => q.audio_track_url !== undefined && q.audio_track_url !== kept[index]?.audio_track_url)) {
+      problems.push(`Test "${test.title}" has an audio link that is not Google text-to-speech.`);
+    }
+  }
+  for (const roadmap of snapshot.roadmaps) {
+    const id = badId(roadmap.id);
+    if (id) problems.push(`Roadmap ${id}`);
+    if (!sanitizeRoadmapYaml(roadmap.yaml)) problems.push(`Roadmap "${roadmap.name}" is not plain roadmap YAML (no anchors, aliases, custom tags, or invalid structure, max ${LIMITS.yamlChars.toLocaleString('en')} characters).`);
+  }
+  if (byteLength(JSON.stringify(snapshot)) > LIMITS.totalBytes) problems.push(`The selection is larger than ${(LIMITS.totalBytes / 1_000_000).toFixed(0)} MB. Untick some items.`);
+  return problems;
 }
