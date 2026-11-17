@@ -20,4 +20,14 @@ jobs:
             echo "Supabase variables not set; skipping."
             exit 0
           fi
-          curl -fsS --max-time 30 "$SUPABASE_URL/rest/v1/" -H "apikey: $SUPABASE_ANON_KEY" -o /dev/null
+          # The bare /rest/v1/ schema endpoint now returns 401 for publishable keys,
+          # so query a real table instead. anon has no grants, so a 401/403 here is
+          # still a live answer from Postgres; only 000/404/5xx mean the project is down.
+          code=$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' \
+            "$SUPABASE_URL/rest/v1/shared_workspaces?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY")
+          echo "HTTP $code"
+          case "$code" in
+            2??|401|403) exit 0 ;;
+            *) echo "Supabase did not respond normally (paused or unreachable?)"; exit 1 ;;
+          esac
