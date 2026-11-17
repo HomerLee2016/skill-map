@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ensureCloudWorkspace, pushWorkspaceContent, deleteCloudWorkspace } from './cloudWorkspace';
 import { normalizeTags } from './sharedTags';
-import { sanitizeSharedContent } from './sharingSnapshot';
+import { findPublishProblems, sanitizeSharedContent } from './sharingSnapshot';
 import type { WorkspaceContent } from './workspaceTypes';
 
 /** A published snapshot as listed in the hub (the content itself is only fetched on preview or clone). */
@@ -14,6 +14,8 @@ export interface SharedWorkspaceSummary {
   ownerLabel: string;
   /** Search labels chosen by the owner (empty until the tags migration has been run). */
   tags: string[];
+  /** Taken down (by reports or a moderator): only the owner still sees it. False until the hardening migration is run. */
+  hidden: boolean;
   lessonCount: number;
   testCount: number;
   roadmapCount: number;
@@ -22,7 +24,8 @@ export interface SharedWorkspaceSummary {
 }
 
 const BASE_COLUMNS = 'id,owner_id,source_workspace_key,name,description,owner_label,lesson_count,test_count,roadmap_count,published_at,updated_at';
-const SUMMARY_COLUMNS = `${BASE_COLUMNS},tags`;
+const TAG_COLUMNS = `${BASE_COLUMNS},tags`;
+const SUMMARY_COLUMNS = `${TAG_COLUMNS},hidden`;
 
 interface SummaryRow {
   id: string;
@@ -32,6 +35,7 @@ interface SummaryRow {
   description: string;
   owner_label: string;
   tags?: string[] | null;
+  hidden?: boolean | null;
   lesson_count: number;
   test_count: number;
   roadmap_count: number;
@@ -48,6 +52,7 @@ function toSummary(row: SummaryRow): SharedWorkspaceSummary {
     description: row.description ?? '',
     ownerLabel: row.owner_label || 'Anonymous',
     tags: normalizeTags(row.tags ?? []),
+    hidden: row.hidden === true,
     lessonCount: row.lesson_count,
     testCount: row.test_count,
     roadmapCount: row.roadmap_count,
@@ -64,7 +69,8 @@ function fail(error: { message: string } | null): void {
 export async function listSharedWorkspaces(client: SupabaseClient): Promise<SharedWorkspaceSummary[]> {
   const read = (columns: string) => client.from('shared_workspaces').select(columns).order('updated_at', { ascending: false });
   let { data, error } = await read(SUMMARY_COLUMNS);
-  // The tags column comes from a later migration: without it the list still loads, just without tags.
+  // The tags and hidden columns come from later migrations: without them the list still loads, just without those.
+  if (error && /\bhidden\b/i.test(error.message)) ({ data, error } = await read(TAG_COLUMNS));
   if (error && /\btags\b/i.test(error.message)) ({ data, error } = await read(BASE_COLUMNS));
   fail(error);
   return ((data ?? []) as unknown as SummaryRow[]).map(toSummary);
@@ -81,7 +87,10 @@ export interface PublishInput {
 
 /** Publishes, or re-publishes (overwrites) the snapshot of one workspace. Needs the signed-in user's id. */
 export async function publishWorkspace(client: SupabaseClient, ownerId: string, input: PublishInput): Promise<void> {
-  const { snapshot } = input;
+  const problems = findPublishProblems(input.snapshot);
+  if (problems.length > 0) throw new Error(`Cannot publish:\n- ${problems.slice(0, 8).join('\n- ')}${problems.length > 8 ? `\n- …and ${problems.length - 8} more` : ''}`);
+  // Only whitelisted fields leave the device, whatever the workspace held.
+  const snapshot = sanitizeSharedContent(input.snapshot, { resetProgress: false });
   const tags = normalizeTags(input.tags ?? []);
   const row = {
     owner_id: ownerId,

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { supabase } from '../../lib/supabaseClient';
 import { formatPublishedAt } from '../../services/publishedList';
+import { MAX_REPORT_NOTE, REPORT_REASONS, reportSharedWorkspace, type ReportReason } from '../../services/sharedReports';
 import { cloneSharedWorkspace, type SharedWorkspaceSummary } from '../../services/sharedWorkspaces';
 import type { WorkspaceContent } from '../../services/workspaceTypes';
 import { Modal } from './Modal';
@@ -23,11 +24,12 @@ interface PreviewModalProps {
   content: WorkspaceContent | null;
   canClone: boolean;
   onClone: () => void;
+  onReport: () => void;
   onClose: () => void;
 }
 
 /** The titles inside one shared snapshot, in a pop-up. */
-export function PreviewModal({ item, content, canClone, onClone, onClose }: PreviewModalProps) {
+export function PreviewModal({ item, content, canClone, onClone, onReport, onClose }: PreviewModalProps) {
   return (
     <Modal title={`Preview ${item.name}`} className="sharing-modal" onBackdrop={onClose}>
       <h3 className="modal-title">{item.name}</h3>
@@ -44,6 +46,7 @@ export function PreviewModal({ item, content, canClone, onClone, onClose }: Prev
         ) : <span className="sharing-muted">Loading…</span>}
       </div>
       <div className="modal-actions">
+        {canClone ? <button type="button" className="sharing-link-btn" onClick={onReport}>Report</button> : null}
         <button type="button" className="modal-btn-cancel" onClick={onClose}>Close</button>
         {canClone ? <button type="button" className="toolbar-btn" onClick={onClone}>Clone to new workspace</button> : null}
       </div>
@@ -92,6 +95,56 @@ export function CloneModal({ item, onClose, onCloned }: CloneModalProps) {
       <div className="modal-actions">
         <button type="button" className="modal-btn-cancel" disabled={busy} onClick={onClose}>Cancel</button>
         <button type="button" className="toolbar-btn" disabled={busy} onClick={() => { void clone(); }}>{busy ? 'Cloning…' : 'Clone'}</button>
+      </div>
+    </Modal>
+  );
+}
+
+interface ReportModalProps {
+  item: SharedWorkspaceSummary;
+  onClose: () => void;
+  /** Called once the report is saved. */
+  onReported: () => void;
+}
+
+/** Asks why a share is being reported and files it; three reports from different people hide a share automatically. */
+export function ReportModal({ item, onClose, onReported }: ReportModalProps) {
+  const [reason, setReason] = useState<ReportReason>('malicious');
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const send = async () => {
+    if (!supabase) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await reportSharedWorkspace(supabase, item.id, reason, note);
+      onReported();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send the report');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal title="Report workspace" className="sharing-modal" onBackdrop={busy ? undefined : onClose}>
+      <h3 className="modal-title">Report "{item.name}"</h3>
+      <p className="sharing-muted">Tell us what is wrong. Reports are private; the author is not told who sent them.</p>
+      <label className="modal-label">
+        Reason
+        <select className="modal-input" value={reason} onChange={(event) => setReason(event.target.value as ReportReason)} aria-label="Report reason">
+          {REPORT_REASONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      </label>
+      <label className="modal-label">
+        Details (optional)
+        <textarea className="modal-input" rows={3} maxLength={MAX_REPORT_NOTE} value={note} onChange={(event) => setNote(event.target.value)} aria-label="Report details" />
+      </label>
+      {error ? <p className="tree-error" role="alert">{error}</p> : null}
+      <div className="modal-actions">
+        <button type="button" className="modal-btn-cancel" disabled={busy} onClick={onClose}>Cancel</button>
+        <button type="button" className="toolbar-btn sharing-btn-danger" disabled={busy} onClick={() => { void send(); }}>{busy ? 'Sending…' : 'Send report'}</button>
       </div>
     </Modal>
   );

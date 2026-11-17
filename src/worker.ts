@@ -2,23 +2,12 @@
 // static site in dist/ is served by the assets binding (see wrangler.jsonc).
 // Mirrors vite/plugins/audioProxy.ts, restricted to Google Translate TTS.
 
-const ROUTE = '/api/audio-proxy';
-const ALLOWED_HOST = 'translate.google.com';
-const ALLOWED_PATH = '/translate_tts';
-const MAX_URL_LENGTH = 600;
+import { AUDIO_ROUTE as ROUTE, isAllowedAudioUrl } from './utils/audioUrl';
+
+export { isAllowedAudioUrl };
 
 interface Env {
   ASSETS: { fetch(request: Request): Promise<Response> };
-}
-
-export function isAllowedAudioUrl(remoteUrl: string): boolean {
-  if (remoteUrl.length > MAX_URL_LENGTH) return false;
-  try {
-    const url = new URL(remoteUrl);
-    return url.protocol === 'https:' && url.hostname === ALLOWED_HOST && url.pathname === ALLOWED_PATH;
-  } catch {
-    return false;
-  }
 }
 
 export async function handleAudioProxy(request: Request, fetchRemote: typeof fetch = fetch): Promise<Response> {

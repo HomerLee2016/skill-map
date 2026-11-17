@@ -14,12 +14,13 @@ interface SharedTableProps {
   onPreview: (item: SharedWorkspaceSummary) => void;
   onClone: (item: SharedWorkspaceSummary) => void;
   onUnpublish: (item: SharedWorkspaceSummary) => void;
+  onReport: (item: SharedWorkspaceSummary) => void;
   /** A tag chip was clicked: filter by it. */
   onTag: (tag: string) => void;
 }
 
 /** One compact row per shared workspace; stacks into blocks on a phone. */
-export function SharedTable({ rows, userId, stats, mine, onReact, onPreview, onClone, onUnpublish, onTag }: SharedTableProps) {
+export function SharedTable({ rows, userId, stats, mine, onReact, onPreview, onClone, onUnpublish, onReport, onTag }: SharedTableProps) {
   return (
     <table className="sharing-table">
       <thead>
@@ -33,6 +34,7 @@ export function SharedTable({ rows, userId, stats, mine, onReact, onPreview, onC
               <td className="sharing-cell-title">
                 <span className="sharing-row-title">{item.name}</span>
                 {own ? <span className="sharing-badge">Yours</span> : null}
+                {item.hidden ? <span className="sharing-badge sharing-badge-warn" title="Taken down after reports or by a moderator. Only you can see it.">Taken down</span> : null}
                 <TagChips tags={item.tags} onPick={onTag} />
               </td>
               <td className="sharing-cell-author">by {item.ownerLabel}</td>
@@ -48,7 +50,12 @@ export function SharedTable({ rows, userId, stats, mine, onReact, onPreview, onC
                   <button type="button" className="modal-btn-cancel" onClick={() => onPreview(item)}>Preview</button>
                   {own
                     ? <button type="button" className="toolbar-btn sharing-btn-danger" onClick={() => onUnpublish(item)}>Unpublish</button>
-                    : <button type="button" className="toolbar-btn" onClick={() => onClone(item)}>Clone</button>}
+                    : (
+                      <>
+                        <button type="button" className="toolbar-btn" onClick={() => onClone(item)}>Clone</button>
+                        <button type="button" className="sharing-link-btn" onClick={() => onReport(item)}>Report</button>
+                      </>
+                    )}
                 </div>
               </td>
             </tr>

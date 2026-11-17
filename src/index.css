@@ -2052,6 +2052,9 @@ body, html, #root {
 .sharing-card-title { margin: 0; font-size: 16px; overflow-wrap: anywhere; }
 .sharing-card-desc { margin: 0; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .sharing-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--node-link-bg); color: var(--node-link-text); }
+.sharing-badge-warn { background: #fde8e8; color: #9b1c1c; }
+.sharing-modal .tree-error, .publish-dialog .tree-error { white-space: pre-line; }
+.lesson-audio-blocked { opacity: 0.7; font-size: 13px; }
 .sharing-counts { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 13px; font-weight: 600; }
 .sharing-preview { font-size: 13px; max-height: 220px; overflow-y: auto; border-top: 1px solid var(--panel-border); padding-top: 8px; }
 .sharing-preview ul { margin: 2px 0 8px; padding-left: 18px; }

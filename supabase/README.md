@@ -53,3 +53,13 @@ Run after the sharing hub migration: paste `migrations/20261115000000_sharing_hu
 Run after the sharing hub migration: paste `migrations/20261116000000_sharing_hub_tags.sql` into the SQL Editor and click **Run** (re-running is safe). It adds a `tags` column (at most 10 tags per workspace) to `shared_workspaces`. Until it is run, the hub still works and simply shows no tags.
 
 Duplicate workspace needs no migration: it writes a new `copy-<random>` workspace into the user's own rows.
+
+## Sharing hub hardening migration (NOT RUN YET)
+
+Run after the sharing hub, tags and votes migrations: paste `migrations/20261117000000_sharing_hub_hardening.sql` into the SQL Editor and click **Run** (re-running is safe). Until it is run, the app still works but the database does not enforce the rules below, and Report shows "needs the migration".
+
+- Server-side validation of `shared_workspaces.content` (trigger `shared_workspaces_guard`): allowed keys only, item counts, field lengths, 1 MB total, lessons are Markdown (only `<audio>` with a Google TTS url as HTML; no images; http(s) links only), questions and roadmaps have the app's shape, roadmap YAML has no tags/anchors/aliases/flow style. Mirrors `src/services/sharingValidation.ts`.
+- Limits per user: 10 publishes per 24 h, 20 active published workspaces.
+- Moderation: `hidden`, `hidden_reason`, `hidden_at`. Hidden shares are visible only to their owner; owners cannot un-hide. Three reports from different users hide a share (`hidden_reason = 'reports'`). Existing rows that fail the new rules are hidden with `'validation'` (the owner can fix and republish).
+- Reports: `shared_workspace_reports`; read your own only. Review them in the SQL Editor (queries at the top of the migration).
+- Checks: `supabase/tests/sharing_hub_hardening.sql` (run on a scratch database, never production).

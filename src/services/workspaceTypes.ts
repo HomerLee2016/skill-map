@@ -13,6 +13,8 @@ export interface TestQuestion {
   options: string[];
   correct_answer: string;
   explanation?: string;
+  /** Text-to-speech url, played through the audio proxy. */
+  audio_track_url?: string;
 }
 
 export interface TestItem {
