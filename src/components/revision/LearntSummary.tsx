@@ -1,6 +1,8 @@
 import { formatNextRevisionTime, formatProficiencyDisplay } from '../../utils/proficiency';
 import { calcTotalStars, countStarLevels } from '../../utils/revisionSession';
+import { useState } from 'react';
 import { RevisionDataButtons } from './RevisionDataButtons';
+import { RemoveRecordsDialog } from './RemoveRecordsDialog';
 
 function StarStatsChart({ completedRows }: { completedRows: any[] }) {
   const starCounts = countStarLevels(completedRows);
@@ -35,9 +37,27 @@ interface LearntSummaryProps {
   nextRevisionIso: string | null;
   onStartRevision: () => void;
   onDataImported: () => Promise<void>;
+  /** Removes the records with these row ids (locally and, via sync, in the cloud). */
+  onRemoveRecords: (ids: number[]) => Promise<void>;
 }
 
-export function LearntSummary({ completedRows, dueCount, nextRevisionIso, onStartRevision, onDataImported }: LearntSummaryProps) {
+export function LearntSummary({ completedRows, dueCount, nextRevisionIso, onStartRevision, onDataImported, onRemoveRecords }: LearntSummaryProps) {
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [confirming, setConfirming] = useState(false);
+  const selectedRows = completedRows.filter((row: any) => selected.has(row.id));
+  const allSelected = completedRows.length > 0 && selectedRows.length === completedRows.length;
+
+  const stopSelecting = () => {
+    setSelecting(false);
+    setSelected(new Set());
+  };
+  const toggle = (id: number) => setSelected((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+
   return (
     <div className="revision-page-shell">
       <div className="revision-header-card">
@@ -55,7 +75,21 @@ export function LearntSummary({ completedRows, dueCount, nextRevisionIso, onStar
             <h2>Learnt Summary</h2>
           </div>
           <div className="summary-table-header-buttons">
-            <RevisionDataButtons onImported={onDataImported} />
+            {selecting ? (
+              <>
+                <button type="button" className="toolbar-btn remove-confirm remove-confirm--danger" disabled={selected.size === 0} onClick={() => setConfirming(true)}>
+                  Remove{selected.size > 0 ? ` (${selected.size})` : ''}
+                </button>
+                <button type="button" className="toolbar-btn" onClick={stopSelecting}>Cancel</button>
+              </>
+            ) : (
+              <>
+                <button type="button" className="toolbar-btn" disabled={completedRows.length === 0} onClick={() => setSelecting(true)}>
+                  Remove record
+                </button>
+                <RevisionDataButtons onImported={onDataImported} />
+              </>
+            )}
           </div>
         </div>
         <div className="summary-highlight">
@@ -70,6 +104,16 @@ export function LearntSummary({ completedRows, dueCount, nextRevisionIso, onStar
         <table className="summary-table">
           <thead>
             <tr>
+              {selecting ? (
+                <th className="col-select">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all records"
+                    checked={allSelected}
+                    onChange={() => setSelected(allSelected ? new Set() : new Set(completedRows.map((row: any) => row.id as number)))}
+                  />
+                </th>
+              ) : null}
               <th className="col-id">ID</th>
               <th className="col-test">Test</th>
               <th className="col-question">Question</th>
@@ -80,7 +124,12 @@ export function LearntSummary({ completedRows, dueCount, nextRevisionIso, onStar
           </thead>
           <tbody>
             {completedRows.map((row: any) => (
-              <tr key={row.id}>
+              <tr key={row.id} className={selected.has(row.id) ? 'summary-row--selected' : undefined} onClick={selecting ? () => toggle(row.id) : undefined}>
+                {selecting ? (
+                  <td className="col-select">
+                    <input type="checkbox" aria-label={`Select record ${row.id}`} checked={selected.has(row.id)} onClick={(event) => event.stopPropagation()} onChange={() => toggle(row.id)} />
+                  </td>
+                ) : null}
                 <td className="col-id">{row.id}</td>
                 <td className="col-test">{row.quiz_title}</td>
                 <td className="col-question">{row.question_name}</td>
@@ -96,6 +145,17 @@ export function LearntSummary({ completedRows, dueCount, nextRevisionIso, onStar
           </tbody>
         </table>
       </div>
+      {confirming ? (
+        <RemoveRecordsDialog
+          records={selectedRows}
+          onCancel={() => setConfirming(false)}
+          onConfirm={async () => {
+            await onRemoveRecords(selectedRows.map((row: any) => row.id as number));
+            setConfirming(false);
+            stopSelecting();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

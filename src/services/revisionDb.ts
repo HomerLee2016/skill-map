@@ -23,6 +23,12 @@ export interface CompletedQuestionRecord {
   hash: string;
 }
 
+/** A record the user removed; kept so sync does not bring it back from another device. */
+export interface DeletedRecordTombstone {
+  hash: string;
+  deleted_at: string;
+}
+
 export interface CompletedQuestionInsert {
   question_name: string;
   options: string[];
@@ -43,11 +49,16 @@ export { deriveWorkspaceStorageKey };
 
 export class RevisionDexieStore extends Dexie {
   completed_questions!: Table<CompletedQuestionRecord, number>;
+  deleted_records!: Table<DeletedRecordTombstone, string>;
 
   constructor(storageKey: string) {
     super(`skill-map-revision-db-${storageKey}`);
     this.version(1).stores({
       completed_questions: '++id, hash, quiz_title, next_revision_time, last_time, proficiency',
+    });
+    this.version(2).stores({
+      completed_questions: '++id, hash, quiz_title, next_revision_time, last_time, proficiency',
+      deleted_records: 'hash',
     });
   }
 }
@@ -151,6 +162,24 @@ export async function insertCompletedQuestion(entry: CompletedQuestionInsert): P
   const newId = await revisionStore.completed_questions.add(record);
   notifyRevisionRecordsChanged();
   return { ...record, id: newId };
+}
+
+/** Removes records by row id and leaves a tombstone per question so cloud sync deletes them everywhere. */
+export async function deleteCompletedQuestions(ids: number[], store: RevisionDexieStore = revisionStore): Promise<number> {
+  if (ids.length === 0) return 0;
+  const deletedAt = new Date().toISOString();
+  let removed = 0;
+  await store.transaction('rw', store.completed_questions, store.deleted_records, async () => {
+    const rows = (await store.completed_questions.bulkGet(ids)).filter((row): row is CompletedQuestionRecord => !!row);
+    const hashes = [...new Set(rows.map((row) => row.hash))];
+    // Dexie indexes `hash` non-uniquely; drop every row of the question, not just the selected one.
+    const sameHash = hashes.length > 0 ? await store.completed_questions.where('hash').anyOf(hashes).primaryKeys() : [];
+    await store.completed_questions.bulkDelete(sameHash);
+    await store.deleted_records.bulkPut(hashes.map((hash) => ({ hash, deleted_at: deletedAt })));
+    removed = hashes.length;
+  });
+  if (removed > 0) notifyRevisionRecordsChanged();
+  return removed;
 }
 
 export async function getCompletedQuestionsByQuiz(quizTitle: string): Promise<CompletedQuestionRecord[]> {

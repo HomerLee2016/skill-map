@@ -3,6 +3,7 @@ import {
   getAllCompletedQuestions,
   notifyRevisionRecordsPulled,
   type CompletedQuestionRecord,
+  type DeletedRecordTombstone,
   type RevisionDexieStore,
 } from './revisionDb';
 import { dedupeByHash, mergeRevisionRecords, splitLegacyRecords } from './revisionSyncMerge';
@@ -18,7 +19,12 @@ export const LEGACY_WORKSPACE_KEY = 'legacy';
 interface RemoteRow {
   hash: string;
   last_time: string;
-  data: Omit<CompletedQuestionRecord, 'id'>;
+  data: Omit<CompletedQuestionRecord, 'id'> & { deleted?: boolean };
+}
+
+/** A removed question's cloud row: same primary key, `data.deleted` set, `last_time` = when it was removed. */
+function isTombstoneRow(row: RemoteRow): boolean {
+  return row.data?.deleted === true;
 }
 
 /** Which workspace's cloud rows and which local store a sync works on; captured once so a mid-sync switch cannot mix them. */
@@ -32,11 +38,38 @@ export interface SyncSummary {
   pulled: number;
 }
 
-/** The signed-in user's cloud revision records for one workspace. */
-export async function fetchRemoteRevisionRecords(client: SupabaseClient, workspaceKey: string): Promise<CompletedQuestionRecord[]> {
+export interface RemoteRevisionState {
+  records: CompletedQuestionRecord[];
+  tombstones: DeletedRecordTombstone[];
+}
+
+/** Live records and removal tombstones of one cloud workspace. */
+export async function fetchRemoteRevisionState(client: SupabaseClient, workspaceKey: string): Promise<RemoteRevisionState> {
   const { data, error } = await client.from(TABLE).select('hash,last_time,data').eq('workspace_key', workspaceKey);
   if (error) throw error;
-  return ((data ?? []) as RemoteRow[]).map((row) => ({ ...row.data, hash: row.hash, last_time: row.last_time }));
+  const rows = (data ?? []) as RemoteRow[];
+  return {
+    records: rows.filter((row) => !isTombstoneRow(row)).map((row) => ({ ...row.data, hash: row.hash, last_time: row.last_time })),
+    tombstones: rows.filter(isTombstoneRow).map((row) => ({ hash: row.hash, deleted_at: row.last_time })),
+  };
+}
+
+/** The signed-in user's cloud revision records for one workspace (removed questions excluded). */
+export async function fetchRemoteRevisionRecords(client: SupabaseClient, workspaceKey: string): Promise<CompletedQuestionRecord[]> {
+  return (await fetchRemoteRevisionState(client, workspaceKey)).records;
+}
+
+export async function upsertTombstones(client: SupabaseClient, workspaceKey: string, tombstones: DeletedRecordTombstone[]): Promise<void> {
+  const rows = tombstones.map(({ hash, deleted_at }) => ({
+    workspace_key: workspaceKey,
+    hash,
+    last_time: deleted_at,
+    data: { deleted: true, hash, deleted_at },
+  }));
+  for (let index = 0; index < rows.length; index += CHUNK_SIZE) {
+    const { error } = await client.from(TABLE).upsert(rows.slice(index, index + CHUNK_SIZE), { onConflict: 'user_id,workspace_key,hash' });
+    if (error) throw error;
+  }
 }
 
 export async function upsertRecords(client: SupabaseClient, workspaceKey: string, records: CompletedQuestionRecord[]): Promise<void> {
@@ -53,27 +86,40 @@ export async function upsertRecords(client: SupabaseClient, workspaceKey: string
   }
 }
 
-/** Two-way sync of one workspace's local revision records with its cloud records. */
+/** Two-way sync of one workspace's local revision records with its cloud records; removals propagate both ways. */
 export async function syncRevisionRecords(
   client: SupabaseClient,
   { workspaceKey, store }: RevisionScope,
-  remote?: CompletedQuestionRecord[],
+  remote?: RemoteRevisionState,
 ): Promise<SyncSummary> {
   const local = await getAllCompletedQuestions(store);
-  const { toLocal, toRemote } = mergeRevisionRecords(local, remote ?? await fetchRemoteRevisionRecords(client, workspaceKey));
+  const localTombstones = await store.deleted_records.toArray();
+  const state = remote ?? await fetchRemoteRevisionState(client, workspaceKey);
+  const merged = mergeRevisionRecords(local, state.records, { local: localTombstones, remote: state.tombstones });
 
-  if (toRemote.length > 0) await upsertRecords(client, workspaceKey, toRemote);
-  if (toLocal.length > 0) {
-    await store.completed_questions.bulkPut(toLocal);
+  if (merged.toRemote.length > 0) await upsertRecords(client, workspaceKey, merged.toRemote);
+  if (merged.tombstonesToRemote.length > 0) await upsertTombstones(client, workspaceKey, merged.tombstonesToRemote);
+  const changesLocal = merged.toLocal.length + merged.deleteLocalHashes.length + merged.tombstonesToLocal.length + merged.clearLocalTombstones.length > 0;
+  if (changesLocal) {
+    await store.transaction('rw', store.completed_questions, store.deleted_records, async () => {
+      if (merged.deleteLocalHashes.length > 0) {
+        const keys = await store.completed_questions.where('hash').anyOf(merged.deleteLocalHashes).primaryKeys();
+        await store.completed_questions.bulkDelete(keys);
+      }
+      if (merged.toLocal.length > 0) await store.completed_questions.bulkPut(merged.toLocal);
+      if (merged.tombstonesToLocal.length > 0) await store.deleted_records.bulkPut(merged.tombstonesToLocal);
+      if (merged.clearLocalTombstones.length > 0) await store.deleted_records.bulkDelete(merged.clearLocalTombstones);
+    });
     notifyRevisionRecordsPulled();
   }
-  return { pushed: toRemote.length, pulled: toLocal.length };
+  return { pushed: merged.toRemote.length + merged.tombstonesToRemote.length, pulled: merged.toLocal.length + merged.deleteLocalHashes.length };
 }
 
 /** "Keep cloud": local records become an exact copy of the cloud records. */
 export async function replaceLocalWithRemote({ store }: RevisionScope, remote: CompletedQuestionRecord[]): Promise<void> {
-  await store.transaction('rw', store.completed_questions, async () => {
+  await store.transaction('rw', store.completed_questions, store.deleted_records, async () => {
     await store.completed_questions.clear();
+    await store.deleted_records.clear();
     await store.completed_questions.bulkAdd(remote.map(({ id: _id, ...rest }) => rest));
   });
   notifyRevisionRecordsPulled();

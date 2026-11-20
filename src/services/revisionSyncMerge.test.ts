@@ -62,3 +62,32 @@ test('legacy split adopts this workspace\'s quizzes and drops leaked local copie
 test('legacy split does nothing without quiz titles', () => {
   assert.deepEqual(splitLegacyRecords([rec('a', '2026-01-01T00:00:00Z', 1)], [rec('a', '2026-01-01T00:00:00Z')], new Set()), { adopt: [], dropLocalIds: [] });
 });
+
+const tomb = (hash: string, deleted_at: string) => ({ hash, deleted_at });
+
+test('a cloud removal deletes the stale local record and is remembered locally', () => {
+  const r = mergeRevisionRecords([rec('a', '2026-01-01T00:00:00Z', 1)], [], { local: [], remote: [tomb('a', '2026-02-01T00:00:00Z')] });
+  assert.deepEqual(r.deleteLocalHashes, ['a']);
+  assert.deepEqual(r.tombstonesToLocal.map((t) => t.hash), ['a']);
+  assert.equal(r.toRemote.length + r.toLocal.length, 0);
+});
+
+test('a local removal replaces the live cloud row and is not resurrected', () => {
+  const r = mergeRevisionRecords([], [rec('a', '2026-01-01T00:00:00Z')], { local: [tomb('a', '2026-02-01T00:00:00Z')], remote: [] });
+  assert.deepEqual(r.tombstonesToRemote.map((t) => t.hash), ['a']);
+  assert.equal(r.toLocal.length, 0);
+  assert.equal(r.toRemote.length, 0);
+});
+
+test('answering again after a removal revives the question', () => {
+  const r = mergeRevisionRecords([rec('a', '2026-03-01T00:00:00Z', 1)], [], { local: [tomb('a', '2026-02-01T00:00:00Z')], remote: [] });
+  assert.deepEqual(r.toRemote.map((x) => x.hash), ['a']);
+  assert.deepEqual(r.clearLocalTombstones, ['a']);
+  assert.equal(r.tombstonesToRemote.length, 0);
+});
+
+test('a record answered elsewhere after the removal comes back', () => {
+  const r = mergeRevisionRecords([], [rec('a', '2026-03-01T00:00:00Z')], { local: [tomb('a', '2026-02-01T00:00:00Z')], remote: [] });
+  assert.deepEqual(r.toLocal.map((x) => x.hash), ['a']);
+  assert.deepEqual(r.clearLocalTombstones, ['a']);
+});

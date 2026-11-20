@@ -9,7 +9,7 @@ import {
 } from '../services/revisionDb';
 import {
   adoptLegacyRevisionRecords,
-  fetchRemoteRevisionRecords,
+  fetchRemoteRevisionState,
   replaceLocalWithRemote,
   replaceRemoteWithLocal,
   syncRevisionRecords,
@@ -92,11 +92,11 @@ export function useCloudSync() {
     try {
       await ensureCloudWorkspace(supabase, key, workspaceNameRef.current);
       const content = localContentRef.current;
-      let remote = await fetchRemoteRevisionRecords(supabase, key);
+      let remote = await fetchRemoteRevisionState(supabase, key);
       if (!isConflictResolved(userId, key)) {
         const [local, cloudContent] = await Promise.all([getAllCompletedQuestions(scope.store), fetchCloudWorkspace(supabase, key)]);
         const device = summarizeSide(content, local);
-        const cloud = summarizeSide(cloudContent, remote);
+        const cloud = summarizeSide(cloudContent, remote.records);
         if (isSyncConflict(device, cloud)) {
           setConflict({ device, cloud });
           return;
@@ -109,7 +109,7 @@ export function useCloudSync() {
         if (titles.size > 0) {
           await adoptLegacyRevisionRecords(supabase, scope, titles);
           markLegacyAdopted(userId, key);
-          remote = await fetchRemoteRevisionRecords(supabase, key);
+          remote = await fetchRemoteRevisionState(supabase, key);
         }
       }
       await syncRevisionRecords(supabase, scope, remote);
@@ -159,13 +159,13 @@ export function useCloudSync() {
     setIsSyncing(true);
     try {
       await ensureCloudWorkspace(supabase, key, workspaceNameRef.current);
-      const remote = await fetchRemoteRevisionRecords(supabase, key);
+      const remote = await fetchRemoteRevisionState(supabase, key);
       const content = localContentRef.current;
       if (choice === 'cloud') {
-        await replaceLocalWithRemote(scope, remote);
+        await replaceLocalWithRemote(scope, remote.records);
         setCloudPreferred(userId, key, true);
       } else if (choice === 'device') {
-        await replaceRemoteWithLocal(supabase, scope, remote);
+        await replaceRemoteWithLocal(supabase, scope, remote.records);
         if (content) await pushWorkspaceContent(supabase, key, content, { prune: true });
         setCloudPreferred(userId, key, false);
       } else {
