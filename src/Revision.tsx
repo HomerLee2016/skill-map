@@ -2,6 +2,7 @@ import { CategorySection } from './components/Sidebar/CategorySection';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { LearntSummary } from './components/revision/LearntSummary';
 import { RevisionSessionView } from './components/revision/RevisionSessionView';
+import { deleteCompletedQuestions } from './services/revisionDb';
 import { useRevisionData } from './hooks/useRevisionData';
 import { useRevisionSession } from './hooks/useRevisionSession';
 
@@ -34,6 +35,11 @@ function Revision() {
             dueCount={dueCount}
             nextRevisionIso={nextRevisionIso}
             onStartRevision={() => { void session.startRevision(); }}
+            onRemoveRecords={async (ids) => {
+              await deleteCompletedQuestions(ids);
+              await fetchCompleted();
+              await fetchDueCount();
+            }}
             onDataImported={async () => {
               await fetchCompleted();
               await fetchDueCount();

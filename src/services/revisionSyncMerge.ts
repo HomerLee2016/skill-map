@@ -1,10 +1,23 @@
-import type { CompletedQuestionRecord } from './revisionDb';
+import type { CompletedQuestionRecord, DeletedRecordTombstone } from './revisionDb';
 
 export interface MergeResult {
   /** Records to write into Dexie (remote is newer or missing locally). */
   toLocal: CompletedQuestionRecord[];
   /** Records to upsert to Supabase (local is newer or missing remotely). */
   toRemote: CompletedQuestionRecord[];
+  /** Question hashes to delete from Dexie (removed on another device, or here and not yet pushed). */
+  deleteLocalHashes: string[];
+  /** Tombstones to remember locally (removal came from the cloud). */
+  tombstonesToLocal: DeletedRecordTombstone[];
+  /** Tombstones to upsert to Supabase (removal happened here). */
+  tombstonesToRemote: DeletedRecordTombstone[];
+  /** Local tombstones that a newer answer made obsolete. */
+  clearLocalTombstones: string[];
+}
+
+export interface Tombstones {
+  local: DeletedRecordTombstone[];
+  remote: DeletedRecordTombstone[];
 }
 
 function time(value: string): number {
@@ -22,14 +35,29 @@ export function dedupeByHash(records: CompletedQuestionRecord[]): CompletedQuest
   return [...byHash.values()];
 }
 
-/** Merge by `hash`; the record with the newest `last_time` wins, ties keep local. */
+/**
+ * Merge by `hash`; the record with the newest `last_time` wins, ties keep local.
+ * A removal (tombstone) beats any record last answered at or before it; answering again afterwards revives the question.
+ */
 export function mergeRevisionRecords(
   localRecords: CompletedQuestionRecord[],
   remoteRecords: CompletedQuestionRecord[],
+  tombstones: Tombstones = { local: [], remote: [] },
 ): MergeResult {
   // Duplicate hashes in one upsert batch make Postgres fail with 21000.
-  const local = dedupeByHash(localRecords);
-  const remote = dedupeByHash(remoteRecords);
+  const localTomb = new Map(tombstones.local.map((t) => [t.hash, t]));
+  const remoteTomb = new Map(tombstones.remote.map((t) => [t.hash, t]));
+  const removedAt = (hash: string): number | null => {
+    const times = [localTomb.get(hash), remoteTomb.get(hash)].filter((t) => t).map((t) => time(t!.deleted_at));
+    return times.length ? Math.max(...times) : null;
+  };
+  const isAlive = (record: CompletedQuestionRecord) => {
+    const at = removedAt(record.hash);
+    return at === null || time(record.last_time) > at;
+  };
+  const allLocal = dedupeByHash(localRecords);
+  const local = allLocal.filter(isAlive);
+  const remote = dedupeByHash(remoteRecords).filter(isAlive);
   const remoteByHash = new Map(remote.map((record) => [record.hash, record]));
   const localByHash = new Map(local.map((record) => [record.hash, record]));
   const toLocal: CompletedQuestionRecord[] = [];
@@ -46,7 +74,23 @@ export function mergeRevisionRecords(
       toLocal.push(other?.id != null ? { ...record, id: other.id } : { ...record, id: undefined });
     }
   }
-  return { toLocal, toRemote };
+
+  const deleteLocalHashes = allLocal.filter((record) => !isAlive(record)).map((record) => record.hash);
+  const tombstonesToLocal: DeletedRecordTombstone[] = [];
+  const tombstonesToRemote: DeletedRecordTombstone[] = [];
+  const clearLocalTombstones: string[] = [];
+  for (const hash of new Set([...localTomb.keys(), ...remoteTomb.keys()])) {
+    const l = localTomb.get(hash);
+    const r = remoteTomb.get(hash);
+    const revived = localByHash.has(hash) || remoteByHash.has(hash);
+    if (revived) {
+      if (l) clearLocalTombstones.push(hash);
+      continue;
+    }
+    if (l && (!r || time(l.deleted_at) > time(r.deleted_at))) tombstonesToRemote.push(l);
+    else if (r && !l) tombstonesToLocal.push(r);
+  }
+  return { toLocal, toRemote, deleteLocalHashes, tombstonesToLocal, tombstonesToRemote, clearLocalTombstones };
 }
 
 export interface LegacySplit {
