@@ -52,6 +52,8 @@ interface WorkspaceContextValue {
   refreshCloudWorkspaces: () => Promise<void>;
   /** Forgets the workspace on this device; with `alsoCloud` it also deletes the user's cloud copy (all devices). */
   removeWorkspace: (target: { key: string; name: string; local?: { name: string; path: string } }, options: { alsoCloud: boolean }) => Promise<void>;
+  /** Reads one workspace's content without switching to it (for export); null when it cannot be read. */
+  readWorkspaceContent: (entry: { key: string; local?: { name: string; path: string } }) => Promise<WorkspaceContent | null>;
   refreshWorkspace: () => Promise<void>;
   refreshWorkspaceHistoryCounts: () => Promise<void>;
   /** Writes to the selected folder and, when signed in, to the user's cloud workspace. True if either succeeded. */
@@ -290,6 +292,20 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     await loadWorkspaceFor({ handle: null, imported, fallbackLabel: imported.name });
   }, [loadWorkspaceFor]);
 
+  const readWorkspaceContent = useCallback(async (entry: { key: string; local?: { name: string; path: string } }) => {
+    if (entry.key === workspaceKey) return workspace;
+    if (entry.local) {
+      const handle = await readPersistedWorkspaceHandleForSelection(entry.local);
+      if (handle) {
+        const picker = handle as FileSystemDirectoryHandle & { requestPermission?: (d: { mode: 'read' }) => Promise<PermissionState> };
+        if (picker.requestPermission && (await picker.requestPermission({ mode: 'read' })) !== 'granted') return null;
+        return loadWorkspaceContent(handle);
+      }
+    }
+    if (supabase && userId) return fetchCloudWorkspace(supabase, entry.key);
+    return null;
+  }, [workspace, workspaceKey, userId]);
+
   const removeWorkspace = useCallback(async (
     target: { key: string; name: string; local?: { name: string; path: string } },
     { alsoCloud }: { alsoCloud: boolean },
@@ -346,6 +362,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     selectWorkspace,
     selectWorkspaceFromHistory,
     selectCloudWorkspace,
+    readWorkspaceContent,
     importWorkspace,
     refreshCloudWorkspaces,
     removeWorkspace,
@@ -353,7 +370,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     refreshWorkspaceHistoryCounts,
     persistRoadmap,
     persistStructure,
-  }), [persistRoadmap, persistStructure, workspace, workspaceKey, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion, workspaceHistory, selectWorkspace, selectWorkspaceFromHistory, refreshWorkspace, refreshWorkspaceHistoryCounts, hasLocalContent, cloudWorkspaces, selectCloudWorkspace, importWorkspace, refreshCloudWorkspaces, removeWorkspace]);
+  }), [persistRoadmap, persistStructure, workspace, workspaceKey, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion, workspaceHistory, selectWorkspace, selectWorkspaceFromHistory, refreshWorkspace, refreshWorkspaceHistoryCounts, hasLocalContent, cloudWorkspaces, selectCloudWorkspace, readWorkspaceContent, importWorkspace, refreshCloudWorkspaces, removeWorkspace]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }
