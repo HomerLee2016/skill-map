@@ -116,7 +116,7 @@ async function selectWorkspace(page: Page, name: Name) {
     (window as any).showDirectoryPicker = async () => (await navigator.storage.getDirectory()).getDirectoryHandle(n);
   }, name);
   await page.locator('.top-bar-workspace-trigger').click();
-  await page.locator('.top-bar-workspace-menu-item--action').click();
+  await page.locator('.top-bar-workspace-menu-item--action', { hasText: 'Browse from local' }).click();
   await settle(page);
 }
 
@@ -195,6 +195,28 @@ async function run() {
   await expectOnly(page, 'ws-japanese', 'switched to japanese');
   await switchFromHistory(page, 'ws-spanish');
   await expectOnly(page, 'ws-spanish', 'switched back to spanish');
+
+  // The folder handle of a workspace is gone from this device: clicking it must open that workspace's cloud copy,
+  // not silently reload the folder that is open (the old "can't switch" symptom).
+  await selectWorkspace(page, 'ws-japanese');
+  await page.evaluate(() => new Promise<void>((resolve, reject) => {
+    const open = indexedDB.open('skill-map-workspace-db', 1);
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const db = open.result;
+      const tx = db.transaction('workspace-handle', 'readwrite');
+      const store = tx.objectStore('workspace-handle');
+      const get = store.get('workspace');
+      get.onsuccess = () => {
+        const record = get.result;
+        record.history = record.history.filter((entry: { name: string }) => entry.name !== 'ws-spanish');
+        store.put(record);
+      };
+      tx.oncomplete = () => { db.close(); resolve(); };
+    };
+  }));
+  await switchFromHistory(page, 'ws-spanish');
+  await expectOnly(page, 'ws-spanish', 'handle lost, opened from cloud');
 
   const keys = new Set(db.roadmaps.map((row) => row.workspace_key));
   check('cloud roadmaps are stored under one key per workspace', keys.size === 2 && !keys.has('legacy'), [...keys].join(','));

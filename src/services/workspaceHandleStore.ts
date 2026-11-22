@@ -1,6 +1,6 @@
 import type { PersistedWorkspaceHistoryEntry } from '../utils/workspacePersistence';
 
-interface PersistedWorkspaceHandleRecord {
+export interface PersistedWorkspaceHandleRecord {
   id: string;
   currentHandle?: FileSystemDirectoryHandle;
   history: Array<PersistedWorkspaceHistoryEntry & { handle?: FileSystemDirectoryHandle }>;
@@ -55,11 +55,26 @@ export async function readPersistedWorkspaceHandle(): Promise<FileSystemDirector
   }
 }
 
+/**
+ * The stored folder handle for a workspace, or null when this device never kept one.
+ * A handle is only returned for the folder that was asked for: falling back to "the current folder" made
+ * clicking another workspace silently reload the one already open.
+ */
+export function findHandleForSelection(
+  record: PersistedWorkspaceHandleRecord | null,
+  selection: PersistedWorkspaceHistoryEntry,
+): FileSystemDirectoryHandle | null {
+  if (!record) return null;
+  const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+  const matching = record.history.find((entry) => entry.handle && (same(entry.path, selection.path) || same(entry.name, selection.name)));
+  if (matching?.handle) return matching.handle;
+  const current = record.currentHandle;
+  return current && (same(current.name, selection.path) || same(current.name, selection.name)) ? current : null;
+}
+
 export async function readPersistedWorkspaceHandleForSelection(selection: PersistedWorkspaceHistoryEntry): Promise<FileSystemDirectoryHandle | null> {
   try {
-    const record = await readRecord('Failed to read persisted workspace handle history');
-    const matchingHistoryEntry = record?.history.find((entry) => entry.path === selection.path || entry.name === selection.name);
-    return matchingHistoryEntry?.handle ?? record?.currentHandle ?? null;
+    return findHandleForSelection(await readRecord('Failed to read persisted workspace handle history'), selection);
   } catch {
     return null;
   }
