@@ -243,6 +243,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const updateWorkspaceSelection = useCallback(async (handle: FileSystemDirectoryHandle | null, selectionPath: string, selectionLabel: string) => {
     setSelectedDirectoryHandle(handle);
+    setFolderToReconnect(null);
     setWorkspaceSelectionLabel(selectionPath);
     if (handle) {
       await persistWorkspaceHandle(handle, { name: selectionLabel, path: selectionPath });
@@ -278,6 +279,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
   }, [updateWorkspaceSelection]);
 
+  const selectCloudWorkspace = useCallback(async (entry: CloudWorkspaceInfo) => {
+    setSelectedDirectoryHandle(null);
+    setFolderToReconnect(null);
+    setWorkspaceSelectionLabel(entry.name);
+    writePersistedWorkspaceSelection({ name: entry.name, path: entry.name, cloudKey: entry.key });
+    document.title = `Skill Map · ${entry.name}`;
+    await loadWorkspaceFor({ handle: null, cloudKey: entry.key, fallbackLabel: entry.name });
+  }, [loadWorkspaceFor]);
+
   const selectWorkspaceFromHistory = useCallback(async (entry: { name: string; path: string }) => {
     if (typeof window === 'undefined') {
       return;
@@ -288,6 +298,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       const selectionLabel = entry.name || selectionPath || 'Local workspace';
       const persistedHandle = await readPersistedWorkspaceHandleForSelection({ name: selectionLabel, path: selectionPath });
       if (!persistedHandle) {
+        // No folder is kept for this workspace on this device: open its cloud copy if there is one, otherwise say so.
+        const cloudCopy = cloudWorkspaces.find((workspace) => workspace.key === deriveWorkspaceStorageKey(selectionPath));
+        if (cloudCopy) {
+          setFolderToReconnect(null);
+          await selectCloudWorkspace(cloudCopy);
+        } else {
+          window.alert(`This device no longer has the folder for "${selectionLabel}". Use "Browse from local" to pick it again.`);
+        }
         return;
       }
       if (!(await hasFolderAccess(persistedHandle, true))) {
@@ -302,15 +320,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [updateWorkspaceSelection]);
-
-  const selectCloudWorkspace = useCallback(async (entry: CloudWorkspaceInfo) => {
-    setSelectedDirectoryHandle(null);
-    setWorkspaceSelectionLabel(entry.name);
-    writePersistedWorkspaceSelection({ name: entry.name, path: entry.name, cloudKey: entry.key });
-    document.title = `Skill Map · ${entry.name}`;
-    await loadWorkspaceFor({ handle: null, cloudKey: entry.key, fallbackLabel: entry.name });
-  }, [loadWorkspaceFor]);
+  }, [updateWorkspaceSelection, cloudWorkspaces, selectCloudWorkspace]);
 
   const importWorkspace = useCallback(async (imported: ImportedWorkspace) => {
     if (!hasImportedContent(imported)) {
@@ -319,6 +329,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
     const key = deriveWorkspaceStorageKey(imported.name);
     setSelectedDirectoryHandle(null);
+    setFolderToReconnect(null);
     setWorkspaceSelectionLabel(imported.name);
     writePersistedWorkspaceSelection({ name: imported.name, path: imported.name, cloudKey: key });
     document.title = `Skill Map · ${imported.name}`;
