@@ -8,6 +8,7 @@ import { MergeWorkspaceDialog } from './MergeWorkspaceDialog';
 import { DuplicateWorkspaceDialog } from './DuplicateWorkspaceDialog';
 import { useAuth } from '../contexts/AuthContext';
 import { mergeWorkspaceLists, type WorkspaceListEntry } from '../utils/workspaceList';
+import { downloadWorkspaceZip } from '../services/workspaceExport';
 import { buildImportedWorkspace, filesFromFileList, filesFromZip } from '../services/workspaceImport';
 
 interface TopBarProps {
@@ -32,6 +33,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
     selectCloudWorkspace,
     importWorkspace,
     removeWorkspace,
+    readWorkspaceContent,
     refreshCloudWorkspaces,
     cloudWorkspaces,
     refreshWorkspaceHistoryCounts,
@@ -94,6 +96,20 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
       toggleMenu: () => setIsWorkspaceMenuOpen((value) => !value),
       refreshWorkspaceHistoryCounts,
     });
+  };
+
+  const handleDownloadWorkspace = async (entry: WorkspaceListEntry) => {
+    try {
+      const content = await readWorkspaceContent(entry);
+      if (!content) {
+        window.alert(`Could not read "${entry.name}" to download it.`);
+        return;
+      }
+      downloadWorkspaceZip(entry.name, content);
+    } catch (error) {
+      console.error('Failed to download workspace', error);
+      window.alert(`Could not download "${entry.name}".`);
+    }
   };
 
   const handleOpenWorkspace = async (entry: WorkspaceListEntry) => {
@@ -162,6 +178,15 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
                       {typeof entry.pendingCount === 'number' ? (
                         <span className="top-bar-workspace-badge">{entry.pendingCount}</span>
                       ) : null}
+                    </button>
+                    <button
+                      type="button"
+                      className="top-bar-workspace-menu-remove top-bar-workspace-menu-download"
+                      onClick={() => { void handleDownloadWorkspace(entry); }}
+                      aria-label={`Download ${entry.name} as ZIP`}
+                      title={`Download ${entry.name} as ZIP`}
+                    >
+                      ⬇️
                     </button>
                     <button
                       type="button"

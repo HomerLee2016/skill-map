@@ -52,6 +52,12 @@ interface WorkspaceContextValue {
   refreshCloudWorkspaces: () => Promise<void>;
   /** Forgets the workspace on this device; with `alsoCloud` it also deletes the user's cloud copy (all devices). */
   removeWorkspace: (target: { key: string; name: string; local?: { name: string; path: string } }, options: { alsoCloud: boolean }) => Promise<void>;
+  /** Reads one workspace's content without switching to it (for export); null when it cannot be read. */
+  readWorkspaceContent: (entry: { key: string; local?: { name: string; path: string } }) => Promise<WorkspaceContent | null>;
+  /** Set when the saved folder is known but the browser needs permission again; cleared once reconnected. */
+  folderToReconnect: { name: string } | null;
+  /** Asks the browser for folder access (needs a click) and loads the folder. */
+  reconnectFolder: () => Promise<void>;
   refreshWorkspace: () => Promise<void>;
   refreshWorkspaceHistoryCounts: () => Promise<void>;
   /** Writes to the selected folder and, when signed in, to the user's cloud workspace. True if either succeeded. */
@@ -83,6 +89,23 @@ async function tryCloudWrite(userId: string | null, write: () => Promise<void>):
   }
 }
 
+type PermissionHandle = FileSystemDirectoryHandle & {
+  queryPermission?: (d: { mode: 'readwrite' }) => Promise<PermissionState>;
+  requestPermission?: (d: { mode: 'readwrite' }) => Promise<PermissionState>;
+};
+
+/** Browsers drop folder access after a while; handles without these methods are treated as readable. */
+async function hasFolderAccess(handle: FileSystemDirectoryHandle, ask: boolean): Promise<boolean> {
+  const h = handle as PermissionHandle;
+  try {
+    if (!h.queryPermission) return true;
+    if ((await h.queryPermission({ mode: 'readwrite' })) === 'granted') return true;
+    return ask && h.requestPermission ? (await h.requestPermission({ mode: 'readwrite' })) === 'granted' : false;
+  } catch {
+    return false;
+  }
+}
+
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
@@ -94,6 +117,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [workspaceSelectionLabel, setWorkspaceSelectionLabel] = useState<string>(DEFAULT_WORKSPACE_LABEL);
   const [workspaceVersion, setWorkspaceVersion] = useState(0);
   const [hasLocalContent, setHasLocalContent] = useState(false);
+  const [folderToReconnect, setFolderToReconnect] = useState<{ name: string; handle: FileSystemDirectoryHandle; label: string } | null>(null);
   const [cloudWorkspaces, setCloudWorkspaces] = useState<CloudWorkspaceInfo[]>([]);
   const {
     workspaceHistory,
@@ -201,6 +225,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         const selectionLabel = persistedSelection?.path || persistedSelection?.name || restoredHandle.name;
         setWorkspaceSelectionLabel(selectionLabel);
         document.title = `Skill Map · ${selectionLabel}`;
+        if (!(await hasFolderAccess(restoredHandle, false))) {
+          // Keep the user's folder selected and ask for access, instead of silently showing the bundled demo.
+          setFolderToReconnect({ name: selectionLabel, handle: restoredHandle, label: selectionLabel });
+          return;
+        }
+        setFolderToReconnect(null);
         await loadWorkspaceForHandle(restoredHandle, DEFAULT_WORKSPACE_LABEL);
         return;
       }
@@ -260,6 +290,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       if (!persistedHandle) {
         return;
       }
+      if (!(await hasFolderAccess(persistedHandle, true))) {
+        setFolderToReconnect({ name: selectionLabel, handle: persistedHandle, label: selectionPath });
+        return;
+      }
+      setFolderToReconnect(null);
 
       await updateWorkspaceSelection(persistedHandle, selectionPath, selectionLabel);
     } catch (error) {
@@ -289,6 +324,28 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     document.title = `Skill Map · ${imported.name}`;
     await loadWorkspaceFor({ handle: null, imported, fallbackLabel: imported.name });
   }, [loadWorkspaceFor]);
+
+  const reconnectFolder = useCallback(async () => {
+    const pending = folderToReconnect;
+    if (!pending) return;
+    if (!(await hasFolderAccess(pending.handle, true))) return;
+    setFolderToReconnect(null);
+    await updateWorkspaceSelection(pending.handle, pending.label, pending.name);
+  }, [folderToReconnect, updateWorkspaceSelection]);
+
+  const readWorkspaceContent = useCallback(async (entry: { key: string; local?: { name: string; path: string } }) => {
+    if (entry.key === workspaceKey) return workspace;
+    if (entry.local) {
+      const handle = await readPersistedWorkspaceHandleForSelection(entry.local);
+      if (handle) {
+        const picker = handle as FileSystemDirectoryHandle & { requestPermission?: (d: { mode: 'read' }) => Promise<PermissionState> };
+        if (picker.requestPermission && (await picker.requestPermission({ mode: 'read' })) !== 'granted') return null;
+        return loadWorkspaceContent(handle);
+      }
+    }
+    if (supabase && userId) return fetchCloudWorkspace(supabase, entry.key);
+    return null;
+  }, [workspace, workspaceKey, userId]);
 
   const removeWorkspace = useCallback(async (
     target: { key: string; name: string; local?: { name: string; path: string } },
@@ -346,6 +403,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     selectWorkspace,
     selectWorkspaceFromHistory,
     selectCloudWorkspace,
+    readWorkspaceContent,
+    folderToReconnect: folderToReconnect ? { name: folderToReconnect.name } : null,
+    reconnectFolder,
     importWorkspace,
     refreshCloudWorkspaces,
     removeWorkspace,
@@ -353,7 +413,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     refreshWorkspaceHistoryCounts,
     persistRoadmap,
     persistStructure,
-  }), [persistRoadmap, persistStructure, workspace, workspaceKey, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion, workspaceHistory, selectWorkspace, selectWorkspaceFromHistory, refreshWorkspace, refreshWorkspaceHistoryCounts, hasLocalContent, cloudWorkspaces, selectCloudWorkspace, importWorkspace, refreshCloudWorkspaces, removeWorkspace]);
+  }), [persistRoadmap, persistStructure, workspace, workspaceKey, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion, workspaceHistory, selectWorkspace, selectWorkspaceFromHistory, refreshWorkspace, refreshWorkspaceHistoryCounts, hasLocalContent, cloudWorkspaces, selectCloudWorkspace, readWorkspaceContent, folderToReconnect, reconnectFolder, importWorkspace, refreshCloudWorkspaces, removeWorkspace]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }
