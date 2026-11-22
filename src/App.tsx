@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { TopBar } from './components/TopBar';
+import { FolderReconnectBanner } from './components/FolderReconnectBanner';
 import Roadmap from './Roadmap';
 import Lessons from './Lessons';
 import Tests from './Tests';
@@ -67,6 +68,7 @@ function AppContent() {
           darkMode={darkMode}
           setDarkMode={setDarkMode}
         />
+        <FolderReconnectBanner />
         <main className="app-main">
           <div
             className={page === 'roadmap' ? 'page-panel page-panel--active' : 'page-panel'}
