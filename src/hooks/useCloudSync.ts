@@ -15,6 +15,8 @@ import {
   syncRevisionRecords,
 } from '../services/revisionSync';
 import { ensureCloudWorkspace, fetchCloudWorkspace, pushWorkspaceContent } from '../services/cloudWorkspace';
+import { resolveContentConflict, runContentSync, type ConflictChoice as ContentChoice } from '../services/contentSyncRun';
+import { hashContent, writeContentBase, type ItemRef } from '../services/contentSync';
 import {
   isConflictResolved,
   isLegacyAdopted,
@@ -48,10 +50,12 @@ function readAutoSync(): boolean {
 /** Syncs the active workspace on sign-in / workspace change and on demand; after local revision writes when auto sync is on. */
 export function useCloudSync() {
   const { user } = useAuth();
-  const { workspace, workspaceKey, workspaceSelectionLabel, workspaceVersion, hasLocalContent, refreshWorkspace } = useWorkspace();
+  const { workspace, workspaceKey, workspaceSelectionLabel, workspaceVersion, hasLocalContent, refreshWorkspace, selectedDirectoryHandle, applySyncedContent, recordVersions } = useWorkspace();
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<PendingConflict | null>(null);
+  /** Lessons, tests, roadmaps or folder trees changed on this device and in the cloud; nothing was overwritten. */
+  const [contentConflicts, setContentConflicts] = useState<ItemRef[]>([]);
   const [autoSync, setAutoSyncState] = useState(readAutoSync);
   const [lastSync, setLastSync] = useState<LastSync | null>(null);
   const running = useRef(false);
@@ -69,6 +73,8 @@ export function useCloudSync() {
   workspaceNameRef.current = workspaceSelectionLabel;
   const workspaceRef = useRef(workspace);
   workspaceRef.current = workspace;
+  const handleRef = useRef(selectedDirectoryHandle);
+  handleRef.current = selectedDirectoryHandle;
 
   /** The workspace on screen and the local store must agree; while a switch is loading they do not. */
   const currentScope = useCallback(() => {
@@ -116,7 +122,13 @@ export function useCloudSync() {
         }
       }
       await syncRevisionRecords(supabase, scope, remote, ownQuizTitles());
-      if (pushContent && content) await pushWorkspaceContent(supabase, key, content);
+      if (pushContent && content) {
+        const result = await runContentSync({ client: supabase, userId, workspaceKey: key, local: content, handle: handleRef.current });
+        recordVersions(result.versions);
+        if (result.changed) applySyncedContent(result.content);
+        setContentConflicts(result.conflicts);
+        if (result.folderFailures.length > 0) throw new Error('Some changes from your account could not be written to the folder. Reconnect the folder and sync again.');
+      }
       setError(null);
       setLastSync({ at: Date.now(), trigger });
     } catch (err) {
@@ -132,7 +144,7 @@ export function useCloudSync() {
         void runSyncRef.current(true, queued);
       }
     }
-  }, [userId, currentScope, ownQuizTitles]);
+  }, [userId, currentScope, ownQuizTitles, recordVersions, applySyncedContent]);
   const runSyncRef = useRef(runSync);
   runSyncRef.current = runSync;
 
@@ -152,6 +164,7 @@ export function useCloudSync() {
   useEffect(() => {
     // Another workspace's pending conflict prompt no longer applies.
     setConflict(null);
+    setContentConflicts([]);
     void runSync(true, 'workspace');
   }, [runSync, workspaceVersion]);
 
@@ -169,11 +182,19 @@ export function useCloudSync() {
         setCloudPreferred(userId, key, true);
       } else if (choice === 'device') {
         await replaceRemoteWithLocal(supabase, scope, remote.records, ownQuizTitles());
-        if (content) await pushWorkspaceContent(supabase, key, content, { prune: true });
+        if (content) {
+          await pushWorkspaceContent(supabase, key, content, { prune: true });
+          writeContentBase(userId, key, hashContent(content));
+        }
         setCloudPreferred(userId, key, false);
       } else {
         await syncRevisionRecords(supabase, scope, remote, ownQuizTitles());
-        if (content) await pushWorkspaceContent(supabase, key, content);
+        if (content) {
+          const result = await runContentSync({ client: supabase, userId, workspaceKey: key, local: content, handle: handleRef.current });
+          recordVersions(result.versions);
+          if (result.changed) applySyncedContent(result.content);
+          setContentConflicts(result.conflicts);
+        }
         setCloudPreferred(userId, key, false);
       }
       markConflictResolved(userId, key);
@@ -186,7 +207,25 @@ export function useCloudSync() {
     } finally {
       setIsSyncing(false);
     }
-  }, [userId, currentScope, refreshWorkspace, ownQuizTitles]);
+  }, [userId, currentScope, refreshWorkspace, ownQuizTitles, recordVersions, applySyncedContent]);
+
+  /** The user picks, per conflicting item, the cloud's version or this device's. */
+  const resolveContent = useCallback(async (ref: ItemRef, choice: ContentChoice) => {
+    const content = localContentRef.current;
+    if (!supabase || !userId || !content) return;
+    setIsSyncing(true);
+    try {
+      const next = await resolveContentConflict({ client: supabase, userId, workspaceKey: workspaceKeyRef.current, local: content, handle: handleRef.current, ref, choice });
+      applySyncedContent(next);
+      setContentConflicts((current) => current.filter((item) => item !== ref));
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Could not resolve the conflict');
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [userId, applySyncedContent]);
 
   const setAutoSync = useCallback((value: boolean) => {
     setAutoSyncState(value);
@@ -208,5 +247,5 @@ export function useCloudSync() {
     };
   }, [userId, autoSync, runSync]);
 
-  return { syncNow, isSyncing, error, lastSync, autoSync, setAutoSync, conflict, resolveConflict };
+  return { syncNow, isSyncing, error, lastSync, autoSync, setAutoSync, conflict, resolveConflict, contentConflicts, resolveContent };
 }

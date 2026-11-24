@@ -94,7 +94,7 @@ export function validateTest(title: string, questions: TestQuestion[]): TestProb
     if (new Set(options).size !== options.length) errors.push(`${label}: two options are the same.`);
     if (options.length < 2) errors.push(`${label}: needs at least 2 options.`);
     else if (options.length !== 4) warnings.push(`${label}: the guides use exactly 4 options (this one has ${options.length}).`);
-    if (!options.includes(question.correct_answer)) errors.push(`${label}: the correct answer must be one of the options.`);
+    if (!question.correct_answer || !options.includes(question.correct_answer)) errors.push(`${label}: the correct answer must be one of the options.`);
     if (isStarOptions(options) && !parseStarQuestion(question.question)) {
       errors.push(`${label}: a star question needs the lines "1: …" to "4: …" inside the question text.`);
     }

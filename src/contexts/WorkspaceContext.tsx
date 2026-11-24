@@ -25,12 +25,13 @@ import {
   readPersistedWorkspaceHandleForSelection,
 } from '../services/workspaceHandleStore';
 import { useWorkspaceHistory } from '../hooks/useWorkspaceHistory';
+import { useContentEditing, type ContentEditing } from '../hooks/useContentEditing';
 import {
   readPersistedWorkspaceSelection,
   writePersistedWorkspaceSelection,
 } from '../utils/workspacePersistence';
 
-interface WorkspaceContextValue {
+interface WorkspaceContextValue extends ContentEditing {
   workspace: WorkspaceContent;
   /** Storage key of the workspace that `workspace` was loaded for; cloud rows and revision records are scoped by it. */
   workspaceKey: string;
@@ -408,7 +409,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     return folderSaved || cloudSaved;
   }, [selectedDirectoryHandle, userId, workspaceKey, workspaceSelectionLabel]);
 
+  const editing = useContentEditing({
+    workspace, setWorkspace, workspaceKey, workspaceName: workspaceSelectionLabel, handle: selectedDirectoryHandle,
+    userId, hasLocalContent, persistRoadmap, persistStructure,
+  });
+
   const value = useMemo(() => ({
+    ...editing,
     workspace,
     workspaceKey,
     isLoading,
@@ -432,7 +439,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     refreshWorkspaceHistoryCounts,
     persistRoadmap,
     persistStructure,
-  }), [persistRoadmap, persistStructure, workspace, workspaceKey, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion, workspaceHistory, workspaceDueCounts, selectWorkspace, selectWorkspaceFromHistory, refreshWorkspace, refreshWorkspaceHistoryCounts, hasLocalContent, cloudWorkspaces, selectCloudWorkspace, readWorkspaceContent, folderToReconnect, reconnectFolder, importWorkspace, refreshCloudWorkspaces, removeWorkspace]);
+  }), [editing, persistRoadmap, persistStructure, workspace, workspaceKey, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion, workspaceHistory, workspaceDueCounts, selectWorkspace, selectWorkspaceFromHistory, refreshWorkspace, refreshWorkspaceHistoryCounts, hasLocalContent, cloudWorkspaces, selectCloudWorkspace, readWorkspaceContent, folderToReconnect, reconnectFolder, importWorkspace, refreshCloudWorkspaces, removeWorkspace]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }
