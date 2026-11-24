@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createDefaultWorkspaceContent, loadWorkspaceContent, type WorkspaceContent } from '../services/workspace';
-import { deriveWorkspaceStorageKey, setActiveWorkspaceStorageKey, setActiveWorkspaceStorageKeyDirect } from '../services/revisionDb';
+import { deriveWorkspaceStorageKey, getDueRevisionCountForKey, setActiveWorkspaceStorageKey, setActiveWorkspaceStorageKeyDirect } from '../services/revisionDb';
 import {
   deleteCloudWorkspace,
   ensureCloudWorkspace,
@@ -25,12 +25,13 @@ import {
   readPersistedWorkspaceHandleForSelection,
 } from '../services/workspaceHandleStore';
 import { useWorkspaceHistory } from '../hooks/useWorkspaceHistory';
+import { useContentEditing, type ContentEditing } from '../hooks/useContentEditing';
 import {
   readPersistedWorkspaceSelection,
   writePersistedWorkspaceSelection,
 } from '../utils/workspacePersistence';
 
-interface WorkspaceContextValue {
+interface WorkspaceContextValue extends ContentEditing {
   workspace: WorkspaceContent;
   /** Storage key of the workspace that `workspace` was loaded for; cloud rows and revision records are scoped by it. */
   workspaceKey: string;
@@ -43,6 +44,8 @@ interface WorkspaceContextValue {
   workspaceSelectionLabel: string;
   workspaceVersion: number;
   workspaceHistory: Array<{ name: string; path: string; pendingCount?: number }>;
+  /** Due-revision count per workspace key, for every workspace in the menu (folder and cloud-only alike). */
+  workspaceDueCounts: Record<string, number>;
   selectWorkspace: () => Promise<void>;
   selectWorkspaceFromHistory: (entry: { name: string; path: string }) => Promise<void>;
   /** Opens a cloud workspace by key with no local folder (phones). */
@@ -194,14 +197,19 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     });
   }, [loadWorkspaceFor, selectedDirectoryHandle, workspaceKey, workspaceSelectionLabel]);
 
+  const [workspaceDueCounts, setWorkspaceDueCounts] = useState<Record<string, number>>({});
+
   const refreshWorkspaceHistoryCounts = useCallback(async () => {
     const identity = selectedDirectoryHandle?.name ?? workspaceSelectionLabel ?? null;
-    if (!identity) {
-      return;
-    }
+    if (identity) await syncPendingRevisionCount(identity, workspaceSelectionLabel);
+    // Every workspace in the menu, keyed like the revision store: cloud-only ones have no history entry to carry a count.
+    const keys = new Set([...workspaceHistory.map((entry) => deriveWorkspaceStorageKey(entry.path)), ...cloudWorkspaces.map((entry) => entry.key), workspaceKey]);
+    const entries = await Promise.all([...keys].map(async (key) => [key, await getDueRevisionCountForKey(key)] as const));
+    setWorkspaceDueCounts(Object.fromEntries(entries));
+  }, [selectedDirectoryHandle, workspaceSelectionLabel, syncPendingRevisionCount, workspaceHistory, cloudWorkspaces, workspaceKey]);
 
-    await syncPendingRevisionCount(identity, workspaceSelectionLabel);
-  }, [selectedDirectoryHandle, workspaceSelectionLabel, syncPendingRevisionCount]);
+  // Counts for cloud-only workspaces appear as soon as the list loads, not only after the menu is opened.
+  useEffect(() => { void refreshWorkspaceHistoryCounts(); }, [cloudWorkspaces, workspaceVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const restoreWorkspace = async () => {
@@ -401,7 +409,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     return folderSaved || cloudSaved;
   }, [selectedDirectoryHandle, userId, workspaceKey, workspaceSelectionLabel]);
 
+  const editing = useContentEditing({
+    workspace, setWorkspace, workspaceKey, workspaceName: workspaceSelectionLabel, handle: selectedDirectoryHandle,
+    userId, hasLocalContent, persistRoadmap, persistStructure,
+  });
+
   const value = useMemo(() => ({
+    ...editing,
     workspace,
     workspaceKey,
     isLoading,
@@ -411,6 +425,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     workspaceSelectionLabel,
     workspaceVersion,
     workspaceHistory,
+    workspaceDueCounts,
     selectWorkspace,
     selectWorkspaceFromHistory,
     selectCloudWorkspace,
@@ -424,7 +439,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     refreshWorkspaceHistoryCounts,
     persistRoadmap,
     persistStructure,
-  }), [persistRoadmap, persistStructure, workspace, workspaceKey, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion, workspaceHistory, selectWorkspace, selectWorkspaceFromHistory, refreshWorkspace, refreshWorkspaceHistoryCounts, hasLocalContent, cloudWorkspaces, selectCloudWorkspace, readWorkspaceContent, folderToReconnect, reconnectFolder, importWorkspace, refreshCloudWorkspaces, removeWorkspace]);
+  }), [editing, persistRoadmap, persistStructure, workspace, workspaceKey, isLoading, selectedDirectoryHandle, workspaceSelectionLabel, workspaceVersion, workspaceHistory, workspaceDueCounts, selectWorkspace, selectWorkspaceFromHistory, refreshWorkspace, refreshWorkspaceHistoryCounts, hasLocalContent, cloudWorkspaces, selectCloudWorkspace, readWorkspaceContent, folderToReconnect, reconnectFolder, importWorkspace, refreshCloudWorkspaces, removeWorkspace]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

@@ -15,6 +15,10 @@ import { ContentTreeSidebar } from './components/Sidebar/ContentTreeSidebar';
 import { TreeActionModal } from './components/Sidebar/TreeActionModal';
 import { TreeGlobalActions } from './components/Sidebar/TreeGlobalActions';
 import { useExpandCollapseState } from './hooks/useExpandCollapseState';
+import { ConfirmDeleteDialog } from './components/editor/ConfirmDeleteDialog';
+import { LessonEditorModal } from './components/editor/LessonEditorModal';
+import { useWorkspaceGuide } from './components/editor/useWorkspaceGuide';
+import { countRoadmapLinks } from './services/contentEdit';
 
 interface LessonsProps {
   selectedLessonId?: string;
@@ -26,7 +30,11 @@ async function saveLessonStructure(structure: StructureTree) {
 }
 
 function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
-  const { workspace, workspaceVersion, persistStructure } = useWorkspace();
+  const { workspace, workspaceVersion, persistStructure, saveLesson, deleteLesson, editBlockedReason } = useWorkspace();
+  const { guide, saveGuide } = useWorkspaceGuide();
+  const [editor, setEditor] = useState<'new' | 'edit' | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [notice, setNotice] = useState<string[]>([]);
   const availableLessons = workspace.lessons;
   const [activeId, setActiveId] = useState(selectedLessonId || availableLessons[0]?.id || '');
   const [structure, setStructure] = useState<StructureTree>(workspace.lessonStructure);
@@ -70,6 +78,21 @@ function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
     }
   };
 
+  const handleSaved = (id: string, warnings: string[]) => {
+    setEditor(null);
+    setNotice(warnings);
+    selectLesson(id);
+  };
+
+  const handleDelete = async () => {
+    if (!selected) return;
+    const outcome = await deleteLesson(selected.id);
+    setDeleting(false);
+    setNotice(outcome.warnings);
+    const remaining = availableLessons.filter((lesson) => lesson.id !== selected.id);
+    selectLesson(remaining[0]?.id ?? '');
+  };
+
   const handleAddFolder = () => {
     setModalState({ open: true, mode: 'add-folder' });
   };
@@ -96,6 +119,10 @@ function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
       <Sidebar>
         <div className="lessons-sidebar-header">
           <div className="lessons-sidebar-title">Lessons</div>
+        </div>
+        <div className="ce-sidebar-actions">
+          <button type="button" className="toolbar-btn ce-btn" onClick={() => setEditor('new')} disabled={editBlockedReason !== null} title={editBlockedReason ?? 'Add a lesson'}>＋ Add lesson</button>
+          {editBlockedReason ? <p className="ce-hint">{editBlockedReason}</p> : null}
         </div>
         <TreeGlobalActions onExpandAll={expandAll} onCollapseAll={collapseAll} />
         <p className="tree-structure-hint">
@@ -133,12 +160,43 @@ function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
         </CategorySection>
       </Sidebar>
       <article className="lessons-content markdown-body">
+        {notice.length > 0 ? (
+          <div className="ce-notice" role="status">
+            {notice.map((line) => <p key={line}>{line}</p>)}
+            <button type="button" className="ce-notice-close" onClick={() => setNotice([])} aria-label="Dismiss">✕</button>
+          </div>
+        ) : null}
         {selected ? (
-          <LessonMarkdown content={selected.content} />
+          <>
+            <div className="ce-content-actions">
+              <button type="button" className="toolbar-btn ce-btn" onClick={() => setEditor('edit')} disabled={editBlockedReason !== null} title={editBlockedReason ?? 'Edit this lesson'}>✏️ Edit lesson</button>
+              <button type="button" className="toolbar-btn ce-btn ce-btn--quiet" onClick={() => setDeleting(true)} disabled={editBlockedReason !== null} title={editBlockedReason ?? 'Delete this lesson'}>🗑 Delete</button>
+            </div>
+            <LessonMarkdown content={selected.content} />
+          </>
         ) : (
           <p className="lessons-empty">Select a lesson from the sidebar.</p>
         )}
       </article>
+      {editor ? (
+        <LessonEditorModal
+          lesson={editor === 'edit' ? selected ?? null : null}
+          existingIds={availableLessons.map((lesson) => lesson.id)}
+          guide={guide}
+          onSaveGuide={saveGuide}
+          onSave={saveLesson}
+          onClose={() => setEditor(null)}
+          onSaved={handleSaved}
+        />
+      ) : null}
+      {deleting && selected ? (
+        <ConfirmDeleteDialog title={`Delete "${selected.title}"?`} onConfirm={handleDelete} onCancel={() => setDeleting(false)}>
+          <p>This removes the lesson from this workspace, your account and every device you sync with.</p>
+          {countRoadmapLinks(workspace.roadmaps, 'lessons', selected.id) > 0 ? (
+            <p>It is linked from {countRoadmapLinks(workspace.roadmaps, 'lessons', selected.id)} roadmap(s). Those links are removed too.</p>
+          ) : null}
+        </ConfirmDeleteDialog>
+      ) : null}
     </div>
   );
 }

@@ -20,6 +20,10 @@ import AnswerQuestion from './components/AnswerQuestion';
 import IncorrectReviewScreen from './components/IncorrectReviewScreen';
 import QuestionTracker, { getFirstUnansweredQuestionIndex } from './components/QuestionTracker';
 import { countCorrectAnswers } from './utils/testScoring';
+import { ConfirmDeleteDialog } from './components/editor/ConfirmDeleteDialog';
+import { TestEditorModal } from './components/editor/TestEditorModal';
+import { useWorkspaceGuide } from './components/editor/useWorkspaceGuide';
+import { countRoadmapLinks } from './services/contentEdit';
 
 interface TestsProps {
   selectedTestId?: string;
@@ -47,7 +51,11 @@ async function saveQuestionResult(payload: {
 
 
 function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
-  const { workspace, workspaceVersion, persistStructure } = useWorkspace();
+  const { workspace, workspaceVersion, persistStructure, saveTest, deleteTest, editBlockedReason } = useWorkspace();
+  const { guide, saveGuide } = useWorkspaceGuide();
+  const [editor, setEditor] = useState<'new' | 'edit' | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [notice, setNotice] = useState<string[]>([]);
   const availableTests = workspace.tests;
   const [activeId, setActiveId] = useState(selectedTestId || availableTests[0]?.id || '');
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -114,6 +122,20 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
     } catch (err) {
       setStructureError(err instanceof Error ? err.message : 'Failed to save structure');
     }
+  };
+
+  const handleSaved = (id: string, warnings: string[]) => {
+    setEditor(null);
+    setNotice(warnings);
+    selectTest(id);
+  };
+
+  const handleDelete = async () => {
+    if (!selected) return;
+    const outcome = await deleteTest(selected.id);
+    setDeleting(false);
+    setNotice(outcome.warnings);
+    selectTest(availableTests.find((test) => test.id !== selected.id)?.id ?? '');
   };
 
   const handleAddFolder = (section: 'revision' | 'new_tests') => {
@@ -246,6 +268,10 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
         <div className="sidebar-header">
           <div className="sidebar-title">Tests</div>
         </div>
+        <div className="ce-sidebar-actions">
+          <button type="button" className="toolbar-btn ce-btn" onClick={() => setEditor('new')} disabled={editBlockedReason !== null} title={editBlockedReason ?? 'Add a test'}>＋ Add test</button>
+          {editBlockedReason ? <p className="ce-hint">{editBlockedReason}</p> : null}
+        </div>
         <TreeGlobalActions onExpandAll={expandAll} onCollapseAll={collapseAll} />
         <p className="tree-structure-hint">
           Folders are stored in <code>src/data/tests/structure.yaml</code>
@@ -279,6 +305,18 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
       </Sidebar>
 
       <div className="tests-content">
+        {notice.length > 0 ? (
+          <div className="ce-notice" role="status">
+            {notice.map((line) => <p key={line}>{line}</p>)}
+            <button type="button" className="ce-notice-close" onClick={() => setNotice([])} aria-label="Dismiss">✕</button>
+          </div>
+        ) : null}
+        {selected ? (
+          <div className="ce-content-actions">
+            <button type="button" className="toolbar-btn ce-btn" onClick={() => setEditor('edit')} disabled={editBlockedReason !== null} title={editBlockedReason ?? 'Edit this test'}>✏️ Edit test</button>
+            <button type="button" className="toolbar-btn ce-btn ce-btn--quiet" onClick={() => setDeleting(true)} disabled={editBlockedReason !== null} title={editBlockedReason ?? 'Delete this test'}>🗑 Delete</button>
+          </div>
+        ) : null}
         {!selected ? (
           <p className="tests-empty">Select a test from the sidebar.</p>
         ) : showIncorrectReview ? (
@@ -344,6 +382,25 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
           </>
         )}
       </div>
+      {editor ? (
+        <TestEditorModal
+          test={editor === 'edit' ? selected ?? null : null}
+          existingIds={availableTests.map((test) => test.id)}
+          guide={guide}
+          onSaveGuide={saveGuide}
+          onSave={saveTest}
+          onClose={() => setEditor(null)}
+          onSaved={handleSaved}
+        />
+      ) : null}
+      {deleting && selected ? (
+        <ConfirmDeleteDialog title={`Delete "${selected.title}"?`} onConfirm={handleDelete} onCancel={() => setDeleting(false)}>
+          <p>This removes the test from this workspace, your account and every device you sync with. Questions you already answered stay in Revision.</p>
+          {countRoadmapLinks(workspace.roadmaps, 'tests', selected.id) > 0 ? (
+            <p>It is linked from {countRoadmapLinks(workspace.roadmaps, 'tests', selected.id)} roadmap(s). Those links are removed too.</p>
+          ) : null}
+        </ConfirmDeleteDialog>
+      ) : null}
     </div>
   );
 }

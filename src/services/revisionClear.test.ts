@@ -44,3 +44,41 @@ test('clearing refreshes open pages but does not trigger a cloud sync', async ()
   assert.equal(changed, 0);
   store.close();
 });
+
+test('editing a question moves its record to the new text, keeps its stars and tombstones the old hash', async () => {
+  const { createQuestionHash } = await import('./questionHash');
+  const { findEditedQuestions } = await import('./questionProgress');
+  const { applyTestEditToRevision } = await import('./revisionDb');
+  const store = new RevisionDexieStore('workspace-edit-progress');
+  const before = [
+    { question_number: 1, question: 'Old?', options: ['a', 'b'], correct_answer: 'a' },
+    { question_number: 2, question: 'Same?', options: ['x', 'y'], correct_answer: 'x' },
+  ];
+  const after = [
+    { question_number: 1, question: 'New?', options: ['a', 'b'], correct_answer: 'b' },
+    { question_number: 2, question: 'Same?', options: ['x', 'y'], correct_answer: 'x' },
+  ];
+  await store.completed_questions.bulkAdd([
+    { ...(record('x') as object), hash: createQuestionHash('Old?', ['a', 'b']), question_name: 'Old?', options: ['a', 'b'], proficiency: 'star-3', quiz_title: 'Quiz' },
+    { ...(record('y') as object), hash: createQuestionHash('Same?', ['x', 'y']), quiz_title: 'Quiz' },
+  ] as never);
+  const moves = findEditedQuestions(before, after);
+  assert.equal(moves.length, 1);
+
+  assert.equal(await applyTestEditToRevision({ oldTitle: 'Quiz', newTitle: 'Renamed quiz', moves }, store), 1);
+  const rows = await store.completed_questions.toArray();
+  const moved = rows.find((row) => row.question_name === 'New?');
+  assert.equal(moved?.proficiency, 'star-3');
+  assert.equal(moved?.correct_answer, 'b');
+  assert.equal(moved?.hash, createQuestionHash('New?', ['a', 'b']));
+  assert.deepEqual(rows.map((row) => row.quiz_title), ['Renamed quiz', 'Renamed quiz']);
+  assert.deepEqual((await store.deleted_records.toArray()).map((row) => row.hash), [createQuestionHash('Old?', ['a', 'b'])]);
+  store.close();
+});
+
+test('questions that are only added or removed are not treated as edits', async () => {
+  const { findEditedQuestions } = await import('./questionProgress');
+  const q = (text: string) => ({ question_number: 1, question: text, options: ['a', 'b'], correct_answer: 'a' });
+  assert.deepEqual(findEditedQuestions([q('A'), q('B')], [q('A'), q('B'), q('C')]), []);
+  assert.deepEqual(findEditedQuestions([q('A'), q('B')], [q('B'), q('A')]), []);
+});

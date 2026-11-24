@@ -44,6 +44,8 @@ export interface CompletedQuestionInsert {
 }
 
 import { deriveWorkspaceStorageKey } from './workspaceKey';
+import { createQuestionHash } from './questionHash';
+import type { QuestionMove } from './questionProgress';
 
 export { deriveWorkspaceStorageKey };
 
@@ -109,12 +111,6 @@ export function setActiveWorkspaceStorageKeyDirect(nextStorageKey: string): void
   revisionStore = new RevisionDexieStore(nextStorageKey);
 }
 
-function createQuestionHash(questionName: string, options: string[]) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(`${questionName}:${options.join('|')}`);
-  return Array.from(data, (byte) => byte.toString(16).padStart(2, '0')).join('');
-}
-
 export async function insertCompletedQuestion(entry: CompletedQuestionInsert): Promise<CompletedQuestionRecord> {
   const hash = createQuestionHash(entry.question_name, entry.options);
 
@@ -162,6 +158,46 @@ export async function insertCompletedQuestion(entry: CompletedQuestionInsert): P
   const newId = await revisionStore.completed_questions.add(record);
   notifyRevisionRecordsChanged();
   return { ...record, id: newId };
+}
+
+/**
+ * A test was edited: records follow edited questions to their new text (so stars and next review survive) and move to
+ * the test's new title. The old hash gets a tombstone, so sync drops the old cloud row and no duplicate appears.
+ */
+export async function applyTestEditToRevision(
+  edit: { oldTitle: string | null; newTitle: string; moves: QuestionMove[] },
+  store: RevisionDexieStore = revisionStore,
+): Promise<number> {
+  const now = new Date().toISOString();
+  let moved = 0;
+  await store.transaction('rw', store.completed_questions, store.deleted_records, async () => {
+    for (const move of edit.moves) {
+      const oldHash = createQuestionHash(move.from.question_name, move.from.options);
+      const newHash = createQuestionHash(move.to.question_name, move.to.options);
+      const rows = await store.completed_questions.where('hash').equals(oldHash).toArray();
+      if (rows.length === 0 || (await store.completed_questions.where('hash').equals(newHash).count()) > 0) continue;
+      const { id: _id, ...newest } = rows.reduce((a, b) => (Date.parse(b.last_time) > Date.parse(a.last_time) ? b : a));
+      await store.completed_questions.bulkDelete(rows.map((row) => row.id as number));
+      await store.completed_questions.add({
+        ...newest,
+        hash: newHash,
+        question_name: move.to.question_name,
+        options: move.to.options,
+        correct_answer: move.to.correct_answer,
+        explanation: move.to.explanation ?? newest.explanation ?? null,
+        audio_track_url: move.to.audio_track_url ?? newest.audio_track_url ?? null,
+        selected_answer: null,
+        quiz_title: edit.newTitle,
+      });
+      await store.deleted_records.put({ hash: oldHash, deleted_at: now });
+      moved += 1;
+    }
+    if (edit.oldTitle && edit.oldTitle !== edit.newTitle) {
+      await store.completed_questions.where('quiz_title').equals(edit.oldTitle).modify({ quiz_title: edit.newTitle });
+    }
+  });
+  notifyRevisionRecordsChanged();
+  return moved;
 }
 
 /** Removes records by row id and leaves a tombstone per question so cloud sync deletes them everywhere. */
@@ -221,15 +257,23 @@ export async function getDueRevisionQuestions(now: string = new Date().toISOStri
   return revisionStore.completed_questions.where('next_revision_time').belowOrEqual(now).toArray();
 }
 
-export async function getDueRevisionCountForWorkspace(workspacePath: string | null | undefined, now: string = new Date().toISOString()): Promise<number> {
-  const storageKey = deriveWorkspaceStorageKey(workspacePath);
-  const tempStore = new RevisionDexieStore(storageKey);
+/** Due revision records of one workspace by storage key; 0 when this device holds none (never opens an empty DB). */
+export async function getDueRevisionCountForKey(storageKey: string, now: string = new Date().toISOString()): Promise<number> {
   try {
-    const count = await tempStore.completed_questions.where('next_revision_time').belowOrEqual(now).count();
-    return count;
+    if (storageKey !== activeWorkspaceStorageKey && !(await Dexie.exists(`skill-map-revision-db-${storageKey}`))) return 0;
+    const tempStore = new RevisionDexieStore(storageKey);
+    try {
+      return await tempStore.completed_questions.where('next_revision_time').belowOrEqual(now).count();
+    } finally {
+      tempStore.close();
+    }
   } catch {
     return 0;
   }
+}
+
+export function getDueRevisionCountForWorkspace(workspacePath: string | null | undefined, now: string = new Date().toISOString()): Promise<number> {
+  return getDueRevisionCountForKey(deriveWorkspaceStorageKey(workspacePath), now);
 }
 
 export async function exportRevisionData(): Promise<string> {
