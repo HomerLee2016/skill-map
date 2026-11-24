@@ -3,11 +3,15 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCloudSync } from '../hooks/useCloudSync';
 import { formatLastSync } from '../utils/syncStatus';
 import { SyncConflictDialog } from './SyncConflictDialog';
+import { ContentConflictDialog } from './ContentConflictDialog';
 
 /** Single user icon in the top bar; account, sync and sign-out live in its dropdown. */
 export function UserMenu() {
   const { isConfigured, user, signInWithGoogle, signOut } = useAuth();
-  const { syncNow, isSyncing, error, lastSync, autoSync, setAutoSync, conflict, resolveConflict } = useCloudSync();
+  const { syncNow, isSyncing, error, lastSync, autoSync, setAutoSync, conflict, resolveConflict, contentConflicts, resolveContent } = useCloudSync();
+  const [conflictsOpen, setConflictsOpen] = useState(true);
+  // New conflicts from a later sync open the dialog again.
+  useEffect(() => { setConflictsOpen(true); }, [contentConflicts.length]);
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -65,6 +69,11 @@ export function UserMenu() {
               >
                 {isSyncing ? 'Syncing…' : error ? 'Sync failed – retry' : 'Sync now'}
               </button>
+              {contentConflicts.length > 0 ? (
+                <button type="button" className="top-bar-workspace-menu-item ce-conflict-link" onClick={() => setConflictsOpen(true)}>
+                  ⚠ {contentConflicts.length} item{contentConflicts.length === 1 ? '' : 's'} changed in two places
+                </button>
+              ) : null}
               <label className="top-bar-user-menu-toggle">
                 <span>Auto sync</span>
                 <span className={autoSync ? 'toggle-track toggle-track--on' : 'toggle-track'}>
@@ -96,6 +105,9 @@ export function UserMenu() {
           )}
         </div>
       )}
+      {contentConflicts.length > 0 && conflictsOpen && !conflict ? (
+        <ContentConflictDialog refs={contentConflicts} busy={isSyncing} onChoose={(ref, choice) => { void resolveContent(ref, choice); }} onClose={() => setConflictsOpen(false)} />
+      ) : null}
       {conflict ? <SyncConflictDialog conflict={conflict} busy={isSyncing} onChoose={(choice) => { void resolveConflict(choice); }} /> : null}
     </div>
   );
