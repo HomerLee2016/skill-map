@@ -124,3 +124,17 @@ export function mergeRevisionRecordSets(sets: { records: CompletedQuestionRecord
     return title ? { ...rest, quiz_title: title } : rest;
   })));
 }
+
+/**
+ * Upload guard: records of questions this workspace does not have (strays copied into its local store
+ * before cloud rows were split per workspace) are never written to its cloud key. Records already in the
+ * cloud copy stay eligible so existing rows keep updating, and a workspace with no loaded tests uploads nothing new.
+ */
+export function filterOwnRecords(
+  records: CompletedQuestionRecord[],
+  ownTitles: ReadonlySet<string>,
+  remoteRecords: readonly CompletedQuestionRecord[],
+): CompletedQuestionRecord[] {
+  const remoteHashes = new Set(remoteRecords.map((record) => record.hash));
+  return records.filter((record) => ownTitles.has(record.quiz_title) || remoteHashes.has(record.hash));
+}

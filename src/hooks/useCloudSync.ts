@@ -76,6 +76,9 @@ export function useCloudSync() {
     return key === getActiveWorkspaceStorageKey() ? { workspaceKey: key, store: revisionStore } : null;
   }, []);
 
+  /** Titles of the open workspace's tests: only their revision records belong in its cloud copy. */
+  const ownQuizTitles = useCallback(() => new Set(workspaceRef.current.tests.map((test) => test.title)), []);
+
   const runSync = useCallback(async (pushContent: boolean, requested: SyncTrigger): Promise<void> => {
     const trigger = manualActive.current ? 'manual' : requested;
     if (!supabase || !userId) return;
@@ -112,7 +115,7 @@ export function useCloudSync() {
           remote = await fetchRemoteRevisionState(supabase, key);
         }
       }
-      await syncRevisionRecords(supabase, scope, remote);
+      await syncRevisionRecords(supabase, scope, remote, ownQuizTitles());
       if (pushContent && content) await pushWorkspaceContent(supabase, key, content);
       setError(null);
       setLastSync({ at: Date.now(), trigger });
@@ -129,7 +132,7 @@ export function useCloudSync() {
         void runSyncRef.current(true, queued);
       }
     }
-  }, [userId, currentScope]);
+  }, [userId, currentScope, ownQuizTitles]);
   const runSyncRef = useRef(runSync);
   runSyncRef.current = runSync;
 
@@ -165,11 +168,11 @@ export function useCloudSync() {
         await replaceLocalWithRemote(scope, remote.records);
         setCloudPreferred(userId, key, true);
       } else if (choice === 'device') {
-        await replaceRemoteWithLocal(supabase, scope, remote.records);
+        await replaceRemoteWithLocal(supabase, scope, remote.records, ownQuizTitles());
         if (content) await pushWorkspaceContent(supabase, key, content, { prune: true });
         setCloudPreferred(userId, key, false);
       } else {
-        await syncRevisionRecords(supabase, scope, remote);
+        await syncRevisionRecords(supabase, scope, remote, ownQuizTitles());
         if (content) await pushWorkspaceContent(supabase, key, content);
         setCloudPreferred(userId, key, false);
       }
@@ -183,7 +186,7 @@ export function useCloudSync() {
     } finally {
       setIsSyncing(false);
     }
-  }, [userId, currentScope, refreshWorkspace]);
+  }, [userId, currentScope, refreshWorkspace, ownQuizTitles]);
 
   const setAutoSync = useCallback((value: boolean) => {
     setAutoSyncState(value);

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeRevisionRecords, splitLegacyRecords } from './revisionSyncMerge';
+import { filterOwnRecords, mergeRevisionRecords, splitLegacyRecords } from './revisionSyncMerge';
 import type { CompletedQuestionRecord } from './revisionDb';
 
 const rec = (hash: string, last_time: string, id?: number): CompletedQuestionRecord => ({
@@ -90,4 +90,30 @@ test('a record answered elsewhere after the removal comes back', () => {
   const r = mergeRevisionRecords([], [rec('a', '2026-03-01T00:00:00Z')], { local: [tomb('a', '2026-02-01T00:00:00Z')], remote: [] });
   assert.deepEqual(r.toLocal.map((x) => x.hash), ['a']);
   assert.deepEqual(r.clearLocalTombstones, ['a']);
+});
+
+const titled = (hash: string, quiz_title: string): CompletedQuestionRecord => ({ ...rec(hash, '2026-01-01T00:00:00Z', 1), quiz_title });
+
+test('filterOwnRecords keeps only records of the workspace tests, so strays are not uploaded', () => {
+  const stray = titled('jp-1', '第1週：1日目のテスト');
+  const own = titled('es-1', 'Spanish Numbers 1-10');
+  const kept = filterOwnRecords([stray, own], new Set(['Spanish Numbers 1-10']), []);
+  assert.deepEqual(kept.map((r) => r.hash), ['es-1']);
+});
+
+test('filterOwnRecords keeps records already in the cloud copy so existing rows still update', () => {
+  const existing = titled('old-1', 'Renamed quiz');
+  const kept = filterOwnRecords([existing], new Set(['Other quiz']), [titled('old-1', 'Renamed quiz')]);
+  assert.deepEqual(kept.map((r) => r.hash), ['old-1']);
+});
+
+test('filterOwnRecords uploads nothing new for a workspace without tests', () => {
+  assert.deepEqual(filterOwnRecords([titled('jp-1', '第1週：1日目のテスト')], new Set(), []), []);
+});
+
+test('a stray local record in a Spanish workspace is not part of the upload after the merge', () => {
+  const stray = titled('jp-1', '第1週：1日目のテスト');
+  const merged = mergeRevisionRecords([stray], []);
+  assert.equal(merged.toRemote.length, 1); // the merge alone would upload it...
+  assert.equal(filterOwnRecords(merged.toRemote, new Set(['Spanish Numbers 1-10']), []).length, 0); // ...the guard stops it
 });
