@@ -15,6 +15,7 @@ export interface WorkspaceListEntry {
 export function mergeWorkspaceLists(
   history: WorkspaceHistoryEntryWithPendingCount[],
   cloud: CloudWorkspaceInfo[],
+  dueCounts: Record<string, number> = {},
 ): WorkspaceListEntry[] {
   const byKey = new Map<string, WorkspaceListEntry>();
   for (const entry of history) {
@@ -29,7 +30,11 @@ export function mergeWorkspaceLists(
     if (existing) existing.inCloud = true;
     else byKey.set(workspace.key, { key: workspace.key, name: workspace.name, inCloud: true });
   }
-  return [...byKey.values()];
+  // The badge is the due-revision count for the workspace key, so cloud-only entries (no folder on this device) get one too.
+  return [...byKey.values()].map((entry) => {
+    const pendingCount = dueCounts[entry.key] ?? entry.pendingCount;
+    return pendingCount === undefined ? entry : { ...entry, pendingCount };
+  });
 }
 
 /**

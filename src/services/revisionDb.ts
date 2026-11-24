@@ -221,15 +221,23 @@ export async function getDueRevisionQuestions(now: string = new Date().toISOStri
   return revisionStore.completed_questions.where('next_revision_time').belowOrEqual(now).toArray();
 }
 
-export async function getDueRevisionCountForWorkspace(workspacePath: string | null | undefined, now: string = new Date().toISOString()): Promise<number> {
-  const storageKey = deriveWorkspaceStorageKey(workspacePath);
-  const tempStore = new RevisionDexieStore(storageKey);
+/** Due revision records of one workspace by storage key; 0 when this device holds none (never opens an empty DB). */
+export async function getDueRevisionCountForKey(storageKey: string, now: string = new Date().toISOString()): Promise<number> {
   try {
-    const count = await tempStore.completed_questions.where('next_revision_time').belowOrEqual(now).count();
-    return count;
+    if (storageKey !== activeWorkspaceStorageKey && !(await Dexie.exists(`skill-map-revision-db-${storageKey}`))) return 0;
+    const tempStore = new RevisionDexieStore(storageKey);
+    try {
+      return await tempStore.completed_questions.where('next_revision_time').belowOrEqual(now).count();
+    } finally {
+      tempStore.close();
+    }
   } catch {
     return 0;
   }
+}
+
+export function getDueRevisionCountForWorkspace(workspacePath: string | null | undefined, now: string = new Date().toISOString()): Promise<number> {
+  return getDueRevisionCountForKey(deriveWorkspaceStorageKey(workspacePath), now);
 }
 
 export async function exportRevisionData(): Promise<string> {

@@ -36,6 +36,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
     readWorkspaceContent,
     refreshCloudWorkspaces,
     cloudWorkspaces,
+    workspaceDueCounts,
     refreshWorkspaceHistoryCounts,
     isLoading,
     selectedDirectoryHandle,
@@ -49,7 +50,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
   const [isMergeOpen, setIsMergeOpen] = useState(false);
   const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
   const hasDirectoryPicker = typeof window !== 'undefined' && typeof (window as Window & { showDirectoryPicker?: unknown }).showDirectoryPicker === 'function';
-  const workspaceEntries = mergeWorkspaceLists(workspaceHistory, cloudWorkspaces);
+  const workspaceEntries = mergeWorkspaceLists(workspaceHistory, cloudWorkspaces, workspaceDueCounts);
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
   const workspaceMenuRef = useRef<HTMLDivElement | null>(null);
   const [isNavOpen, setIsNavOpen] = useState(false);

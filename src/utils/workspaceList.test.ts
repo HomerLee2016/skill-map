@@ -39,3 +39,12 @@ test('only entries with a stored folder carry the local marker data', () => {
   );
   assert.deepEqual(list.map((entry) => [entry.name, Boolean(entry.local), entry.inCloud]), [['japanese', true, true], ['spanish', false, true]]);
 });
+
+test('cloud-only workspaces get the same due-revision badge as folder ones, by key', () => {
+  const list = mergeWorkspaceLists(
+    [{ name: 'japanese', path: 'japanese', pendingCount: 1 }],
+    [{ key: 'workspace-cloudonly', name: 'spanish' }, { key: 'shared-abc', name: 'shared' }],
+    { 'workspace-cloudonly': 59, [deriveWorkspaceStorageKey('japanese')]: 83 },
+  );
+  assert.deepEqual(list.map((entry) => [entry.name, entry.pendingCount]), [['japanese', 83], ['spanish', 59], ['shared', undefined]]);
+});
