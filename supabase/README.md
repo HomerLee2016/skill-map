@@ -63,3 +63,11 @@ Run after the sharing hub, tags and votes migrations: paste `migrations/20261117
 - Moderation: `hidden`, `hidden_reason`, `hidden_at`. Hidden shares are visible only to their owner; owners cannot un-hide. Three reports from different users hide a share (`hidden_reason = 'reports'`). Existing rows that fail the new rules are hidden with `'validation'` (the owner can fix and republish).
 - Reports: `shared_workspace_reports`; read your own only. Review them in the SQL Editor (queries at the top of the migration).
 - Checks: `supabase/tests/sharing_hub_hardening.sql` (run on a scratch database, never production).
+
+## Content editing migration (NOT RUN YET)
+
+Run after the migrations above: paste `migrations/20261124000000_content_editing.sql` into the SQL Editor and click **Run** (re-running is safe).
+
+- `content_tombstones (user_id, workspace_key, kind, id, deleted_at)`: written when a lesson or test is deleted in the app, so other devices delete their copy instead of uploading it again. Saving the item again removes the row. RLS own-rows only; grants to `authenticated` only; cascades with the workspace.
+- `workspaces.prompt_guide` (text, at most 200 000 characters): the markdown guide shown in the lesson/test editors. Empty means the app's bundled guide for the workspace's language.
+- Until it is run, adding, editing and deleting still work. Deletes just do not reach other devices (the app says so), and a guide edited in a cloud-only workspace cannot be saved.

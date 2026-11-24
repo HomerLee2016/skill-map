@@ -85,6 +85,16 @@ export function useCloudSync() {
   /** Titles of the open workspace's tests: only their revision records belong in its cloud copy. */
   const ownQuizTitles = useCallback(() => new Set(workspaceRef.current.tests.map((test) => test.title)), []);
 
+  /**
+   * Puts pulled content on screen AND into the refs now. A sync queued right behind this one starts before React has
+   * re-rendered; reading the old content then would "push" the stale copy over what was just pulled.
+   */
+  const showSyncedContent = useCallback((next: typeof workspace) => {
+    localContentRef.current = next;
+    workspaceRef.current = next;
+    applySyncedContent(next);
+  }, [applySyncedContent]);
+
   const runSync = useCallback(async (pushContent: boolean, requested: SyncTrigger): Promise<void> => {
     const trigger = manualActive.current ? 'manual' : requested;
     if (!supabase || !userId) return;
@@ -125,7 +135,7 @@ export function useCloudSync() {
       if (pushContent && content) {
         const result = await runContentSync({ client: supabase, userId, workspaceKey: key, local: content, handle: handleRef.current });
         recordVersions(result.versions);
-        if (result.changed) applySyncedContent(result.content);
+        if (result.changed) showSyncedContent(result.content);
         setContentConflicts(result.conflicts);
         if (result.folderFailures.length > 0) throw new Error('Some changes from your account could not be written to the folder. Reconnect the folder and sync again.');
       }
@@ -144,7 +154,7 @@ export function useCloudSync() {
         void runSyncRef.current(true, queued);
       }
     }
-  }, [userId, currentScope, ownQuizTitles, recordVersions, applySyncedContent]);
+  }, [userId, currentScope, ownQuizTitles, recordVersions, showSyncedContent]);
   const runSyncRef = useRef(runSync);
   runSyncRef.current = runSync;
 
@@ -192,7 +202,7 @@ export function useCloudSync() {
         if (content) {
           const result = await runContentSync({ client: supabase, userId, workspaceKey: key, local: content, handle: handleRef.current });
           recordVersions(result.versions);
-          if (result.changed) applySyncedContent(result.content);
+          if (result.changed) showSyncedContent(result.content);
           setContentConflicts(result.conflicts);
         }
         setCloudPreferred(userId, key, false);
@@ -207,7 +217,7 @@ export function useCloudSync() {
     } finally {
       setIsSyncing(false);
     }
-  }, [userId, currentScope, refreshWorkspace, ownQuizTitles, recordVersions, applySyncedContent]);
+  }, [userId, currentScope, refreshWorkspace, ownQuizTitles, recordVersions, showSyncedContent]);
 
   /** The user picks, per conflicting item, the cloud's version or this device's. */
   const resolveContent = useCallback(async (ref: ItemRef, choice: ContentChoice) => {
@@ -216,7 +226,7 @@ export function useCloudSync() {
     setIsSyncing(true);
     try {
       const next = await resolveContentConflict({ client: supabase, userId, workspaceKey: workspaceKeyRef.current, local: content, handle: handleRef.current, ref, choice });
-      applySyncedContent(next);
+      showSyncedContent(next);
       setContentConflicts((current) => current.filter((item) => item !== ref));
       setError(null);
     } catch (err) {
@@ -225,7 +235,7 @@ export function useCloudSync() {
     } finally {
       setIsSyncing(false);
     }
-  }, [userId, applySyncedContent]);
+  }, [userId, showSyncedContent]);
 
   const setAutoSync = useCallback((value: boolean) => {
     setAutoSyncState(value);

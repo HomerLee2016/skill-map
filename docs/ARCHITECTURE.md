@@ -114,6 +114,19 @@ Formats:
 - **Test**: `tests/<id>.yaml` with `quiz_title` and `questions[]` (`question_number`, `question`, `options`, `correct_answer`, optional `explanation`, `audio_track_url`). Folders via `tests/structure.yaml`.
 - **Roadmap**: `roadmaps/<id>.yaml`, a list of nodes (`id`, `label`, `x`, `y`, `finished`, `description`, `dependsOn`, `lessons`, `tests`, `url`, `children`). Parsed by `useGraphParser`, serialised back by `useYamlSync`.
 
+### 4.1b Editing lessons and tests in the app
+
+Lessons and tests can be added, changed and deleted from the Lessons and Tests pages (UI described in `docs/UI-UX.md`).
+
+- **Write path** (`hooks/useContentEditing.ts`, exposed by `WorkspaceContext`): signed in, the cloud row is written first (`services/cloudContentEdit.ts`), then the folder mirror (`services/workspaceContentFiles.ts`). Signed out, only the folder. Without a folder and without sign-in editing is disabled. Ids never change after creation, so roadmap and folder links cannot dangle on rename.
+- **Pure rules**: `services/contentEdit.ts` (ids, delete cleanup of folder trees and roadmap links, comments in roadmap YAML kept), `services/testYaml.ts` (test YAML parse, validate against the prompt-guide rules, serialise), `services/testEditorModel.ts` (UI-mode form model, JLPT star split/compose), `services/questionProgress.ts` (finds reworded questions so revision records follow them).
+- **Version check**: lessons/tests carry the cloud `updated_at` they were read at; a save is `update ... where updated_at = <version>`. A mismatch throws `ContentConflictError` (nothing overwritten).
+- **Deletes**: cloud row deleted plus a row in `content_tombstones`; other devices drop their copy on the next sync.
+- **Sync** (`services/contentSync.ts` plan, `contentSyncRun.ts` I/O, called from `useCloudSync`): per item three-way compare of this device, the cloud and the last agreed version (a per-device hash map in localStorage). Only the changed side is copied; both changed = conflict reported, nothing overwritten; deletes only from tombstones, never from a file merely missing from a folder. Covers lessons, tests, roadmaps and folder trees. Replaces the old blind upsert.
+- **Prompt guides**: bundled in `src/data/guides/` (Japanese N3, Spanish) plus the generic guide at the repo root. A workspace's own guide (folder file `prompt-guide.md`, cloud `workspaces.prompt_guide`) wins; otherwise `services/promptGuideChoice.ts` picks by workspace name, then by audio language.
+- **Revision records** follow reworded questions (`applyTestEditToRevision`): new hash, old hash tombstoned, test title renamed in the records.
+- Migration: `supabase/migrations/20261124000000_content_editing.sql` (tombstones table, guide column). The app still works without it (deletes then do not propagate; the guide is kept in the folder or the bundled one is used).
+
 ### 4.2 Writing back
 
 `workspaceRoadmapPersistence.ts` and `workspaceStructurePersistence.ts` write directly into the chosen folder through the File System Access API (`getDirectoryHandle` / `getFileHandle` / `createWritable`). There is no server call.
