@@ -5,6 +5,8 @@ export interface LessonItem {
   id: string;
   title: string;
   content: string;
+  /** Cloud row version this device last saw (server `updated_at`); lets a save notice that another device changed the item. */
+  updatedAt?: string;
 }
 
 export interface TestQuestion {
@@ -21,6 +23,7 @@ export interface TestItem {
   id: string;
   title: string;
   questions: TestQuestion[];
+  updatedAt?: string;
 }
 
 export interface TestsStructure {
@@ -34,6 +37,8 @@ export interface WorkspaceContent {
   roadmaps: SavedRoadmap[];
   lessonStructure: StructureTree;
   testsStructure: TestsStructure;
+  /** The workspace's AI prompt guide (markdown), when one was saved; otherwise the bundled guide for its language is used. */
+  guide?: string;
 }
 
 export type { SavedRoadmap };
