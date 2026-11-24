@@ -38,6 +38,6 @@
     "typescript": "~7.0.2",
     "vite": "^8.3.5",
     "vite-plugin-singlefile": "^2.3.3",
-    "wrangler": "^4.153.0"
+    "wrangler": "^4.165.0"
   }
 }
