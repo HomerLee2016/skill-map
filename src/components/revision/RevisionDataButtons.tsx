@@ -1,9 +1,13 @@
-import { useRef } from 'react';
-import { exportRevisionData, importRevisionData } from '../../services/revisionDb';
+import { useRef, useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { clearLocalRevisionData, exportRevisionData, importRevisionData } from '../../services/revisionDb';
 import { formatRevisionTimestamp } from '../../utils/proficiency';
+import { ClearLocalRevisionDialog } from './ClearLocalRevisionDialog';
 
-export function RevisionDataButtons({ onImported }: { onImported: () => Promise<void> }) {
+export function RevisionDataButtons({ onImported, recordCount }: { onImported: () => Promise<void>; recordCount: number }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { user } = useAuth();
+  const [confirmingClear, setConfirmingClear] = useState(false);
 
   return (
     <>
@@ -55,6 +59,27 @@ export function RevisionDataButtons({ onImported }: { onImported: () => Promise<
         }}>
         Export Revision Data
       </button>
+      <button
+        type="button"
+        className="toolbar-btn"
+        disabled={recordCount === 0}
+        title="Delete this device's revision records for the open workspace (the cloud copy is not changed)"
+        onClick={() => setConfirmingClear(true)}
+      >
+        Clear local data
+      </button>
+      {confirmingClear ? (
+        <ClearLocalRevisionDialog
+          recordCount={recordCount}
+          signedIn={Boolean(user)}
+          onCancel={() => setConfirmingClear(false)}
+          onConfirm={async () => {
+            await clearLocalRevisionData();
+            await onImported();
+            setConfirmingClear(false);
+          }}
+        />
+      ) : null}
     </>
   );
 }

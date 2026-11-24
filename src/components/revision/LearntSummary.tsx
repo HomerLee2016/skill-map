@@ -87,7 +87,7 @@ export function LearntSummary({ completedRows, dueCount, nextRevisionIso, onStar
                 <button type="button" className="toolbar-btn" disabled={completedRows.length === 0} onClick={() => setSelecting(true)}>
                   Remove record
                 </button>
-                <RevisionDataButtons onImported={onDataImported} />
+                <RevisionDataButtons onImported={onDataImported} recordCount={completedRows.length} />
               </>
             )}
           </div>

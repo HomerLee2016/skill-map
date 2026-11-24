@@ -31,3 +31,15 @@ export function mergeWorkspaceLists(
   }
   return [...byKey.values()];
 }
+
+/**
+ * Hover text for the local-folder marker. Browsers only hand a page the folder's name, never its full location,
+ * so a bare name gets a note saying so; a path that was kept in full is shown as it is.
+ */
+export function localFolderTitle(local: { name: string; path: string }): string {
+  const location = local.path || local.name;
+  const isFullPath = /[\\/]/.test(location);
+  return isFullPath
+    ? `Linked to local folder: ${location}`
+    : `Linked to local folder: ${location} (the browser shares only the folder name, not its full path)`;
+}

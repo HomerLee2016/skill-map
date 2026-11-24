@@ -1966,6 +1966,7 @@ body, html, #root {
 
 /* Workspace menu: cloud marker, hidden file inputs, remove dialog */
 .top-bar-workspace-cloud { margin-left: 8px; opacity: 0.7; }
+.top-bar-workspace-local { margin-left: 8px; opacity: 0.7; }
 .visually-hidden-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .remove-warning { margin: 0; font-size: 14px; line-height: 1.5; }
 .remove-warning--danger { color: #ef4444; }

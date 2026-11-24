@@ -7,7 +7,7 @@ import { RemoveWorkspaceDialog } from './RemoveWorkspaceDialog';
 import { MergeWorkspaceDialog } from './MergeWorkspaceDialog';
 import { DuplicateWorkspaceDialog } from './DuplicateWorkspaceDialog';
 import { useAuth } from '../contexts/AuthContext';
-import { mergeWorkspaceLists, type WorkspaceListEntry } from '../utils/workspaceList';
+import { localFolderTitle, mergeWorkspaceLists, type WorkspaceListEntry } from '../utils/workspaceList';
 import { downloadWorkspaceZip } from '../services/workspaceExport';
 import { buildImportedWorkspace, filesFromFileList, filesFromZip } from '../services/workspaceImport';
 
@@ -174,6 +174,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
                       onClick={() => { void handleOpenWorkspace(entry); }}
                     >
                       <span className="top-bar-workspace-menu-item-label">{entry.name}</span>
+                      {entry.local ? <span className="top-bar-workspace-local" title={localFolderTitle(entry.local)}>📁</span> : null}
                       {entry.inCloud ? <span className="top-bar-workspace-cloud" title="Saved in your account">☁</span> : null}
                       {typeof entry.pendingCount === 'number' ? (
                         <span className="top-bar-workspace-badge">{entry.pendingCount}</span>
