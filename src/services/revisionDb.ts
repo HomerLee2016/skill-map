@@ -182,6 +182,22 @@ export async function deleteCompletedQuestions(ids: number[], store: RevisionDex
   return removed;
 }
 
+/**
+ * Empties this device's revision records (and removal marks) for the workspace. Unlike `deleteCompletedQuestions`
+ * it leaves no tombstones, so the cloud copy is untouched and a later sync pulls its records back down.
+ */
+export async function clearLocalRevisionData(store: RevisionDexieStore = revisionStore): Promise<number> {
+  let cleared = 0;
+  await store.transaction('rw', store.completed_questions, store.deleted_records, async () => {
+    cleared = await store.completed_questions.count();
+    await store.completed_questions.clear();
+    await store.deleted_records.clear();
+  });
+  // A page re-read, not a local write: this must not start a sync that treats the empty store as news.
+  notifyRevisionRecordsPulled();
+  return cleared;
+}
+
 export async function getCompletedQuestionsByQuiz(quizTitle: string): Promise<CompletedQuestionRecord[]> {
   return revisionStore.completed_questions.where('quiz_title').equals(quizTitle).toArray();
 }
