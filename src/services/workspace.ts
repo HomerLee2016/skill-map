@@ -6,6 +6,7 @@ import {
   loadTestsFromDirectory,
   loadTestsStructureFromDirectory,
 } from './workspaceFolder';
+import { readGuideFile } from './workspaceContentFiles';
 import type { WorkspaceContent } from './workspaceTypes';
 
 export type { LessonItem, TestItem, TestQuestion, WorkspaceContent } from './workspaceTypes';
@@ -18,15 +19,16 @@ export async function loadWorkspaceContent(handle?: FileSystemDirectoryHandle | 
   }
 
   try {
-    const [lessons, tests, roadmaps, lessonStructure, testsStructure] = await Promise.all([
+    const [lessons, tests, roadmaps, lessonStructure, testsStructure, guide] = await Promise.all([
       loadLessonsFromDirectory(handle),
       loadTestsFromDirectory(handle),
       loadRoadmapsFromDirectory(handle),
       loadLessonStructureFromDirectory(handle),
       loadTestsStructureFromDirectory(handle),
+      readGuideFile(handle),
     ]);
 
-    return { lessons, tests, roadmaps, lessonStructure, testsStructure };
+    return { lessons, tests, roadmaps, lessonStructure, testsStructure, ...(guide ? { guide } : {}) };
   } catch (error) {
     console.error('Failed to load local workspace content', error);
     return createDefaultWorkspaceContent();

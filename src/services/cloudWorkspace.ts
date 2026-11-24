@@ -67,12 +67,12 @@ function chunk<T>(items: T[]): T[][] {
   return chunks;
 }
 
-function fail(error: { message: string } | null): void {
+export function fail(error: { message: string } | null): void {
   if (error) throw new Error(error.message);
 }
 
 /** Rows are keyed by user, workspace and item, so each workspace has its own copy. */
-async function upsertRows(client: SupabaseClient, workspaceKey: string, table: string, rows: object[], keyColumn: 'id' | 'kind'): Promise<void> {
+export async function upsertRows(client: SupabaseClient, workspaceKey: string, table: string, rows: object[], keyColumn: 'id' | 'kind'): Promise<void> {
   const keyed = rows.map((row) => ({ ...row, workspace_key: workspaceKey }));
   for (const part of chunk(keyed)) {
     const { error } = await client.from(table).upsert(part, { onConflict: `user_id,workspace_key,${keyColumn}` });
@@ -83,8 +83,8 @@ async function upsertRows(client: SupabaseClient, workspaceKey: string, table: s
 /** Reads one workspace of the signed-in user from the cloud; null when nothing has been uploaded for it yet. */
 export async function fetchCloudWorkspace(client: SupabaseClient, workspaceKey: string): Promise<WorkspaceContent | null> {
   const [lessons, tests, roadmaps, structures] = await Promise.all([
-    client.from('lessons').select('id,title,content').eq('workspace_key', workspaceKey),
-    client.from('tests').select('id,title,questions').eq('workspace_key', workspaceKey),
+    client.from('lessons').select('id,title,content,updated_at').eq('workspace_key', workspaceKey),
+    client.from('tests').select('id,title,questions,updated_at').eq('workspace_key', workspaceKey),
     client.from('roadmaps').select('id,name,yaml').eq('workspace_key', workspaceKey),
     client.from('workspace_structures').select('kind,data').eq('workspace_key', workspaceKey),
   ]);
@@ -100,14 +100,29 @@ export async function fetchCloudWorkspace(client: SupabaseClient, workspaceKey: 
     : emptyTestsStructure();
 
   const content: WorkspaceContent = {
-    lessons: sortByTitle((lessons.data ?? []) as LessonItem[]),
-    tests: sortByTitle((tests.data ?? []) as TestItem[]),
+    lessons: sortByTitle((lessons.data ?? []).map(({ updated_at, ...row }) => ({ ...row, updatedAt: updated_at as string }) as LessonItem)),
+    tests: sortByTitle((tests.data ?? []).map(({ updated_at, ...row }) => ({ ...row, updatedAt: updated_at as string }) as TestItem)),
     roadmaps: (roadmaps.data ?? []) as unknown as SavedRoadmap[],
     lessonStructure,
     testsStructure,
   };
   const hasStructure = structureByKind.size > 0;
+  const guide = await fetchCloudGuide(client, workspaceKey);
+  if (guide) content.guide = guide;
   return hasContent(countContent(content)) || hasStructure ? content : null;
+}
+
+/** The workspace's saved prompt guide; null when none is saved or the column does not exist yet (migration not run). */
+export async function fetchCloudGuide(client: SupabaseClient, workspaceKey: string): Promise<string | null> {
+  const { data, error } = await client.from('workspaces').select('prompt_guide').eq('key', workspaceKey);
+  if (error) return null;
+  const guide = (data?.[0] as { prompt_guide?: string | null } | undefined)?.prompt_guide;
+  return guide?.trim() ? guide : null;
+}
+
+export async function saveCloudGuide(client: SupabaseClient, workspaceKey: string, guide: string | null): Promise<void> {
+  const { error } = await client.from('workspaces').update({ prompt_guide: guide }).eq('key', workspaceKey);
+  fail(error);
 }
 
 /** Ids present in `table` for the signed-in user's workspace (RLS scopes the user). */
