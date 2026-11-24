@@ -6,7 +6,7 @@ import {
   type DeletedRecordTombstone,
   type RevisionDexieStore,
 } from './revisionDb';
-import { dedupeByHash, mergeRevisionRecords, splitLegacyRecords } from './revisionSyncMerge';
+import { dedupeByHash, filterOwnRecords, mergeRevisionRecords, splitLegacyRecords } from './revisionSyncMerge';
 
 const TABLE = 'revision_records';
 const CHUNK_SIZE = 200;
@@ -91,13 +91,16 @@ export async function syncRevisionRecords(
   client: SupabaseClient,
   { workspaceKey, store }: RevisionScope,
   remote?: RemoteRevisionState,
+  /** Quiz titles of the open workspace; local records of other quizzes are not uploaded. Omit to upload everything. */
+  ownTitles?: ReadonlySet<string>,
 ): Promise<SyncSummary> {
   const local = await getAllCompletedQuestions(store);
   const localTombstones = await store.deleted_records.toArray();
   const state = remote ?? await fetchRemoteRevisionState(client, workspaceKey);
   const merged = mergeRevisionRecords(local, state.records, { local: localTombstones, remote: state.tombstones });
 
-  if (merged.toRemote.length > 0) await upsertRecords(client, workspaceKey, merged.toRemote);
+  const toRemote = ownTitles ? filterOwnRecords(merged.toRemote, ownTitles, state.records) : merged.toRemote;
+  if (toRemote.length > 0) await upsertRecords(client, workspaceKey, toRemote);
   if (merged.tombstonesToRemote.length > 0) await upsertTombstones(client, workspaceKey, merged.tombstonesToRemote);
   const changesLocal = merged.toLocal.length + merged.deleteLocalHashes.length + merged.tombstonesToLocal.length + merged.clearLocalTombstones.length > 0;
   if (changesLocal) {
@@ -112,7 +115,7 @@ export async function syncRevisionRecords(
     });
     notifyRevisionRecordsPulled();
   }
-  return { pushed: merged.toRemote.length + merged.tombstonesToRemote.length, pulled: merged.toLocal.length + merged.deleteLocalHashes.length };
+  return { pushed: toRemote.length + merged.tombstonesToRemote.length, pulled: merged.toLocal.length + merged.deleteLocalHashes.length };
 }
 
 /** "Keep cloud": local records become an exact copy of the cloud records. */
@@ -130,8 +133,10 @@ export async function replaceRemoteWithLocal(
   client: SupabaseClient,
   { workspaceKey, store }: RevisionScope,
   remote: CompletedQuestionRecord[],
+  ownTitles?: ReadonlySet<string>,
 ): Promise<void> {
-  const local = await getAllCompletedQuestions(store);
+  const all = await getAllCompletedQuestions(store);
+  const local = ownTitles ? filterOwnRecords(all, ownTitles, remote) : all;
   await upsertRecords(client, workspaceKey, local);
   const keep = new Set(local.map((record) => record.hash));
   const stale = remote.map((record) => record.hash).filter((hash) => !keep.has(hash));
