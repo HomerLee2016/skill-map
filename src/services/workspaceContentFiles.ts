@@ -66,3 +66,28 @@ export async function writeGuideFile(handle: FileSystemDirectoryHandle | null | 
     return false;
   }
 }
+
+export const TRASH_FOLDER = '.skill-map-trash';
+
+/** Like `deleteContentFile`, but first copies the file into `.skill-map-trash/<folder>/` so the removal can be undone by hand. */
+export async function trashContentFile(handle: FileSystemDirectoryHandle | null | undefined, folder: 'lessons' | 'tests', id: string): Promise<boolean> {
+  if (!handle) return false;
+  const fileName = `${id}${folder === 'lessons' ? '.md' : '.yaml'}`;
+  try {
+    const directory = await handle.getDirectoryHandle(folder, { create: false });
+    let text: string;
+    try {
+      text = await (await (await directory.getFileHandle(fileName, { create: false })).getFile()).text();
+    } catch (error) {
+      if ((error as { name?: string }).name === 'NotFoundError') return true;
+      throw error;
+    }
+    const trash = await (await handle.getDirectoryHandle(TRASH_FOLDER, { create: true })).getDirectoryHandle(folder, { create: true });
+    await writeText(trash, fileName, text);
+    await directory.removeEntry(fileName);
+    return true;
+  } catch (error) {
+    console.error(`Failed to move ${folder}/${id} to the trash folder`, error);
+    return false;
+  }
+}

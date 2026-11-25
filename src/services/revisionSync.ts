@@ -7,6 +7,7 @@ import {
   type RevisionDexieStore,
 } from './revisionDb';
 import { dedupeByHash, filterOwnRecords, mergeRevisionRecords, splitLegacyRecords } from './revisionSyncMerge';
+import { applyBlockedChanges, collectRevisionChanges, needsRevisionReview, type RevisionGuard } from './revisionGuard';
 
 const TABLE = 'revision_records';
 const CHUNK_SIZE = 200;
@@ -93,13 +94,25 @@ export async function syncRevisionRecords(
   remote?: RemoteRevisionState,
   /** Quiz titles of the open workspace; local records of other quizzes are not uploaded. Omit to upload everything. */
   ownTitles?: ReadonlySet<string>,
+  /** Pauses a sync that would insert or delete many rows so the user can block some; omit to apply everything. */
+  guard?: RevisionGuard,
 ): Promise<SyncSummary> {
   const local = await getAllCompletedQuestions(store);
   const localTombstones = await store.deleted_records.toArray();
   const state = remote ?? await fetchRemoteRevisionState(client, workspaceKey);
-  const merged = mergeRevisionRecords(local, state.records, { local: localTombstones, remote: state.tombstones });
+  let merged = mergeRevisionRecords(local, state.records, { local: localTombstones, remote: state.tombstones });
+  if (ownTitles) merged = { ...merged, toRemote: filterOwnRecords(merged.toRemote, ownTitles, state.records) };
+  if (guard) {
+    merged = applyBlockedChanges(merged, guard.remembered);
+    const rows = collectRevisionChanges(merged, local, state.records);
+    if (needsRevisionReview(rows)) {
+      const answer = await guard.ask(rows);
+      if (!answer) return { pushed: 0, pulled: 0 };
+      merged = applyBlockedChanges(merged, answer.blocked);
+    }
+  }
 
-  const toRemote = ownTitles ? filterOwnRecords(merged.toRemote, ownTitles, state.records) : merged.toRemote;
+  const toRemote = merged.toRemote;
   if (toRemote.length > 0) await upsertRecords(client, workspaceKey, toRemote);
   if (merged.tombstonesToRemote.length > 0) await upsertTombstones(client, workspaceKey, merged.tombstonesToRemote);
   const changesLocal = merged.toLocal.length + merged.deleteLocalHashes.length + merged.tombstonesToLocal.length + merged.clearLocalTombstones.length > 0;

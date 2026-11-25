@@ -3,12 +3,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCloudSync } from '../hooks/useCloudSync';
 import { formatLastSync } from '../utils/syncStatus';
 import { SyncConflictDialog } from './SyncConflictDialog';
+import { WorkspaceReviewDialog } from './WorkspaceReviewDialog';
+import { RevisionGuardDialog } from './RevisionGuardDialog';
 import { ContentConflictDialog } from './ContentConflictDialog';
 
 /** Single user icon in the top bar; account, sync and sign-out live in its dropdown. */
 export function UserMenu() {
   const { isConfigured, user, signInWithGoogle, signOut } = useAuth();
-  const { syncNow, isSyncing, error, lastSync, autoSync, setAutoSync, conflict, resolveConflict, contentConflicts, resolveContent } = useCloudSync();
+  const { syncNow, isSyncing, error, lastSync, autoSync, setAutoSync, conflict, resolveConflict, contentConflicts, resolveContent, review } = useCloudSync();
   const [conflictsOpen, setConflictsOpen] = useState(true);
   // New conflicts from a later sync open the dialog again.
   useEffect(() => { setConflictsOpen(true); }, [contentConflicts.length]);
@@ -108,6 +110,8 @@ export function UserMenu() {
       {contentConflicts.length > 0 && conflictsOpen && !conflict ? (
         <ContentConflictDialog refs={contentConflicts} busy={isSyncing} onChoose={(ref, choice) => { void resolveContent(ref, choice); }} onClose={() => setConflictsOpen(false)} />
       ) : null}
+      {review?.type === 'content' ? <WorkspaceReviewDialog items={review.items} onDone={review.answer} /> : null}
+      {review?.type === 'revision' ? <RevisionGuardDialog rows={review.rows} onDone={review.answer} /> : null}
       {conflict ? <SyncConflictDialog conflict={conflict} busy={isSyncing} onChoose={(choice) => { void resolveConflict(choice); }} /> : null}
     </div>
   );

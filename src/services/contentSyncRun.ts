@@ -1,7 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { fetchTombstones } from './cloudContentEdit';
+import { deleteCloudItem, fetchTombstones } from './cloudContentEdit';
+import { findReviewItems, resolveReview, withoutReviewItems, type ReviewItem } from './contentReview';
 import { fetchCloudWorkspace, upsertRows } from './cloudWorkspace';
-import { deleteContentFile, writeLessonFile, writeTestFile } from './workspaceContentFiles';
+import { deleteContentFile, trashContentFile, writeLessonFile, writeTestFile } from './workspaceContentFiles';
 import {
   applyPlanToBase, hashContent, planContentSync, readContentBase, writeContentBase,
   type ItemRef, type Hashes,
@@ -87,13 +88,13 @@ async function pullRefs(
 
 const byTitle = (a: { title: string }, b: { title: string }) => a.title.localeCompare(b.title);
 
-async function dropRefs(local: WorkspaceContent, refs: ItemRef[], handle: FileSystemDirectoryHandle | null): Promise<{ content: WorkspaceContent; failed: ItemRef[] }> {
+async function dropRefs(local: WorkspaceContent, refs: ItemRef[], handle: FileSystemDirectoryHandle | null, trash = false): Promise<{ content: WorkspaceContent; failed: ItemRef[] }> {
   let content = local;
   const failed: ItemRef[] = [];
   for (const ref of refs) {
     const [kind, id] = splitRef(ref);
     if (kind !== 'lessons' && kind !== 'tests') continue;
-    if (handle && !(await deleteContentFile(handle, kind, id))) { failed.push(ref); continue; }
+    if (handle && !(await (trash ? trashContentFile : deleteContentFile)(handle, kind, id))) { failed.push(ref); continue; }
     content = kind === 'lessons'
       ? { ...content, lessons: content.lessons.filter((x) => x.id !== id) }
       : { ...content, tests: content.tests.filter((x) => x.id !== id) };
@@ -116,11 +117,32 @@ function collectVersions(cloud: WorkspaceContent, local: WorkspaceContent): Reco
  */
 export async function runContentSync(input: {
   client: SupabaseClient; userId: string; workspaceKey: string; local: WorkspaceContent; handle: FileSystemDirectoryHandle | null;
+  /** Asked when lessons or tests exist on one side only; returns the refs to keep, or `null` to leave them all alone. */
+  review?: (items: ReviewItem[]) => Promise<ReadonlySet<ItemRef> | null>;
+  /** Needed to remove cloud-only items the user did not keep. */
+  workspaceName?: string;
 }): Promise<ContentSyncResult> {
   const { client, userId, workspaceKey, handle } = input;
   const cloud = (await fetchCloudWorkspace(client, workspaceKey)) ?? emptyContent();
   const tombstoned = await fetchTombstones(client, workspaceKey);
-  const plan = planContentSync({ local: hashContent(input.local), cloud: hashContent(cloud), tombstoned, base: readContentBase(userId, workspaceKey) });
+  const base0 = readContentBase(userId, workspaceKey);
+  let plan = planContentSync({ local: hashContent(input.local), cloud: hashContent(cloud), tombstoned, base: base0 });
+
+  const reviewItems = input.review ? findReviewItems(plan, input.local, cloud, base0) : [];
+  let removeFromDevice: ItemRef[] = [];
+  if (reviewItems.length > 0 && input.review) {
+    plan = withoutReviewItems(plan, reviewItems);
+    const keep = await input.review(reviewItems);
+    if (keep) {
+      const outcome = resolveReview(reviewItems, keep);
+      plan = { ...plan, push: [...plan.push, ...outcome.push], pull: [...plan.pull, ...outcome.pull] };
+      removeFromDevice = outcome.removeFromDevice;
+      for (const ref of outcome.removeFromCloud) {
+        const [kind, id] = splitRef(ref);
+        await deleteCloudItem(client, workspaceKey, input.workspaceName ?? workspaceKey, kind as 'lessons' | 'tests', id);
+      }
+    }
+  }
 
   let content = input.local;
   if (plan.push.length) await pushRefs(client, workspaceKey, content, plan.push);
@@ -128,8 +150,10 @@ export async function runContentSync(input: {
   content = pulled.content;
   const dropped = await dropRefs(content, plan.deleteLocal, handle);
   content = dropped.content;
+  const trashed = await dropRefs(content, removeFromDevice, handle, true);
+  content = trashed.content;
 
-  const folderFailures = [...pulled.failed, ...dropped.failed];
+  const folderFailures = [...pulled.failed, ...dropped.failed, ...trashed.failed];
   // Items that could not be written to the folder stay out of the base, so the next sync tries them again.
   const settled = { ...plan, pull: plan.pull.filter((ref) => !pulled.failed.includes(ref)), push: plan.push };
   const base = applyPlanToBase(settled, hashContent(content));
@@ -141,7 +165,7 @@ export async function runContentSync(input: {
   return {
     content,
     conflicts: plan.conflicts,
-    changed: plan.pull.length > 0 || plan.deleteLocal.length > 0,
+    changed: plan.pull.length > 0 || plan.deleteLocal.length > 0 || removeFromDevice.length > 0,
     versions: collectVersions(latest, content),
     folderFailures,
   };

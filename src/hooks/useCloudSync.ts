@@ -29,6 +29,14 @@ import {
   type SideSummary,
 } from '../services/syncConflict';
 import { supabase } from '../lib/supabaseClient';
+import type { ReviewItem } from '../services/contentReview';
+import {
+  readRememberedBlocks,
+  writeRememberedBlocks,
+  type RevisionChangeKey,
+  type RevisionChangeRow,
+  type RevisionGuard,
+} from '../services/revisionGuard';
 import type { LastSync, SyncTrigger } from '../utils/syncStatus';
 
 const DEBOUNCE_MS = 2000;
@@ -38,6 +46,11 @@ export interface PendingConflict {
   device: SideSummary;
   cloud: SideSummary;
 }
+
+/** A sync waiting for the user: lessons/tests on one side only, or a large revision change. */
+export type PendingReview =
+  | { type: 'content'; items: ReviewItem[]; answer: (keep: Set<string> | null) => void }
+  | { type: 'revision'; rows: RevisionChangeRow[]; answer: (result: { blocked: Set<RevisionChangeKey>; remember: boolean } | null) => void };
 
 function readAutoSync(): boolean {
   try {
@@ -56,6 +69,8 @@ export function useCloudSync() {
   const [conflict, setConflict] = useState<PendingConflict | null>(null);
   /** Lessons, tests, roadmaps or folder trees changed on this device and in the cloud; nothing was overwritten. */
   const [contentConflicts, setContentConflicts] = useState<ItemRef[]>([]);
+  const [review, setReview] = useState<PendingReview | null>(null);
+  const reviewRef = useRef<PendingReview | null>(null);
   const [autoSync, setAutoSyncState] = useState(readAutoSync);
   const [lastSync, setLastSync] = useState<LastSync | null>(null);
   const running = useRef(false);
@@ -95,6 +110,18 @@ export function useCloudSync() {
     applySyncedContent(next);
   }, [applySyncedContent]);
 
+  /** Shows a review dialog and waits for the answer; the sync stays paused until then. */
+  const askReview = useCallback(<T,>(build: (answer: (value: T | null) => void) => PendingReview): Promise<T | null> =>
+    new Promise((resolve) => {
+      const next = build((value) => {
+        reviewRef.current = null;
+        setReview(null);
+        resolve(value);
+      });
+      reviewRef.current = next;
+      setReview(next);
+    }), []);
+
   const runSync = useCallback(async (pushContent: boolean, requested: SyncTrigger): Promise<void> => {
     const trigger = manualActive.current ? 'manual' : requested;
     if (!supabase || !userId) return;
@@ -131,9 +158,20 @@ export function useCloudSync() {
           remote = await fetchRemoteRevisionState(supabase, key);
         }
       }
-      await syncRevisionRecords(supabase, scope, remote, ownQuizTitles());
+      const guard: RevisionGuard = {
+        remembered: readRememberedBlocks(userId, key),
+        ask: async (rows) => {
+          const answer = await askReview<{ blocked: Set<RevisionChangeKey>; remember: boolean }>((resolve) => ({ type: 'revision', rows, answer: resolve }));
+          if (answer?.remember) writeRememberedBlocks(userId, key, new Set([...readRememberedBlocks(userId, key), ...answer.blocked]));
+          return answer;
+        },
+      };
+      await syncRevisionRecords(supabase, scope, remote, ownQuizTitles(), guard);
       if (pushContent && content) {
-        const result = await runContentSync({ client: supabase, userId, workspaceKey: key, local: content, handle: handleRef.current });
+        const result = await runContentSync({
+          client: supabase, userId, workspaceKey: key, local: content, handle: handleRef.current, workspaceName: workspaceNameRef.current,
+          review: (items) => askReview<Set<string>>((resolve) => ({ type: 'content', items, answer: resolve })),
+        });
         recordVersions(result.versions);
         if (result.changed) showSyncedContent(result.content);
         setContentConflicts(result.conflicts);
@@ -154,7 +192,7 @@ export function useCloudSync() {
         void runSyncRef.current(true, queued);
       }
     }
-  }, [userId, currentScope, ownQuizTitles, recordVersions, showSyncedContent]);
+  }, [userId, currentScope, ownQuizTitles, recordVersions, showSyncedContent, askReview]);
   const runSyncRef = useRef(runSync);
   runSyncRef.current = runSync;
 
@@ -175,6 +213,8 @@ export function useCloudSync() {
     // Another workspace's pending conflict prompt no longer applies.
     setConflict(null);
     setContentConflicts([]);
+    // A review for the workspace being left no longer applies; answering "cancel" lets its paused sync finish.
+    reviewRef.current?.answer(null);
     void runSync(true, 'workspace');
   }, [runSync, workspaceVersion]);
 
@@ -257,5 +297,5 @@ export function useCloudSync() {
     };
   }, [userId, autoSync, runSync]);
 
-  return { syncNow, isSyncing, error, lastSync, autoSync, setAutoSync, conflict, resolveConflict, contentConflicts, resolveContent };
+  return { syncNow, isSyncing, error, lastSync, autoSync, setAutoSync, conflict, resolveConflict, contentConflicts, resolveContent, review };
 }
