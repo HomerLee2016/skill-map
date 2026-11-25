@@ -74,8 +74,8 @@ export function SplitPicker({ items, keep, onChange, groups, leftTitle, rightTit
     <div className="split-picker">
       {renderColumn(false)}
       <div className="split-picker-middle">
-        <button type="button" className="modal-btn-cancel split-picker-bulk" title="Move all to the right" aria-label="Move all to the right" disabled={items.every((item) => keep.has(item.key))} onClick={() => setAll(true)}>&raquo;</button>
-        <button type="button" className="modal-btn-cancel split-picker-bulk" title="Move all to the left" aria-label="Move all to the left" disabled={items.every((item) => !keep.has(item.key))} onClick={() => setAll(false)}>&laquo;</button>
+        <button type="button" className="modal-btn-cancel split-picker-bulk" title="Keep all (move all to the right)" aria-label="Keep all" disabled={items.every((item) => keep.has(item.key))} onClick={() => setAll(true)}><span className="split-picker-bulk-text">Keep all </span>&raquo;</button>
+        <button type="button" className="modal-btn-cancel split-picker-bulk" title="Remove all (move all to the left)" aria-label="Remove all" disabled={items.every((item) => !keep.has(item.key))} onClick={() => setAll(false)}>&laquo;<span className="split-picker-bulk-text"> Remove all</span></button>
       </div>
       {renderColumn(true)}
     </div>
