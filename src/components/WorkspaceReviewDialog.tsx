@@ -47,8 +47,8 @@ export function WorkspaceReviewDialog({ items, onDone }: WorkspaceReviewDialogPr
             ) : null}
             <p>Your revision history is not touched. Are you sure?</p>
             <div className="modal-actions">
-              <button type="button" className="toolbar-btn" onClick={() => setConfirming(false)}>← Back to review</button>
-              <button type="button" className="toolbar-btn split-review-danger" onClick={() => onDone(keep)}>Yes, remove {removeCount}</button>
+              <button type="button" className="modal-btn-cancel" onClick={() => setConfirming(false)}>← Back to review</button>
+              <button type="button" className="modal-btn-save split-review-danger" onClick={() => onDone(keep)}>Yes, remove {removeCount}</button>
             </div>
           </>
         ) : (
@@ -61,9 +61,9 @@ export function WorkspaceReviewDialog({ items, onDone }: WorkspaceReviewDialogPr
             </p>
             <SplitPicker items={pickerItems} keep={keep} onChange={setKeep} groups={[GROUP_CLOUD, GROUP_DEVICE]} leftTitle="Not keeping" rightTitle="Keeping" />
             <div className="modal-actions">
-              <button type="button" className="toolbar-btn" onClick={() => setKeep(new Set(items.filter((item) => item.keepByDefault).map((item) => item.ref)))}>Reset</button>
-              <button type="button" className="toolbar-btn" onClick={() => onDone(null)}>Cancel (sync none of these)</button>
-              <button type="button" className="toolbar-btn" onClick={() => (removeCount > 0 ? setConfirming(true) : onDone(keep))}>Apply</button>
+              <button type="button" className="modal-btn-cancel" onClick={() => setKeep(new Set(items.filter((item) => item.keepByDefault).map((item) => item.ref)))}>Reset</button>
+              <button type="button" className="modal-btn-cancel" onClick={() => onDone(null)}>Cancel (sync none of these)</button>
+              <button type="button" className="modal-btn-save" onClick={() => (removeCount > 0 ? setConfirming(true) : onDone(keep))}>Apply</button>
             </div>
           </>
         )}

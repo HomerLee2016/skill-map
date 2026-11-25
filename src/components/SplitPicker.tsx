@@ -34,7 +34,7 @@ export function SplitPicker({ items, keep, onChange, groups, leftTitle, rightTit
       <div className={`split-picker-col ${right ? 'split-picker-col--right' : 'split-picker-col--left'}`}>
         <header className="split-picker-head">
           <strong>{right ? rightTitle : leftTitle} ({own.length})</strong>
-          <button type="button" className="toolbar-btn split-picker-bulk" disabled={own.length === 0} onClick={() => setAll(!right)}>
+          <button type="button" className="modal-btn-cancel split-picker-bulk" disabled={own.length === 0} onClick={() => setAll(!right)}>
             {right ? '← Remove all' : 'Add all →'}
           </button>
         </header>

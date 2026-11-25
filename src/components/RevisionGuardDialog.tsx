@@ -32,9 +32,9 @@ export function RevisionGuardDialog({ rows, onDone }: RevisionGuardDialogProps) 
           Remember blocked rows for this workspace (future syncs will not touch them)
         </label>
         <div className="modal-actions">
-          <button type="button" className="toolbar-btn" onClick={() => setKeep(new Set(rows.map((row) => row.key)))}>Reset</button>
-          <button type="button" className="toolbar-btn" onClick={() => onDone(null)}>Cancel (skip revision sync)</button>
-          <button type="button" className="toolbar-btn" onClick={() => onDone({ blocked: new Set(blocked), remember })}>Apply my choices</button>
+          <button type="button" className="modal-btn-cancel" onClick={() => setKeep(new Set(rows.map((row) => row.key)))}>Reset</button>
+          <button type="button" className="modal-btn-cancel" onClick={() => onDone(null)}>Cancel (skip revision sync)</button>
+          <button type="button" className="modal-btn-save" onClick={() => onDone({ blocked: new Set(blocked), remember })}>Apply my choices</button>
         </div>
       </div>
     </div>,
