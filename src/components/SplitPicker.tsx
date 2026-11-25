@@ -45,13 +45,26 @@ export function SplitPicker({ items, keep, onChange, groups, leftTitle, rightTit
             return (
               <div key={group}>
                 <div className="split-picker-group">{group} ({inGroup.length})</div>
-                {inGroup.map((item) => (
-                  <button key={item.key} type="button" className="split-picker-item" onClick={() => move(item.key, !right)}>
-                    <span className="split-picker-label">{item.label}</span>
-                    {item.tag ? <span className="split-picker-tag">{item.tag}</span> : null}
-                    <span className="split-picker-arrow" aria-hidden="true">{right ? '←' : '→'}</span>
-                  </button>
-                ))}
+                {inGroup.map((item) => {
+                  const arrow = (
+                    <button
+                      type="button"
+                      className="split-picker-arrow"
+                      aria-label={`${right ? 'Remove' : 'Add'} ${item.label}`}
+                      onClick={() => move(item.key, !right)}
+                    >
+                      {right ? '←' : '→'}
+                    </button>
+                  );
+                  return (
+                    <div key={item.key} className="split-picker-item">
+                      {right ? arrow : null}
+                      <span className="split-picker-label">{item.label}</span>
+                      {item.tag ? <span className="split-picker-tag">{item.tag}</span> : null}
+                      {right ? null : arrow}
+                    </div>
+                  );
+                })}
               </div>
             );
           })}

@@ -9,15 +9,16 @@ interface RevisionGuardDialogProps {
   onDone: (answer: { blocked: Set<RevisionChangeKey>; remember: boolean } | null) => void;
 }
 
-const groupOf = (row: RevisionChangeRow) => `${row.op === 'insert' ? 'Add' : 'Delete'} ${row.direction === 'cloud' ? 'in cloud' : 'on this device'}`;
-const GROUPS = ['Add in cloud', 'Delete in cloud', 'Add on this device', 'Delete on this device'];
+const UNKNOWN_QUIZ = 'Other questions';
+const tagOf = (row: RevisionChangeRow) => `${row.op === 'insert' ? 'add' : 'delete'} · ${row.direction === 'cloud' ? 'cloud' : 'device'}`;
 
 /** A sync that would add or delete many revision rows: same left | right picker; left rows are blocked. */
 export function RevisionGuardDialog({ rows, onDone }: RevisionGuardDialogProps) {
   const [keep, setKeep] = useState(() => new Set(rows.map((row) => row.key)));
   const [remember, setRemember] = useState(true);
-  const items = rows.map((row) => ({ key: row.key, label: row.label, tag: row.quiz, group: groupOf(row) }));
+  const items = rows.map((row) => ({ key: row.key, label: row.label, tag: tagOf(row), group: row.quiz || UNKNOWN_QUIZ }));
   const blocked = rows.filter((row) => !keep.has(row.key)).map((row) => row.key);
+  const groups = [...new Set(items.map((item) => item.group))].sort();
   const inserts = rows.filter((row) => row.op === 'insert').length;
   const deletes = rows.length - inserts;
 
@@ -26,7 +27,7 @@ export function RevisionGuardDialog({ rows, onDone }: RevisionGuardDialogProps) 
       <div className="modal-dialog split-review-dialog">
         <h3 className="modal-title">Large revision change</h3>
         <p>This sync would add {inserts} and delete {deletes} revision rows. Nothing has been written yet. Move any row to the left to block it.</p>
-        <SplitPicker items={items} keep={keep} onChange={setKeep} groups={GROUPS} leftTitle="Blocked" rightTitle="Applying" />
+        <SplitPicker items={items} keep={keep} onChange={setKeep} groups={groups} leftTitle="Blocked" rightTitle="Applying" />
         <label className="split-review-remember">
           <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
           Remember blocked rows for this workspace (future syncs will not touch them)

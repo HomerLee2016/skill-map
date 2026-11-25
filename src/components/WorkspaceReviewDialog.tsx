@@ -9,15 +9,15 @@ interface WorkspaceReviewDialogProps {
   onDone: (keep: Set<string> | null) => void;
 }
 
-const GROUP_CLOUD = 'Missing here (in cloud)';
-const GROUP_DEVICE = 'Extra here (not in cloud)';
+const GROUP_TESTS = 'Tests';
+const GROUP_LESSONS = 'Lessons';
 
 /** Lessons and tests that exist on one side only: choose what the synced workspace keeps, then confirm any removal. */
 export function WorkspaceReviewDialog({ items, onDone }: WorkspaceReviewDialogProps) {
   const [keep, setKeep] = useState(() => new Set(items.filter((item) => item.keepByDefault).map((item) => item.ref)));
   const [confirming, setConfirming] = useState(false);
   const pickerItems = items.map((item) => ({
-    key: item.ref, label: item.title, tag: item.kind === 'tests' ? 'test' : 'lesson', group: item.origin === 'cloud' ? GROUP_CLOUD : GROUP_DEVICE,
+    key: item.ref, label: item.title, group: item.kind === 'tests' ? GROUP_TESTS : GROUP_LESSONS,
   }));
   const outcome = resolveReview(items, keep);
   const byRef = new Map(items.map((item) => [item.ref, item]));
@@ -59,7 +59,7 @@ export function WorkspaceReviewDialog({ items, onDone }: WorkspaceReviewDialogPr
               {missing.length > 0 ? <>Missing here: {countLabel(missing)}. </> : null}
               {extra.length > 0 ? <>Extra here: {countLabel(extra)}.</> : null}
             </p>
-            <SplitPicker items={pickerItems} keep={keep} onChange={setKeep} groups={[GROUP_CLOUD, GROUP_DEVICE]} leftTitle="Not keeping" rightTitle="Keeping" />
+            <SplitPicker items={pickerItems} keep={keep} onChange={setKeep} groups={[GROUP_TESTS, GROUP_LESSONS]} leftTitle="Not keeping" rightTitle="Keeping" />
             <div className="modal-actions">
               <button type="button" className="modal-btn-cancel" onClick={() => setKeep(new Set(items.filter((item) => item.keepByDefault).map((item) => item.ref)))}>Reset</button>
               <button type="button" className="modal-btn-cancel" onClick={() => onDone(null)}>Cancel (sync none of these)</button>
