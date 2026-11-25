@@ -62,7 +62,7 @@ export function WorkspaceReviewDialog({ items, onDone }: WorkspaceReviewDialogPr
             <SplitPicker items={pickerItems} keep={keep} onChange={setKeep} groups={[GROUP_TESTS, GROUP_LESSONS]} leftTitle="Not keeping" rightTitle="Keeping" />
             <div className="modal-actions">
               <button type="button" className="modal-btn-cancel" onClick={() => setKeep(new Set(items.filter((item) => item.keepByDefault).map((item) => item.ref)))}>Reset</button>
-              <button type="button" className="modal-btn-cancel" onClick={() => onDone(null)}>Cancel (sync none of these)</button>
+              <button type="button" className="modal-btn-cancel" onClick={() => onDone(null)}>Cancel</button>
               <button type="button" className="modal-btn-save" onClick={() => (removeCount > 0 ? setConfirming(true) : onDone(keep))}>Apply</button>
             </div>
           </>

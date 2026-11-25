@@ -30,13 +30,17 @@ export function SplitPicker({ items, keep, onChange, groups, leftTitle, rightTit
 
   const renderColumn = (right: boolean) => {
     const own = items.filter((item) => keep.has(item.key) === right);
+    const bulk = (
+      <button type="button" className="modal-btn-cancel split-picker-bulk" disabled={own.length === 0} onClick={() => setAll(!right)}>
+        {right ? '← Remove all' : 'Add all →'}
+      </button>
+    );
     return (
       <div className={`split-picker-col ${right ? 'split-picker-col--right' : 'split-picker-col--left'}`}>
         <header className="split-picker-head">
+          {right ? bulk : null}
           <strong>{right ? rightTitle : leftTitle} ({own.length})</strong>
-          <button type="button" className="modal-btn-cancel split-picker-bulk" disabled={own.length === 0} onClick={() => setAll(!right)}>
-            {right ? '← Remove all' : 'Add all →'}
-          </button>
+          {right ? null : bulk}
         </header>
         <div className="split-picker-list">
           {groups.map((group) => {

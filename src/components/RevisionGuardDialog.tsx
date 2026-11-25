@@ -34,7 +34,7 @@ export function RevisionGuardDialog({ rows, onDone }: RevisionGuardDialogProps) 
         </label>
         <div className="modal-actions">
           <button type="button" className="modal-btn-cancel" onClick={() => setKeep(new Set(rows.map((row) => row.key)))}>Reset</button>
-          <button type="button" className="modal-btn-cancel" onClick={() => onDone(null)}>Cancel (skip revision sync)</button>
+          <button type="button" className="modal-btn-cancel" onClick={() => onDone(null)}>Cancel</button>
           <button type="button" className="modal-btn-save" onClick={() => onDone({ blocked: new Set(blocked), remember })}>Apply my choices</button>
         </div>
       </div>
