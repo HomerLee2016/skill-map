@@ -2125,7 +2125,13 @@ body, html, #root {
 .split-picker-arrow { flex: none; width: 28px; height: 24px; padding: 0; border: 0; border-radius: 6px; background: var(--modal-cancel-bg); color: inherit; font: inherit; font-weight: 700; cursor: pointer; }
 .split-picker-arrow:hover { filter: brightness(1.15); }
 @media (max-width: 600px) {
-  .split-picker { gap: 4px; }
+  .split-picker { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .split-picker-middle { grid-column: 1 / -1; grid-row: 1; flex-direction: row; justify-content: center; }
+  .split-picker-middle .split-picker-bulk { flex: 1; }
   .split-picker-head { flex-direction: column; align-items: flex-start; }
-  .split-picker-item { font-size: 12px; }
+  .split-picker-item { font-size: 12px; gap: 6px; padding: 5px 6px; }
+  .split-picker-arrow { width: 24px; }
+  .split-picker-item { flex-wrap: wrap; }
+  .split-picker-tag { order: 3; flex-basis: 100%; padding-left: 30px; }
+  .split-review-dialog { padding: 14px; width: calc(100vw - 16px); }
 }
