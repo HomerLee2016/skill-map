@@ -30,17 +30,10 @@ export function SplitPicker({ items, keep, onChange, groups, leftTitle, rightTit
 
   const renderColumn = (right: boolean) => {
     const own = items.filter((item) => keep.has(item.key) === right);
-    const bulk = (
-      <button type="button" className="modal-btn-cancel split-picker-bulk" disabled={own.length === 0} onClick={() => setAll(!right)}>
-        {right ? '← Remove all' : 'Add all →'}
-      </button>
-    );
     return (
       <div className={`split-picker-col ${right ? 'split-picker-col--right' : 'split-picker-col--left'}`}>
         <header className="split-picker-head">
-          {right ? bulk : null}
           <strong>{right ? rightTitle : leftTitle} ({own.length})</strong>
-          {right ? null : bulk}
         </header>
         <div className="split-picker-list">
           {groups.map((group) => {
@@ -77,5 +70,14 @@ export function SplitPicker({ items, keep, onChange, groups, leftTitle, rightTit
     );
   };
 
-  return <div className="split-picker">{renderColumn(false)}{renderColumn(true)}</div>;
+  return (
+    <div className="split-picker">
+      {renderColumn(false)}
+      <div className="split-picker-middle">
+        <button type="button" className="modal-btn-cancel split-picker-bulk" title="Move all to the right" aria-label="Move all to the right" disabled={items.every((item) => keep.has(item.key))} onClick={() => setAll(true)}>&raquo;</button>
+        <button type="button" className="modal-btn-cancel split-picker-bulk" title="Move all to the left" aria-label="Move all to the left" disabled={items.every((item) => !keep.has(item.key))} onClick={() => setAll(false)}>&laquo;</button>
+      </div>
+      {renderColumn(true)}
+    </div>
+  );
 }
