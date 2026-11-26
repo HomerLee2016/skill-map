@@ -33,7 +33,7 @@ export function SyncConflictDialog({ conflict, busy, onChoose }: SyncConflictDia
           <SideColumn title="Cloud account" side={conflict.cloud} />
         </div>
         <div className="modal-actions">
-          <button type="button" className="toolbar-btn" disabled={busy} onClick={() => onChoose('merge')}>
+          <button type="button" className="toolbar-btn toolbar-btn--primary" disabled={busy} onClick={() => onChoose('merge')}>
             Merge both (newest wins)
           </button>
           <button type="button" className="toolbar-btn" disabled={busy} onClick={() => onChoose('cloud')}>

@@ -65,7 +65,7 @@ export function DuplicateWorkspaceDialog({ entries, onClose }: DuplicateWorkspac
             <p className="sharing-muted">The original was not changed. Edit the copy freely.</p>
             <div className="modal-actions">
               <button type="button" className="modal-btn-cancel" onClick={onClose}>Close</button>
-              <button type="button" className="toolbar-btn" onClick={() => { void openCopy(); }}>Open the copy</button>
+              <button type="button" className="toolbar-btn toolbar-btn--primary" onClick={() => { void openCopy(); }}>Open the copy</button>
             </div>
           </>
         ) : (
@@ -87,7 +87,7 @@ export function DuplicateWorkspaceDialog({ entries, onClose }: DuplicateWorkspac
             {error ? <p className="tree-error">{error}</p> : null}
             <div className="modal-actions">
               <button type="button" className="modal-btn-cancel" onClick={onClose} disabled={busy}>Cancel</button>
-              <button type="button" className="toolbar-btn" disabled={busy || !source || !name.trim()} onClick={() => { void run(); }}>{busy ? 'Duplicating…' : 'Duplicate'}</button>
+              <button type="button" className="toolbar-btn toolbar-btn--primary" disabled={busy || !source || !name.trim()} onClick={() => { void run(); }}>{busy ? 'Duplicating…' : 'Duplicate'}</button>
             </div>
           </>
         )}

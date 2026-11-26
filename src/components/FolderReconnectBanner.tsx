@@ -7,7 +7,7 @@ export function FolderReconnectBanner() {
   return (
     <div className="folder-reconnect-banner" role="alert">
       <span>The browser needs permission to open your folder “{folderToReconnect.name}” again. What you see below is not that workspace.</span>
-      <button type="button" className="toolbar-btn" onClick={() => { void reconnectFolder(); }}>Reconnect folder</button>
+      <button type="button" className="toolbar-btn toolbar-btn--primary" onClick={() => { void reconnectFolder(); }}>Reconnect folder</button>
     </div>
   );
 }

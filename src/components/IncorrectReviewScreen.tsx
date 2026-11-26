@@ -45,7 +45,7 @@ function IncorrectReviewScreen({
       <div className="tests-score">
         <p>You did not miss any questions.</p>
         {onFinish && (
-          <button type="button" className="toolbar-btn" onClick={onFinish}>
+          <button type="button" className="toolbar-btn toolbar-btn--primary" onClick={onFinish}>
             Back to Test/Summary
           </button>
         )}
@@ -60,7 +60,7 @@ function IncorrectReviewScreen({
       <div className="tests-score">
         <p>No incorrect questions.</p>
         {onFinish && (
-          <button type="button" className="toolbar-btn" onClick={onFinish}>
+          <button type="button" className="toolbar-btn toolbar-btn--primary" onClick={onFinish}>
             Close review
           </button>
         )}
@@ -94,7 +94,7 @@ function IncorrectReviewScreen({
         showAutoAdvanceToggle={false}
       />
       <div className="test-question__footer" style={{ justifyContent: 'flex-end' }}>
-        <button type="button" className="toolbar-btn" onClick={onFinish}>
+        <button type="button" className="toolbar-btn toolbar-btn--primary" onClick={onFinish}>
           Finish review
         </button>
       </div>

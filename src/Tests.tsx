@@ -337,7 +337,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
         ) : finished ? (
           <div className="tests-score">
             <p>Finished! Score: {computedScore} / {total}</p>
-            <button type="button" className="toolbar-btn" onClick={() => {
+            <button type="button" className="toolbar-btn toolbar-btn--primary" onClick={() => {
               setShowIncorrectReview(true);
               setFinished(false);
               setCurrentIdx(0);

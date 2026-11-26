@@ -48,7 +48,7 @@ export function RoadmapSidebar({
     <>
         <div className="sidebar-header">
           <div className="sidebar-title">Roadmaps</div>
-          <button type="button" className="toolbar-btn toolbar-btn--full" onClick={onSaveRoadmap}>
+          <button type="button" className="toolbar-btn toolbar-btn--primary toolbar-btn--full" onClick={onSaveRoadmap}>
             Save Roadmap
           </button>
           <button type="button" className="toolbar-btn toolbar-btn--full" onClick={onCreateRoadmap}>

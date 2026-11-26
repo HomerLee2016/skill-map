@@ -29,7 +29,7 @@ function Sharing({ active }: { active: boolean }) {
         ) : !user ? (
           <div className="sharing-signin">
             <p>Sign in to share your workspaces and to clone workspaces your friends shared.</p>
-            <button type="button" className="toolbar-btn" onClick={() => { void signInWithGoogle(); }}>Sign in with Google</button>
+            <button type="button" className="toolbar-btn toolbar-btn--primary" onClick={() => { void signInWithGoogle(); }}>Sign in with Google</button>
           </div>
         ) : (
           <>

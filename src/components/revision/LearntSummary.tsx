@@ -65,7 +65,7 @@ export function LearntSummary({ completedRows, dueCount, nextRevisionIso, onStar
           <h1>Revision</h1>
           <p>You have {dueCount} question{dueCount !== 1 ? 's' : ''} due for review. { dueCount == 0 ? (nextRevisionIso ? 'Come back in ' + formatNextRevisionTime(nextRevisionIso) : '') : 'Let\'s review now.'}</p>
         </div>
-        <button type="button" className="toolbar-btn" onClick={onStartRevision}>
+        <button type="button" className="toolbar-btn toolbar-btn--primary" onClick={onStartRevision}>
           Start revision
         </button>
       </div>

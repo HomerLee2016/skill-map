@@ -73,7 +73,7 @@ export function RemoveWorkspaceDialog({ entry, canDeleteCloud, onCancel, onConfi
           <button type="button" className="toolbar-btn" onClick={onCancel} disabled={busy}>Cancel</button>
           <button
             type="button"
-            className={deletesCloud ? 'toolbar-btn remove-confirm remove-confirm--danger' : 'toolbar-btn remove-confirm'}
+            className={deletesCloud ? 'toolbar-btn remove-confirm remove-confirm--danger' : 'toolbar-btn toolbar-btn--primary remove-confirm'}
             disabled={!matches || busy || (deletesCloud && !canDeleteCloud)}
             onClick={() => { void confirm(); }}
           >

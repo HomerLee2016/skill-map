@@ -133,7 +133,7 @@ export function TreeActionModal({
           <button type="button" className="toolbar-btn" onClick={onClose}>
             Cancel
           </button>
-          <button type="button" className="toolbar-btn" onClick={handleSubmit} disabled={!canSubmit}>
+          <button type="button" className="toolbar-btn toolbar-btn--primary" onClick={handleSubmit} disabled={!canSubmit}>
             Save
           </button>
         </div>

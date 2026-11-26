@@ -48,7 +48,7 @@ export function PreviewModal({ item, content, canClone, onClone, onReport, onClo
       <div className="modal-actions">
         {canClone ? <button type="button" className="sharing-link-btn" onClick={onReport}>Report</button> : null}
         <button type="button" className="modal-btn-cancel" onClick={onClose}>Close</button>
-        {canClone ? <button type="button" className="toolbar-btn" onClick={onClone}>Clone to new workspace</button> : null}
+        {canClone ? <button type="button" className="toolbar-btn toolbar-btn--primary" onClick={onClone}>Clone to new workspace</button> : null}
       </div>
     </Modal>
   );
@@ -94,7 +94,7 @@ export function CloneModal({ item, onClose, onCloned }: CloneModalProps) {
       {error ? <p className="tree-error" role="alert">{error}</p> : null}
       <div className="modal-actions">
         <button type="button" className="modal-btn-cancel" disabled={busy} onClick={onClose}>Cancel</button>
-        <button type="button" className="toolbar-btn" disabled={busy} onClick={() => { void clone(); }}>{busy ? 'Cloning…' : 'Clone'}</button>
+        <button type="button" className="toolbar-btn toolbar-btn--primary" disabled={busy} onClick={() => { void clone(); }}>{busy ? 'Cloning…' : 'Clone'}</button>
       </div>
     </Modal>
   );
@@ -144,7 +144,7 @@ export function ReportModal({ item, onClose, onReported }: ReportModalProps) {
       {error ? <p className="tree-error" role="alert">{error}</p> : null}
       <div className="modal-actions">
         <button type="button" className="modal-btn-cancel" disabled={busy} onClick={onClose}>Cancel</button>
-        <button type="button" className="toolbar-btn sharing-btn-danger" disabled={busy} onClick={() => { void send(); }}>{busy ? 'Sending…' : 'Send report'}</button>
+        <button type="button" className="toolbar-btn toolbar-btn--danger" disabled={busy} onClick={() => { void send(); }}>{busy ? 'Sending…' : 'Send report'}</button>
       </div>
     </Modal>
   );

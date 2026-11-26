@@ -40,7 +40,7 @@ export function UnpublishDialog({ item, onClose, onDone }: UnpublishDialogProps)
       {error ? <p className="tree-error" role="alert">{error}</p> : null}
       <div className="modal-actions">
         <button type="button" className="modal-btn-cancel" onClick={onClose} disabled={busy}>Cancel</button>
-        <button type="button" className="toolbar-btn sharing-btn-danger" disabled={busy} onClick={() => { void confirm(); }}>{busy ? 'Working…' : 'Unpublish'}</button>
+        <button type="button" className="toolbar-btn toolbar-btn--danger" disabled={busy} onClick={() => { void confirm(); }}>{busy ? 'Working…' : 'Unpublish'}</button>
       </div>
     </Modal>
   );

@@ -97,7 +97,9 @@ All modals share `.modal-overlay` (dimmed backdrop) and `.modal-dialog` (rounded
 
 | Pattern | Class / component |
 | --- | --- |
-| Primary button | `.toolbar-btn` (gradient). Quiet variant: `.ce-btn--quiet` |
+| Primary button (max one per page/dialog) | `.toolbar-btn.toolbar-btn--primary` (gradient) |
+| Secondary button (default) | `.toolbar-btn` (neutral). Rules: `docs/UI-UX-RULES.md` |
+| Danger confirm | `.toolbar-btn--danger` |
 | Icon button | `.icon-btn` |
 | Dialog buttons | `.modal-btn-cancel`, `.modal-btn-save`, `.ce-danger` for destructive |
 | Text inputs | `.modal-input`, labels `.modal-label` |
