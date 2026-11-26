@@ -96,7 +96,7 @@ export function MergeWorkspaceDialog({ entries, onClose }: MergeWorkspaceDialogP
             <p className="sharing-muted">The original workspaces were not changed.</p>
             <div className="modal-actions">
               <button type="button" className="modal-btn-cancel" onClick={onClose}>Close</button>
-              <button type="button" className="toolbar-btn" onClick={() => { void openMerged(); }}>Open merged workspace</button>
+              <button type="button" className="toolbar-btn toolbar-btn--primary" onClick={() => { void openMerged(); }}>Open merged workspace</button>
             </div>
           </>
         ) : (
@@ -135,7 +135,7 @@ export function MergeWorkspaceDialog({ entries, onClose }: MergeWorkspaceDialogP
             {error ? <p className="tree-error">{error}</p> : null}
             <div className="modal-actions">
               <button type="button" className="modal-btn-cancel" onClick={onClose} disabled={busy}>Cancel</button>
-              <button type="button" className="toolbar-btn" disabled={!canMerge} onClick={() => { void run(); }}>
+              <button type="button" className="toolbar-btn toolbar-btn--primary" disabled={!canMerge} onClick={() => { void run(); }}>
                 {busy ? 'Merging…' : picked.length >= 2 ? `Merge ${picked.length} workspaces` : 'Merge'}
               </button>
             </div>

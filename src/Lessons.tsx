@@ -15,6 +15,7 @@ import { ContentTreeSidebar } from './components/Sidebar/ContentTreeSidebar';
 import { TreeActionModal } from './components/Sidebar/TreeActionModal';
 import { TreeGlobalActions } from './components/Sidebar/TreeGlobalActions';
 import { useExpandCollapseState } from './hooks/useExpandCollapseState';
+import { ContentActions } from './components/editor/ContentActions';
 import { ConfirmDeleteDialog } from './components/editor/ConfirmDeleteDialog';
 import { LessonEditorModal } from './components/editor/LessonEditorModal';
 import { useWorkspaceGuide } from './components/editor/useWorkspaceGuide';
@@ -168,10 +169,7 @@ function Lessons({ selectedLessonId, onSelectedLessonIdChange }: LessonsProps) {
         ) : null}
         {selected ? (
           <>
-            <div className="ce-content-actions">
-              <button type="button" className="toolbar-btn ce-btn" onClick={() => setEditor('edit')} disabled={editBlockedReason !== null} title={editBlockedReason ?? 'Edit this lesson'}>✏️ Edit lesson</button>
-              <button type="button" className="toolbar-btn ce-btn ce-btn--quiet" onClick={() => setDeleting(true)} disabled={editBlockedReason !== null} title={editBlockedReason ?? 'Delete this lesson'}>🗑 Delete</button>
-            </div>
+            <ContentActions noun="lesson" blockedReason={editBlockedReason} onEdit={() => setEditor('edit')} onDelete={() => setDeleting(true)} />
             <LessonMarkdown content={selected.content} />
           </>
         ) : (

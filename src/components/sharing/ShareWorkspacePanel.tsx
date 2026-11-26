@@ -46,7 +46,7 @@ export function ShareWorkspacePanel({ shared, onChanged }: ShareWorkspacePanelPr
   return (
     <div className="sharing-form">
       <div className="sharing-actions">
-        <button type="button" className="toolbar-btn" disabled={available.length === 0} onClick={() => { setMessage(null); setDialog({ kind: 'publish' }); }}>
+        <button type="button" className="toolbar-btn toolbar-btn--primary" disabled={available.length === 0} onClick={() => { setMessage(null); setDialog({ kind: 'publish' }); }}>
           Publish new workspace
         </button>
       </div>

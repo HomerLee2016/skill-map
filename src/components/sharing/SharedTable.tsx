@@ -49,7 +49,7 @@ export function SharedTable({ rows, userId, stats, mine, onReact, onPreview, onC
                 <div className="sharing-row-actions">
                   <button type="button" className="modal-btn-cancel" onClick={() => onPreview(item)}>Preview</button>
                   {own
-                    ? <button type="button" className="toolbar-btn sharing-btn-danger" onClick={() => onUnpublish(item)}>Unpublish</button>
+                    ? <button type="button" className="toolbar-btn" onClick={() => onUnpublish(item)}>Unpublish</button>
                     : (
                       <>
                         <button type="button" className="toolbar-btn" onClick={() => onClone(item)}>Clone</button>

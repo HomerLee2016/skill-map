@@ -20,6 +20,7 @@ import AnswerQuestion from './components/AnswerQuestion';
 import IncorrectReviewScreen from './components/IncorrectReviewScreen';
 import QuestionTracker, { getFirstUnansweredQuestionIndex } from './components/QuestionTracker';
 import { countCorrectAnswers } from './utils/testScoring';
+import { ContentActions } from './components/editor/ContentActions';
 import { ConfirmDeleteDialog } from './components/editor/ConfirmDeleteDialog';
 import { TestEditorModal } from './components/editor/TestEditorModal';
 import { useWorkspaceGuide } from './components/editor/useWorkspaceGuide';
@@ -311,12 +312,6 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
             <button type="button" className="ce-notice-close" onClick={() => setNotice([])} aria-label="Dismiss">✕</button>
           </div>
         ) : null}
-        {selected ? (
-          <div className="ce-content-actions">
-            <button type="button" className="toolbar-btn ce-btn" onClick={() => setEditor('edit')} disabled={editBlockedReason !== null} title={editBlockedReason ?? 'Edit this test'}>✏️ Edit test</button>
-            <button type="button" className="toolbar-btn ce-btn ce-btn--quiet" onClick={() => setDeleting(true)} disabled={editBlockedReason !== null} title={editBlockedReason ?? 'Delete this test'}>🗑 Delete</button>
-          </div>
-        ) : null}
         {!selected ? (
           <p className="tests-empty">Select a test from the sidebar.</p>
         ) : showIncorrectReview ? (
@@ -337,7 +332,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
         ) : finished ? (
           <div className="tests-score">
             <p>Finished! Score: {computedScore} / {total}</p>
-            <button type="button" className="toolbar-btn" onClick={() => {
+            <button type="button" className="toolbar-btn toolbar-btn--primary" onClick={() => {
               setShowIncorrectReview(true);
               setFinished(false);
               setCurrentIdx(0);
@@ -349,7 +344,10 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
           <>
             <header className="tests-header">
               <h1>{selected.title}</h1>
-              <p className="tests-meta">{selected.questions.length} multiple-choice questions</p>
+              <div className="tests-meta-row">
+                <p className="tests-meta">{selected.questions.length} multiple-choice questions</p>
+                <ContentActions noun="test" blockedReason={editBlockedReason} onEdit={() => setEditor('edit')} onDelete={() => setDeleting(true)} />
+              </div>
             </header>
             <QuestionTracker
               totalQuestions={totalQuestions}

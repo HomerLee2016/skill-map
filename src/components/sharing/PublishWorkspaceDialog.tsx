@@ -135,7 +135,7 @@ export function PublishWorkspaceDialog({ options, published, tagSuggestions, onC
       {error ? <p className="tree-error" role="alert">{error}</p> : null}
       <div className="modal-actions">
         <button type="button" className="modal-btn-cancel" onClick={onClose} disabled={busy}>Cancel</button>
-        <button type="button" className="toolbar-btn" disabled={busy || !content || total === 0 || !activeKey} onClick={() => { void handlePublish(); }}>
+        <button type="button" className="toolbar-btn toolbar-btn--primary" disabled={busy || !content || total === 0 || !activeKey} onClick={() => { void handlePublish(); }}>
           {busy ? 'Working…' : published ? 'Update snapshot' : 'Publish snapshot'}
         </button>
       </div>

@@ -66,7 +66,7 @@ export function RevisionSessionView({ session }: { session: Session }) {
       {finished ? (
         <div className="tests-score">
           <p>Finished! Score: {score} / {totalQuestions}</p>
-          <button type="button" className="toolbar-btn" onClick={session.startIncorrectReview}>
+          <button type="button" className="toolbar-btn toolbar-btn--primary" onClick={session.startIncorrectReview}>
             Review Incorrect Answers
           </button>
         </div>

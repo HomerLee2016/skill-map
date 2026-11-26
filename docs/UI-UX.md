@@ -43,8 +43,8 @@ Signed-in email, "sync … ago", **Sync now**, an amber "N items changed in two 
 ## 3. Pages
 
 - **Roadmap**: React Flow skill graph. Nodes link to lessons and tests. A YAML panel edits the same roadmap both ways.
-- **Lessons**: sidebar tree of lessons; the right side renders the lesson markdown (audio players inline). Above the lesson: **✏️ Edit lesson** and **🗑 Delete**. Sidebar: **＋ Add lesson**.
-- **Tests**: sidebar tree of tests; the right side runs one question at a time with a question tracker, instant right/wrong feedback, optional audio and auto-advance, a score screen and a review of wrong answers. Above the quiz: **✏️ Edit test** and **🗑 Delete**. Sidebar: **＋ Add test**.
+- **Lessons**: sidebar tree of lessons; the right side renders the lesson markdown (audio players inline). Above the lesson: icon buttons **✏ Edit** and **🗑 Delete** (tooltips, no text). Sidebar: **＋ Add lesson**.
+- **Tests**: sidebar tree of tests; the right side runs one question at a time with a question tracker, instant right/wrong feedback, optional audio and auto-advance, a score screen and a review of wrong answers. Above the quiz: icon buttons **✏ Edit** and **🗑 Delete**. Sidebar: **＋ Add test**.
 - **Revision**: five-star spaced repetition over answered questions, summary table, remove records, export/import.
 - **Sharing hub**: publish a snapshot, browse and clone others' workspaces, vote/star, report.
 
@@ -97,7 +97,9 @@ All modals share `.modal-overlay` (dimmed backdrop) and `.modal-dialog` (rounded
 
 | Pattern | Class / component |
 | --- | --- |
-| Primary button | `.toolbar-btn` (gradient). Quiet variant: `.ce-btn--quiet` |
+| Primary button (max one per page/dialog) | `.toolbar-btn.toolbar-btn--primary` (gradient) |
+| Secondary button (default) | `.toolbar-btn` (neutral). Rules: `docs/UI-UX-RULES.md` |
+| Danger confirm | `.toolbar-btn--danger` |
 | Icon button | `.icon-btn` |
 | Dialog buttons | `.modal-btn-cancel`, `.modal-btn-save`, `.ce-danger` for destructive |
 | Text inputs | `.modal-input`, labels `.modal-label` |
