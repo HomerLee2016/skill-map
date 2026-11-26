@@ -2040,7 +2040,7 @@ body, html, #root {
 .published-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 1px solid var(--panel-border); border-radius: 8px; background: transparent; color: var(--lessons-text); cursor: pointer; }
 .icon-btn:hover:not(:disabled) { background: var(--node-link-bg); }
-.icon-btn:disabled { opacity: 0.4; cursor: default; }
+.icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .icon-btn--danger { color: #dc2626; }
 .icon-btn { position: relative; }
 .icon-btn--on { background: var(--node-link-bg); }

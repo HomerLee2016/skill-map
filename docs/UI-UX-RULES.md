@@ -47,3 +47,6 @@ Short rules so every page and dialog looks clean and consistent. Check them befo
 3. Light + dark, desktop + phone checked?
 4. Labels sentence case, names consistent?
 5. Empty and error states present?
+
+## 10. Icon-only buttons
+- Use icon-only (`icon-btn`) for repeated, well-known row/header actions such as edit and delete (`ContentActions`). Always add `title` + `aria-label`; delete icon is red-tinted but opens a confirm. Text buttons for anything unfamiliar or primary.

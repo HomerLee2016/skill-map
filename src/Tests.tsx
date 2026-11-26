@@ -20,6 +20,7 @@ import AnswerQuestion from './components/AnswerQuestion';
 import IncorrectReviewScreen from './components/IncorrectReviewScreen';
 import QuestionTracker, { getFirstUnansweredQuestionIndex } from './components/QuestionTracker';
 import { countCorrectAnswers } from './utils/testScoring';
+import { ContentActions } from './components/editor/ContentActions';
 import { ConfirmDeleteDialog } from './components/editor/ConfirmDeleteDialog';
 import { TestEditorModal } from './components/editor/TestEditorModal';
 import { useWorkspaceGuide } from './components/editor/useWorkspaceGuide';
@@ -312,10 +313,7 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
           </div>
         ) : null}
         {selected ? (
-          <div className="ce-content-actions">
-            <button type="button" className="toolbar-btn ce-btn" onClick={() => setEditor('edit')} disabled={editBlockedReason !== null} title={editBlockedReason ?? 'Edit this test'}>✏️ Edit test</button>
-            <button type="button" className="toolbar-btn ce-btn ce-btn--quiet" onClick={() => setDeleting(true)} disabled={editBlockedReason !== null} title={editBlockedReason ?? 'Delete this test'}>🗑 Delete</button>
-          </div>
+          <ContentActions noun="test" blockedReason={editBlockedReason} onEdit={() => setEditor('edit')} onDelete={() => setDeleting(true)} />
         ) : null}
         {!selected ? (
           <p className="tests-empty">Select a test from the sidebar.</p>

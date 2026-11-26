@@ -82,7 +82,7 @@
   .ce-question { padding: 10px; }
   .ce-guide-actions .toolbar-btn { flex: 1 1 100%; min-height: 44px; }
   .ce-add-row .toolbar-btn { flex: 1 1 100%; min-height: 44px; }
-  .ce-content-actions .toolbar-btn { flex: 1; min-height: 44px; }
+  .ce-content-actions .icon-btn { width: 44px; height: 44px; }
   .ce-sidebar-actions .toolbar-btn { min-height: 44px; }
   .ce-confirm .modal-actions { flex-direction: column-reverse; }
   .ce-confirm .modal-actions button { width: 100%; min-height: 44px; }
