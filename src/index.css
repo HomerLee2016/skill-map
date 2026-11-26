@@ -917,8 +917,21 @@ body, html, #root {
   font-size: 24px;
 }
 
-.tests-meta {
+.tests-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin: 0 0 20px;
+}
+
+.tests-meta-row .ce-content-actions {
+  margin: 0;
+  flex-wrap: nowrap;
+}
+
+.tests-meta {
+  margin: 0;
   color: var(--tests-muted);
 }
 

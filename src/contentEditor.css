@@ -4,7 +4,7 @@
 .ce-btn { min-height: 36px; }
 .ce-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .ce-btn--quiet { background: transparent; border: 1px solid var(--panel-border); color: var(--lessons-text); }
-.ce-content-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.ce-content-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 .ce-hint { margin: 2px 0 0; font-size: 12px; font-weight: 400; color: var(--lessons-muted); line-height: 1.4; }
 .ce-error { margin: 0; color: #d93025; font-size: 13px; line-height: 1.4; }
 .ce-warning { margin: 0; color: #b26a00; font-size: 13px; line-height: 1.4; }

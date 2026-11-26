@@ -312,9 +312,6 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
             <button type="button" className="ce-notice-close" onClick={() => setNotice([])} aria-label="Dismiss">✕</button>
           </div>
         ) : null}
-        {selected ? (
-          <ContentActions noun="test" blockedReason={editBlockedReason} onEdit={() => setEditor('edit')} onDelete={() => setDeleting(true)} />
-        ) : null}
         {!selected ? (
           <p className="tests-empty">Select a test from the sidebar.</p>
         ) : showIncorrectReview ? (
@@ -347,7 +344,10 @@ function Tests({ selectedTestId, onSelectedTestIdChange }: TestsProps) {
           <>
             <header className="tests-header">
               <h1>{selected.title}</h1>
-              <p className="tests-meta">{selected.questions.length} multiple-choice questions</p>
+              <div className="tests-meta-row">
+                <p className="tests-meta">{selected.questions.length} multiple-choice questions</p>
+                <ContentActions noun="test" blockedReason={editBlockedReason} onEdit={() => setEditor('edit')} onDelete={() => setDeleting(true)} />
+              </div>
             </header>
             <QuestionTracker
               totalQuestions={totalQuestions}
