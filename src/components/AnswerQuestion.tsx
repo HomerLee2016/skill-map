@@ -232,7 +232,7 @@ const AnswerQuestion: React.FC<Props> = ({
           </div>
         )}
         {hasAnswered && shouldShowManualNext && onNextQuestion && (
-          <button type="button" className="toolbar-btn test-question__next-button" onClick={onNextQuestion}>
+          <button type="button" className="toolbar-btn toolbar-btn--primary test-question__next-button" onClick={onNextQuestion}>
             Next Question
           </button>
         )}
