@@ -104,10 +104,6 @@
     max-width: 150px;
   }
 
-  .top-bar-workspace-label {
-    display: none;
-  }
-
   .top-bar-workspace-trigger {
     overflow: hidden;
     text-overflow: ellipsis;

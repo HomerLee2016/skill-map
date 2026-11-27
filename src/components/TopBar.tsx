@@ -51,6 +51,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
   const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
   const hasDirectoryPicker = typeof window !== 'undefined' && typeof (window as Window & { showDirectoryPicker?: unknown }).showDirectoryPicker === 'function';
   const workspaceEntries = mergeWorkspaceLists(workspaceHistory, cloudWorkspaces, workspaceDueCounts);
+  const hasWorkspace = Boolean(selectedDirectoryHandle) || cloudWorkspaces.length > 0;
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
   const workspaceMenuRef = useRef<HTMLDivElement | null>(null);
   const [isNavOpen, setIsNavOpen] = useState(false);
@@ -152,15 +153,21 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
         <div className="top-bar-brand">Skill Map</div>
       </div>
       <div className="top-bar-workspace-pill" ref={workspaceMenuRef}>
-        <span className="top-bar-workspace-label">{workspaceSelectionLabel}</span>
         <button
           type="button"
           className="top-bar-workspace-trigger"
           onClick={() => { void handleWorkspaceTrigger(); }}
           aria-expanded={isWorkspaceMenuOpen}
           aria-haspopup="menu"
+          title={hasWorkspace ? `Current: ${workspaceSelectionLabel}. Click to change workspace` : 'Select a local workspace folder'}
+          aria-label={hasWorkspace && !isLoading ? `Current workspace: ${workspaceSelectionLabel}. Change workspace` : undefined}
         >
-          {isLoading ? 'Loading…' : selectedDirectoryHandle || cloudWorkspaces.length > 0 ? 'Change Workspace' : 'Select Local Workspace'}
+          {isLoading ? 'Loading…' : hasWorkspace ? (
+            <>
+              <span className="top-bar-workspace-label">{workspaceSelectionLabel}</span>
+              <span className="top-bar-workspace-caret" aria-hidden="true">▾</span>
+            </>
+          ) : 'Select Local Workspace'}
         </button>
         {isWorkspaceMenuOpen ? (
           <div className="top-bar-workspace-menu" role="menu">
