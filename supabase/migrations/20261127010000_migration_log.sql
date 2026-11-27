@@ -13,8 +13,7 @@ alter table public.migration_log enable row level security;
 revoke all on public.migration_log from anon, authenticated;
 
 -- Backfill: scripts already run before this log existed. Edit this list to match what you really ran.
--- Hardening was confirmed run (checked in the database). content_editing is commented out because
--- supabase/README.md marks it "NOT RUN YET"; uncomment it if you did run it, otherwise it shows as missing.
+-- Homer confirmed every script up to this one has been run (2026-11-27).
 insert into public.migration_log (filename) values
   ('20261026000000_revision_records.sql'),
   ('20261026010000_revision_records_grants.sql'),
@@ -25,6 +24,6 @@ insert into public.migration_log (filename) values
   ('20261115000000_sharing_hub_reactions.sql'),
   ('20261116000000_sharing_hub_tags.sql'),
   ('20261117000000_sharing_hub_hardening.sql'),
-  -- ('20261124000000_content_editing.sql'),
+  ('20261124000000_content_editing.sql'),
   ('20261127010000_migration_log.sql')
 on conflict do nothing;

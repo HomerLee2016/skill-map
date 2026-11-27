@@ -64,7 +64,7 @@ Run after the sharing hub, tags and votes migrations: paste `migrations/20261117
 - Reports: `shared_workspace_reports`; read your own only. Review them in the SQL Editor (queries at the top of the migration).
 - Checks: `supabase/tests/sharing_hub_hardening.sql` (run on a scratch database, never production).
 
-## Content editing migration (NOT RUN YET)
+## Content editing migration
 
 Run after the migrations above: paste `migrations/20261124000000_content_editing.sql` into the SQL Editor and click **Run** (re-running is safe).
 
