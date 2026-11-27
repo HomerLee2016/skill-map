@@ -117,4 +117,4 @@ All modals share `.modal-overlay` (dimmed backdrop) and `.modal-dialog` (rounded
 
 ## 10. Maintaining this doc
 
-Update this file in the same PR whenever you add or change a page, menu, modal, mobile rule or shared component. Add screenshots to `qa-screenshots/<feature>/` (desktop and phone) and mention them in the PR.
+Update this file in the same PR whenever you add or change a page, menu, modal, mobile rule or shared component. Check desktop and phone and show the screenshots in the Claude thread; do not commit them to the repo.

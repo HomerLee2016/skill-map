@@ -38,3 +38,8 @@ When a story/epic has several sub-issues:
 
 - Keep CLAUDE.md short, simple, and concise.
 - Use point form; no long paragraphs.
+
+# Screenshots
+
+- Do NOT commit screenshots to the repo (no `qa-screenshots/`).
+- Show them in the Claude app thread only.

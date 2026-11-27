@@ -12,5 +12,5 @@ Checklist:
 - Red (`toolbar-btn--danger`) only on the final confirm of a destructive action; the opener is secondary.
 - Edit/delete on items: icon-only `ContentActions`, right-aligned on the item's subtitle row, with title + aria-label.
 - CSS variables only (no hard-coded colours except status). Sentence-case verb-first labels; consistent names (Remove vs Delete).
-- Check desktop + phone and light + dark; put before/after screenshots in the PR.
+- Check desktop + phone and light + dark; show before/after screenshots in the Claude thread (never commit them to the repo).
 - Update `docs/UI-UX.md` when a page, menu or modal changes.
