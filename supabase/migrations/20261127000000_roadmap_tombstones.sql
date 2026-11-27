@@ -4,3 +4,5 @@
 alter table public.content_tombstones drop constraint if exists content_tombstones_kind_check;
 alter table public.content_tombstones
   add constraint content_tombstones_kind_check check (kind in ('lessons', 'tests', 'roadmaps'));
+
+insert into public.migration_log (filename) values ('20261127000000_roadmap_tombstones.sql') on conflict do nothing;
