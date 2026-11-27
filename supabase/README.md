@@ -91,3 +91,25 @@ insert into public.app_admins (user_id) select id from auth.users where email = 
 Signed in as that user, an **Admin** link appears in the top bar. It compares the scripts bundled with the build (`supabase/migrations/*.sql` at build time) with the database: *Applied* = logged and its objects exist, *Applied (logged only)* = logged, no object check written, *Not run* = not logged. Other users never see the link, and the database refuses the function to them.
 
 For each new script: end it with its `migration_log` insert; optionally add an object check to `admin_migration_status()` (same list as `supabase/tests/verify_migrations.sql`).
+
+### How the Admin check works
+
+```mermaid
+sequenceDiagram
+    actor You
+    participant App as Web app (build)
+    participant DB as Supabase (admin_migration_status)
+    participant Log as migration_log + real tables
+
+    Note over App: Build time: file names in supabase/migrations are baked in
+    You->>DB: Run script in SQL Editor (last line inserts its name into migration_log)
+    You->>App: Open Admin tab
+    App->>DB: rpc is_app_admin()
+    DB-->>App: true (you are in app_admins)
+    App->>DB: rpc admin_migration_status()
+    DB->>Log: read log rows, check the script's tables/columns/triggers
+    Log-->>DB: logged? objects exist?
+    DB-->>App: one row per script
+    App->>App: compare repo file list with the rows
+    App-->>You: Applied / Logged only / Objects missing / Not run
+```
