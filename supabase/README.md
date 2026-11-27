@@ -54,7 +54,7 @@ Run after the sharing hub migration: paste `migrations/20261116000000_sharing_hu
 
 Duplicate workspace needs no migration: it writes a new `copy-<random>` workspace into the user's own rows.
 
-## Sharing hub hardening migration (NOT RUN YET)
+## Sharing hub hardening migration
 
 Run after the sharing hub, tags and votes migrations: paste `migrations/20261117000000_sharing_hub_hardening.sql` into the SQL Editor and click **Run** (re-running is safe). Until it is run, the app still works but the database does not enforce the rules below, and Report shows "needs the migration".
 
@@ -64,10 +64,52 @@ Run after the sharing hub, tags and votes migrations: paste `migrations/20261117
 - Reports: `shared_workspace_reports`; read your own only. Review them in the SQL Editor (queries at the top of the migration).
 - Checks: `supabase/tests/sharing_hub_hardening.sql` (run on a scratch database, never production).
 
-## Content editing migration (NOT RUN YET)
+## Content editing migration
 
 Run after the migrations above: paste `migrations/20261124000000_content_editing.sql` into the SQL Editor and click **Run** (re-running is safe).
 
 - `content_tombstones (user_id, workspace_key, kind, id, deleted_at)`: written when a lesson, test or roadmap is deleted in the app (roadmaps need migration `20261127000000_roadmap_tombstones.sql`), so other devices delete their copy instead of uploading it again. Saving the item again removes the row. RLS own-rows only; grants to `authenticated` only; cascades with the workspace.
 - `workspaces.prompt_guide` (text, at most 200 000 characters): the markdown guide shown in the lesson/test editors. Empty means the app's bundled guide for the workspace's language.
 - Until it is run, adding, editing and deleting still work. Deletes just do not reach other devices (the app says so), and a guide edited in a cloud-only workspace cannot be saved.
+
+## Migration log (which scripts have I run?)
+
+Run `migrations/20261127010000_migration_log.sql` first in the SQL Editor (re-running is safe). It creates `migration_log (filename, applied_at)`, private (RLS on, no policies, no grants to `anon`/`authenticated`; the SQL Editor still works) and backfills the scripts run so far. Edit the backfill list to match what you really ran.
+
+- **After running any migration**, log it: `insert into public.migration_log (filename) values ('<file name>') on conflict do nothing;`. New migrations should end with that line.
+- **See what you missed**: run `scripts/unlogged-migrations.sh`, paste its output into the SQL Editor; it lists repo scripts not in the log.
+- No keys are involved; nothing here touches the frontend.
+
+## Admin tab (which scripts are applied?)
+
+Run `migrations/20261127020000_admin_migration_status.sql` (after the migration log script). It creates `app_admins` (private), `is_app_admin()` and `admin_migration_status()` (admins only; security definer, so no service key or secret is needed anywhere). Then make yourself an admin once, in the SQL Editor, with your sign-in email:
+
+```sql
+insert into public.app_admins (user_id) select id from auth.users where email = 'you@example.com' on conflict do nothing;
+```
+
+Signed in as that user, an **Admin** link appears in the top bar. It compares the scripts bundled with the build (`supabase/migrations/*.sql` at build time) with the database: *Applied* = logged and its objects exist, *Applied (logged only)* = logged, no object check written, *Not run* = not logged. Other users never see the link, and the database refuses the function to them.
+
+For each new script: end it with its `migration_log` insert; optionally add an object check to `admin_migration_status()` (same list as `supabase/tests/verify_migrations.sql`).
+
+### How the Admin check works
+
+```mermaid
+sequenceDiagram
+    actor You
+    participant App as Web app (build)
+    participant DB as Supabase (admin_migration_status)
+    participant Log as migration_log + real tables
+
+    Note over App: Build time: file names in supabase/migrations are baked in
+    You->>DB: Run script in SQL Editor (last line inserts its name into migration_log)
+    You->>App: Open Admin tab
+    App->>DB: rpc is_app_admin()
+    DB-->>App: true (you are in app_admins)
+    App->>DB: rpc admin_migration_status()
+    DB->>Log: read log rows, check the script's tables/columns/triggers
+    Log-->>DB: logged? objects exist?
+    DB-->>App: one row per script
+    App->>App: compare repo file list with the rows
+    App-->>You: Applied / Logged only / Objects missing / Not run
+```
