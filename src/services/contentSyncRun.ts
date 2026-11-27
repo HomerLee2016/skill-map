@@ -93,11 +93,11 @@ async function dropRefs(local: WorkspaceContent, refs: ItemRef[], handle: FileSy
   const failed: ItemRef[] = [];
   for (const ref of refs) {
     const [kind, id] = splitRef(ref);
-    if (kind !== 'lessons' && kind !== 'tests') continue;
+    if (kind !== 'lessons' && kind !== 'tests' && kind !== 'roadmaps') continue;
     if (handle && !(await (trash ? trashContentFile : deleteContentFile)(handle, kind, id))) { failed.push(ref); continue; }
-    content = kind === 'lessons'
-      ? { ...content, lessons: content.lessons.filter((x) => x.id !== id) }
-      : { ...content, tests: content.tests.filter((x) => x.id !== id) };
+    if (kind === 'lessons') content = { ...content, lessons: content.lessons.filter((x) => x.id !== id) };
+    else if (kind === 'tests') content = { ...content, tests: content.tests.filter((x) => x.id !== id) };
+    else content = { ...content, roadmaps: content.roadmaps.filter((x) => x.id !== id) };
   }
   return { content, failed };
 }
@@ -139,7 +139,7 @@ export async function runContentSync(input: {
       removeFromDevice = outcome.removeFromDevice;
       for (const ref of outcome.removeFromCloud) {
         const [kind, id] = splitRef(ref);
-        await deleteCloudItem(client, workspaceKey, input.workspaceName ?? workspaceKey, kind as 'lessons' | 'tests', id);
+        await deleteCloudItem(client, workspaceKey, input.workspaceName ?? workspaceKey, kind as 'lessons' | 'tests' | 'roadmaps', id);
       }
     }
   }
@@ -183,7 +183,7 @@ export async function resolveContentConflict(input: {
   let content = local;
   if (choice === 'device') {
     await pushRefs(client, workspaceKey, local, [ref]);
-    if (kind === 'lessons' || kind === 'tests') {
+    if (kind === 'lessons' || kind === 'tests' || kind === 'roadmaps') {
       await client.from('content_tombstones').delete().eq('workspace_key', workspaceKey).eq('kind', kind).eq('id', id);
     }
   } else if (inCloud) {

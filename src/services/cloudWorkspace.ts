@@ -169,6 +169,8 @@ export async function pushWorkspaceContent(
 
 export async function saveCloudRoadmap(client: SupabaseClient, workspaceKey: string, roadmap: SavedRoadmap): Promise<void> {
   await upsertRows(client, workspaceKey, 'roadmaps', [{ id: roadmap.id, name: roadmap.name, yaml: roadmap.yaml }], 'id');
+  // Saved again after a delete elsewhere: the roadmap exists again, so its tombstone must go (best effort).
+  await client.from('content_tombstones').delete().eq('workspace_key', workspaceKey).eq('kind', 'roadmaps').eq('id', roadmap.id);
 }
 
 export async function saveCloudStructure(

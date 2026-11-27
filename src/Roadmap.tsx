@@ -16,6 +16,7 @@ import { useAutoLayout } from './hooks/useAutoLayout';
 import { RoadmapSidebar } from './components/Sidebar/RoadmapSidebar';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { useWorkspace } from './contexts/WorkspaceContext';
+import { ConfirmDeleteDialog } from './components/editor/ConfirmDeleteDialog';
 import { calculateCompleteness, getRoadmapLabel } from './utils/roadmapYaml';
 
 interface RoadmapProps {
@@ -26,7 +27,9 @@ interface RoadmapProps {
 }
 
 function Roadmap({ darkMode, onGoToLesson, onGoToTest, onUnsavedChangesChange }: RoadmapProps) {
-  const { workspace, workspaceVersion, persistRoadmap } = useWorkspace();
+  const { workspace, workspaceVersion, persistRoadmap, deleteRoadmap, editBlockedReason } = useWorkspace();
+  const [deleting, setDeleting] = useState(false);
+  const [notice, setNotice] = useState<string[]>([]);
   const [roadmaps, setRoadmaps] = useState<SavedRoadmap[]>(() => workspace.roadmaps);
   const [selectedRoadmapId, setSelectedRoadmapId] = useState<string>(() => workspace.roadmaps[0]?.id || 'untitled');
   const [yamlText, setYamlText] = useState<string>(() => workspace.roadmaps[0]?.yaml || '');
@@ -113,6 +116,20 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest, onUnsavedChangesChange }:
     }
   };
 
+  const handleDeleteRoadmap = async () => {
+    const outcome = await deleteRoadmap(selectedRoadmapId);
+    const remaining = roadmaps.filter((roadmap) => roadmap.id !== selectedRoadmapId);
+    setRoadmaps(remaining);
+    setHasUnsavedChanges(false);
+    onUnsavedChangesChange?.(false);
+    const next = remaining[0];
+    setSelectedRoadmapId(next?.id ?? 'untitled');
+    setYamlText(next?.yaml ?? '');
+    lastSavedYamlRef.current = next?.yaml ?? '';
+    setNotice(outcome.warnings);
+    setDeleting(false);
+  };
+
   const onCreateRoadmap = () => {
     const newId = `roadmap-${Date.now()}`;
     const newYaml = `- id: custom_roadmap_${Date.now().toString().slice(-4)}\n  label: New Custom Roadmap\n  description: A brand new roadmap.\n  x: 100\n  y: 50\n  finished: false`;
@@ -165,6 +182,8 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest, onUnsavedChangesChange }:
           onSelectRoadmap={selectRoadmap}
           onCreateRoadmap={onCreateRoadmap}
           onSaveRoadmap={saveRoadmap}
+          onDeleteRoadmap={() => setDeleting(true)}
+          deleteBlockedReason={roadmaps.some((roadmap) => roadmap.id === selectedRoadmapId) ? editBlockedReason : null}
           yamlVisible={yamlVisible}
           setYamlVisible={setYamlVisible}
         />
@@ -194,6 +213,22 @@ function Roadmap({ darkMode, onGoToLesson, onGoToTest, onUnsavedChangesChange }:
         toolbar={{ onAutoAlign, showDetails, setShowDetails, onAddNode: onCreateNode, tipsOpen, setTipsOpen }}
       />
 
+      {notice.length > 0 ? (
+        <div className="ce-notice roadmap-notice" role="status">
+          {notice.map((line) => <p key={line}>{line}</p>)}
+          <button type="button" className="ce-notice-close" onClick={() => setNotice([])} aria-label="Dismiss">✕</button>
+        </div>
+      ) : null}
+      {deleting ? (
+        <ConfirmDeleteDialog
+          title={`Delete "${roadmaps.find((roadmap) => roadmap.id === selectedRoadmapId)?.name ?? 'this roadmap'}"?`}
+          onConfirm={handleDeleteRoadmap}
+          onCancel={() => setDeleting(false)}
+        >
+          <p>This removes the roadmap from this workspace, your account and every device you sync with.</p>
+          <p>Your lessons, tests and revision history stay.</p>
+        </ConfirmDeleteDialog>
+      ) : null}
       <EditModal
         {...modalProps}
         roadmaps={roadmaps}
