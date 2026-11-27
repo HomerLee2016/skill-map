@@ -25,13 +25,13 @@
 
 | Part | What it does | Code |
 | --- | --- | --- |
-| Top bar | Brand, page links, **workspace pill** (name + "Change Workspace"), **account icon**, dark-mode toggle | `components/TopBar.tsx` |
+| Top bar | Brand, page links, **workspace pill** (shows the current workspace name with a ▾; hover/long-press title "Current: <name>. Click to change workspace"; opens the workspace menu. Shows "Select Local Workspace" until one is chosen), **account icon**, dark-mode toggle | `components/TopBar.tsx` |
 | Sidebar | Left panel on Roadmap, Lessons, Tests. Folder tree of items, Expand/Collapse all, add-folder and assign buttons | `components/Sidebar/` |
 | Page content | Roadmap graph, lesson text, quiz, revision tables, sharing tables | `Roadmap.tsx`, `Lessons.tsx`, `Tests.tsx`, `Revision.tsx`, `Sharing.tsx` |
 | Reconnect banner | Shown under the top bar when the browser lost folder permission; one click asks again | `components/FolderReconnectBanner.tsx` |
 
 ### Workspaces
-A **workspace** is one course (for example Japanese, Spanish). It is a local folder, a cloud-only copy, or both. The **Change Workspace** menu lists them with:
+A **workspace** is one course (for example Japanese, Spanish). It is a local folder, a cloud-only copy, or both. The workspace menu (click the pill) lists them with:
 - `📁` linked to a folder on this device, `☁` saved in the account
 - a **red number bubble** = revision questions due now (shown for every workspace, folder or cloud-only)
 - `⬇️` download as ZIP, `🗑️` remove
@@ -42,9 +42,9 @@ Signed-in email, "sync … ago", **Sync now**, an amber "N items changed in two 
 
 ## 3. Pages
 
-- **Roadmap**: React Flow skill graph. Nodes link to lessons and tests. A YAML panel edits the same roadmap both ways.
+- **Roadmap**: React Flow skill graph. Nodes link to lessons and tests. A YAML panel edits the same roadmap both ways. In the sidebar the selected roadmap has an icon-only red-tinted **🗑 Delete** on its row (disabled with a reason when editing is blocked); the confirm says the roadmap is removed from this workspace, the account and synced devices, and that lessons, tests and revision history stay. Needs the `roadmap_tombstones` migration for the delete to reach other devices.
 - **Lessons**: sidebar tree of lessons; the right side renders the lesson markdown (audio players inline). Above the lesson: icon buttons **✏ Edit** and **🗑 Delete** (tooltips, no text). Sidebar: **＋ Add lesson**.
-- **Tests**: sidebar tree of tests; the right side runs one question at a time with a question tracker, instant right/wrong feedback, optional audio and auto-advance, a score screen and a review of wrong answers. Above the quiz: icon buttons **✏ Edit** and **🗑 Delete**. Sidebar: **＋ Add test**.
+- **Tests**: sidebar tree of tests; the right side runs one question at a time with a question tracker, instant right/wrong feedback (after a wrong answer the blue **Next Question** is the single primary button), optional audio and auto-advance, a score screen and a review of wrong answers. Above the quiz: icon buttons **✏ Edit** and **🗑 Delete**. Sidebar: **＋ Add test**.
 - **Revision**: five-star spaced repetition over answered questions, summary table, remove records, export/import.
 - **Sharing hub**: publish a snapshot, browse and clone others' workspaces, vote/star, report.
 
