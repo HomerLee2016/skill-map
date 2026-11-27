@@ -54,7 +54,7 @@ Run after the sharing hub migration: paste `migrations/20261116000000_sharing_hu
 
 Duplicate workspace needs no migration: it writes a new `copy-<random>` workspace into the user's own rows.
 
-## Sharing hub hardening migration (NOT RUN YET)
+## Sharing hub hardening migration
 
 Run after the sharing hub, tags and votes migrations: paste `migrations/20261117000000_sharing_hub_hardening.sql` into the SQL Editor and click **Run** (re-running is safe). Until it is run, the app still works but the database does not enforce the rules below, and Report shows "needs the migration".
 
