@@ -6,7 +6,7 @@
 
 ## 1. The big picture
 
-- One page app, no URLs per screen. A **top bar** switches between five pages: **Roadmap, Lessons, Tests, Revision, Sharing hub**.
+- One page app, no URLs per screen. A **top bar** switches between five pages: **Roadmap, Lessons, Tests, Revision, Sharing hub** (plus **Admin** for admins only).
 - All five pages stay mounted; the inactive ones are hidden (`.page-panel`). Switching is instant and keeps each page's state (selected lesson, open quiz).
 - Everything the user does happens on the page itself or in a **modal** (centred pop-up) or a **dropdown menu** from the top bar.
 - Dark theme is the default; a toggle switches to light.
@@ -47,6 +47,7 @@ Signed-in email, "sync … ago", **Sync now**, an amber "N items changed in two 
 - **Tests**: sidebar tree of tests; the right side runs one question at a time with a question tracker, instant right/wrong feedback, optional audio and auto-advance, a score screen and a review of wrong answers. Above the quiz: icon buttons **✏ Edit** and **🗑 Delete**. Sidebar: **＋ Add test**.
 - **Revision**: five-star spaced repetition over answered questions, summary table, remove records, export/import.
 - **Sharing hub**: publish a snapshot, browse and clone others' workspaces, vote/star, report.
+- **Admin** (only for users in the database's `app_admins` table; hidden for everyone else): lists every Supabase script bundled with the build as Applied / Not run (checked against `migration_log` and the real tables), with one primary **Check again** button.
 
 ## 4. Editing lessons and tests (new)
 

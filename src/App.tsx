@@ -6,13 +6,17 @@ import Lessons from './Lessons';
 import Tests from './Tests';
 import Revision from './Revision';
 import Sharing from './Sharing';
-import { AuthProvider } from './contexts/AuthContext';
+import Admin from './Admin';
+import { useIsAdmin } from './hooks/useIsAdmin';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useWorkspace, WorkspaceProvider } from './contexts/WorkspaceContext';
 import type { PageId } from './types';
 import { shouldPromptBeforeNavigation } from './utils/unsavedChanges';
 
 function AppContent() {
   const { workspaceVersion } = useWorkspace();
+  const { user } = useAuth();
+  const isAdmin = useIsAdmin(user?.id ?? null);
   const [page, setPage] = useState<PageId>('roadmap');
   const [hasUnsavedRoadmapChanges, setHasUnsavedRoadmapChanges] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
@@ -67,6 +71,7 @@ function AppContent() {
           onNavigate={handleNavigate}
           darkMode={darkMode}
           setDarkMode={setDarkMode}
+          isAdmin={isAdmin}
         />
         <FolderReconnectBanner />
         <main className="app-main">
@@ -108,6 +113,14 @@ function AppContent() {
           >
             <Sharing active={page === 'sharing'} />
           </div>
+          {isAdmin ? (
+            <div
+              className={page === 'admin' ? 'page-panel page-panel--active' : 'page-panel'}
+              aria-hidden={page !== 'admin'}
+            >
+              <Admin active={page === 'admin'} />
+            </div>
+          ) : null}
         </main>
       </div>
   );

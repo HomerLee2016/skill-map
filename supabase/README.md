@@ -79,3 +79,15 @@ Run `migrations/20261127010000_migration_log.sql` first in the SQL Editor (re-ru
 - **After running any migration**, log it: `insert into public.migration_log (filename) values ('<file name>') on conflict do nothing;`. New migrations should end with that line.
 - **See what you missed**: run `scripts/unlogged-migrations.sh`, paste its output into the SQL Editor; it lists repo scripts not in the log.
 - No keys are involved; nothing here touches the frontend.
+
+## Admin tab (which scripts are applied?)
+
+Run `migrations/20261127020000_admin_migration_status.sql` (after the migration log script). It creates `app_admins` (private), `is_app_admin()` and `admin_migration_status()` (admins only; security definer, so no service key or secret is needed anywhere). Then make yourself an admin once, in the SQL Editor, with your sign-in email:
+
+```sql
+insert into public.app_admins (user_id) select id from auth.users where email = 'you@example.com' on conflict do nothing;
+```
+
+Signed in as that user, an **Admin** link appears in the top bar. It compares the scripts bundled with the build (`supabase/migrations/*.sql` at build time) with the database: *Applied* = logged and its objects exist, *Applied (logged only)* = logged, no object check written, *Not run* = not logged. Other users never see the link, and the database refuses the function to them.
+
+For each new script: end it with its `migration_log` insert; optionally add an object check to `admin_migration_status()` (same list as `supabase/tests/verify_migrations.sql`).

@@ -343,3 +343,7 @@
 @media (max-width: 768px) {
   .summary-table-header-buttons { flex-wrap: wrap; }
 }
+
+@media (max-width: 768px) {
+  .admin-migration { flex-direction: column; align-items: flex-start; }
+}

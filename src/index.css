@@ -2172,3 +2172,9 @@ body, html, #root {
   .split-picker-tag { order: 3; flex-basis: 100%; padding-left: 30px; }
   .split-review-dialog { padding: 14px; width: calc(100vw - 16px); }
 }
+
+/* Admin page */
+.admin-migrations { list-style: none; margin: 12px 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.admin-migration { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border: 1px solid var(--panel-border); border-radius: 8px; background: var(--panel-bg); }
+.admin-migration-name { font-size: 13px; min-width: 0; overflow-wrap: anywhere; }
+.admin-actions { margin-top: 12px; }

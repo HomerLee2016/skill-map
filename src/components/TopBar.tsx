@@ -16,6 +16,8 @@ interface TopBarProps {
   onNavigate: (page: PageId) => void;
   darkMode: boolean;
   setDarkMode: (value: boolean) => void;
+  /** Shows the Admin page link; the database still decides what an admin may read. */
+  isAdmin?: boolean;
 }
 
 const NAV_ITEMS: { id: PageId; label: string }[] = [
@@ -25,8 +27,9 @@ const NAV_ITEMS: { id: PageId; label: string }[] = [
   { id: 'revision', label: 'Revision' },
   { id: 'sharing', label: 'Sharing hub' },
 ];
+const ADMIN_NAV_ITEM: { id: PageId; label: string } = { id: 'admin', label: 'Admin' };
 
-export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBarProps) {
+export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode, isAdmin = false }: TopBarProps) {
   const {
     selectWorkspace,
     selectWorkspaceFromHistory,
@@ -273,7 +276,7 @@ export function TopBar({ currentPage, onNavigate, darkMode, setDarkMode }: TopBa
       ) : null}
       <div id="top-bar-menu" className={isNavOpen ? 'top-bar-menu top-bar-menu--open' : 'top-bar-menu'}>
         <nav className="top-bar-nav">
-          {NAV_ITEMS.map((item) => (
+          {(isAdmin ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : NAV_ITEMS).map((item) => (
             <button
               key={item.id}
               type="button"
