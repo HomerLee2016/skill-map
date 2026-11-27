@@ -71,3 +71,11 @@ Run after the migrations above: paste `migrations/20261124000000_content_editing
 - `content_tombstones (user_id, workspace_key, kind, id, deleted_at)`: written when a lesson or test is deleted in the app, so other devices delete their copy instead of uploading it again. Saving the item again removes the row. RLS own-rows only; grants to `authenticated` only; cascades with the workspace.
 - `workspaces.prompt_guide` (text, at most 200 000 characters): the markdown guide shown in the lesson/test editors. Empty means the app's bundled guide for the workspace's language.
 - Until it is run, adding, editing and deleting still work. Deletes just do not reach other devices (the app says so), and a guide edited in a cloud-only workspace cannot be saved.
+
+## Migration log (which scripts have I run?)
+
+Run `migrations/20261127010000_migration_log.sql` first in the SQL Editor (re-running is safe). It creates `migration_log (filename, applied_at)`, private (RLS on, no policies, no grants to `anon`/`authenticated`; the SQL Editor still works) and backfills the scripts run so far. Edit the backfill list to match what you really ran.
+
+- **After running any migration**, log it: `insert into public.migration_log (filename) values ('<file name>') on conflict do nothing;`. New migrations should end with that line.
+- **See what you missed**: run `scripts/unlogged-migrations.sh`, paste its output into the SQL Editor; it lists repo scripts not in the log.
+- No keys are involved; nothing here touches the frontend.
