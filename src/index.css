@@ -453,12 +453,19 @@ body, html, #root {
 
 .top-bar-workspace-label {
   font-weight: 600;
-  opacity: 0.7;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+.top-bar-workspace-caret { flex: none; opacity: 0.7; }
+
 .top-bar-workspace-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
   border: none;
   background: transparent;
   color: inherit;
@@ -1351,6 +1358,13 @@ body, html, #root {
 .sidebar-item--selected {
   background: var(--sidebar-item-selected-bg);
 }
+
+/* Roadmap row: name + delete icon on the selected row (UI-UX-RULES §10). */
+.sidebar-item-row { display: flex; align-items: center; gap: 8px; padding-right: 8px; }
+.sidebar-item-row--selected { background: var(--sidebar-item-selected-bg); }
+.sidebar-item-row .sidebar-item { flex: 1; min-width: 0; }
+.sidebar-item-row .icon-btn { flex: none; }
+@media (max-width: 768px) { .sidebar-item-row .icon-btn { width: 40px; height: 40px; } }
 
 .sidebar-create-btn {
   width: 100%;

@@ -1,4 +1,5 @@
 import type { SavedRoadmap } from '../../types';
+import { DeleteIconButton } from '../editor/ContentActions';
 
 interface RoadmapSidebarProps {
   roadmaps: SavedRoadmap[];
@@ -6,6 +7,9 @@ interface RoadmapSidebarProps {
   onSelectRoadmap: (id: string) => void;
   onCreateRoadmap: () => void;
   onSaveRoadmap: () => void;
+  onDeleteRoadmap: () => void;
+  /** Why deleting is not possible right now, or null. */
+  deleteBlockedReason: string | null;
   yamlVisible: boolean;
   setYamlVisible: (value: boolean) => void;
 }
@@ -41,6 +45,8 @@ export function RoadmapSidebar({
   onSelectRoadmap,
   onCreateRoadmap,
   onSaveRoadmap,
+  onDeleteRoadmap,
+  deleteBlockedReason,
   yamlVisible,
   setYamlVisible,
 }: RoadmapSidebarProps) {
@@ -59,17 +65,22 @@ export function RoadmapSidebar({
           </div>
         </div>
         {roadmaps.map((r) => (
-          <button
-            key={r.id}
-            className={
-              selectedRoadmapId === r.id
-                ? 'sidebar-item sidebar-item--selected'
-                : 'sidebar-item'
-            }
-            onClick={() => onSelectRoadmap(r.id)}
-          >
-            {r.name}
-          </button>
+          <div key={r.id} className={selectedRoadmapId === r.id ? 'sidebar-item-row sidebar-item-row--selected' : 'sidebar-item-row'}>
+            <button
+              type="button"
+              className={
+                selectedRoadmapId === r.id
+                  ? 'sidebar-item sidebar-item--selected'
+                  : 'sidebar-item'
+              }
+              onClick={() => onSelectRoadmap(r.id)}
+            >
+              {r.name}
+            </button>
+            {selectedRoadmapId === r.id ? (
+              <DeleteIconButton noun="roadmap" blockedReason={deleteBlockedReason} onDelete={onDeleteRoadmap} />
+            ) : null}
+          </div>
         ))}
       </>
   );

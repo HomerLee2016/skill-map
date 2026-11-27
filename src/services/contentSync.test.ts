@@ -77,3 +77,8 @@ test('hashes ignore key order, empty optional fields and YAML formatting', () =>
   assert.equal(describeRef('structure:lessons'), 'lessons folders');
   assert.equal(describeRef('tests:t1'), 'test "t1"');
 });
+
+test('a roadmap deleted on another device is dropped here when unchanged here', () => {
+  const result = plan({ local: { 'roadmaps:r': 'R' }, tombstoned: new Set(['roadmaps:r']), base: { 'roadmaps:r': 'R' } });
+  assert.deepEqual(result.deleteLocal, ['roadmaps:r']);
+});

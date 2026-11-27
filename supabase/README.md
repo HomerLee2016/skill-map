@@ -68,6 +68,6 @@ Run after the sharing hub, tags and votes migrations: paste `migrations/20261117
 
 Run after the migrations above: paste `migrations/20261124000000_content_editing.sql` into the SQL Editor and click **Run** (re-running is safe).
 
-- `content_tombstones (user_id, workspace_key, kind, id, deleted_at)`: written when a lesson or test is deleted in the app, so other devices delete their copy instead of uploading it again. Saving the item again removes the row. RLS own-rows only; grants to `authenticated` only; cascades with the workspace.
+- `content_tombstones (user_id, workspace_key, kind, id, deleted_at)`: written when a lesson, test or roadmap is deleted in the app (roadmaps need migration `20261127000000_roadmap_tombstones.sql`), so other devices delete their copy instead of uploading it again. Saving the item again removes the row. RLS own-rows only; grants to `authenticated` only; cascades with the workspace.
 - `workspaces.prompt_guide` (text, at most 200 000 characters): the markdown guide shown in the lesson/test editors. Empty means the app's bundled guide for the workspace's language.
 - Until it is run, adding, editing and deleting still work. Deletes just do not reach other devices (the app says so), and a guide edited in a cloud-only workspace cannot be saved.

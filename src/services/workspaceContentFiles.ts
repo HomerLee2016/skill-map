@@ -29,7 +29,7 @@ export const writeTestFile = (handle: FileSystemDirectoryHandle | null | undefin
   writeInFolder(handle, 'tests', `${test.id}.yaml`, serializeTest(test.title, test.questions));
 
 /** Removes one file; a file that is already gone counts as success. */
-export async function deleteContentFile(handle: FileSystemDirectoryHandle | null | undefined, folder: 'lessons' | 'tests', id: string): Promise<boolean> {
+export async function deleteContentFile(handle: FileSystemDirectoryHandle | null | undefined, folder: 'lessons' | 'tests' | 'roadmaps', id: string): Promise<boolean> {
   if (!handle) return false;
   try {
     const directory = await handle.getDirectoryHandle(folder, { create: false });
@@ -70,7 +70,7 @@ export async function writeGuideFile(handle: FileSystemDirectoryHandle | null | 
 export const TRASH_FOLDER = '.skill-map-trash';
 
 /** Like `deleteContentFile`, but first copies the file into `.skill-map-trash/<folder>/` so the removal can be undone by hand. */
-export async function trashContentFile(handle: FileSystemDirectoryHandle | null | undefined, folder: 'lessons' | 'tests', id: string): Promise<boolean> {
+export async function trashContentFile(handle: FileSystemDirectoryHandle | null | undefined, folder: 'lessons' | 'tests' | 'roadmaps', id: string): Promise<boolean> {
   if (!handle) return false;
   const fileName = `${id}${folder === 'lessons' ? '.md' : '.yaml'}`;
   try {

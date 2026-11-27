@@ -9,6 +9,15 @@ interface ContentActionsProps {
 
 const svgProps = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true } as const;
 
+/** Icon-only red-tinted bin; opens a confirm, so it is safe to show next to an item. */
+export function DeleteIconButton({ noun, blockedReason, onDelete }: Pick<ContentActionsProps, 'noun' | 'blockedReason' | 'onDelete'>) {
+  return (
+    <button type="button" className="icon-btn icon-btn--danger" onClick={onDelete} disabled={blockedReason !== null} title={blockedReason ?? `Delete this ${noun}`} aria-label={`Delete ${noun}`}>
+      <svg {...svgProps}><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /></svg>
+    </button>
+  );
+}
+
 /** Icon-only Edit / Delete pair shown above a lesson or test (both secondary; see docs/UI-UX-RULES.md). */
 export function ContentActions({ noun, blockedReason, onEdit, onDelete }: ContentActionsProps) {
   return (
@@ -16,9 +25,7 @@ export function ContentActions({ noun, blockedReason, onEdit, onDelete }: Conten
       <button type="button" className="icon-btn" onClick={onEdit} disabled={blockedReason !== null} title={blockedReason ?? `Edit this ${noun}`} aria-label={`Edit ${noun}`}>
         <svg {...svgProps}><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
       </button>
-      <button type="button" className="icon-btn icon-btn--danger" onClick={onDelete} disabled={blockedReason !== null} title={blockedReason ?? `Delete this ${noun}`} aria-label={`Delete ${noun}`}>
-        <svg {...svgProps}><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /></svg>
-      </button>
+      <DeleteIconButton noun={noun} blockedReason={blockedReason} onDelete={onDelete} />
     </div>
   );
 }

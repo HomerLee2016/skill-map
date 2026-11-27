@@ -11,6 +11,7 @@
 .app-shell-dark .ce-error { color: #ff8a80; }
 .app-shell-dark .ce-warning { color: #ffcc80; }
 .ce-notice { position: relative; margin-bottom: 14px; padding: 10px 36px 10px 12px; border: 1px solid #e0b252; border-radius: 8px; background: rgba(255, 193, 7, 0.14); font-size: 13px; }
+.roadmap-notice { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 40; max-width: min(560px, calc(100% - 32px)); background: var(--panel-bg); }
 .ce-notice p { margin: 2px 0; }
 .ce-notice-close { position: absolute; top: 6px; right: 6px; border: none; background: transparent; color: inherit; cursor: pointer; font-size: 14px; min-width: 28px; min-height: 28px; }
 .ce-danger { background: #d93025; color: #fff; }

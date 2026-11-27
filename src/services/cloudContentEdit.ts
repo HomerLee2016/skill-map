@@ -56,7 +56,7 @@ async function saveItem(
 }
 
 /** Removes a tombstone because the item exists again; best effort (the table may not exist before the migration). */
-async function clearTombstone(client: SupabaseClient, workspaceKey: string, kind: ContentKind, id: string): Promise<void> {
+export async function clearTombstone(client: SupabaseClient, workspaceKey: string, kind: ContentKind | 'roadmaps', id: string): Promise<void> {
   await client.from('content_tombstones').delete().eq('workspace_key', workspaceKey).eq('kind', kind).eq('id', id);
 }
 
@@ -90,7 +90,7 @@ export async function saveCloudTest(
  * (the migration has not been run): the delete worked here but will not reach other devices.
  */
 export async function deleteCloudItem(
-  client: SupabaseClient, workspaceKey: string, workspaceName: string, kind: ContentKind, id: string, expectedUpdatedAt?: string,
+  client: SupabaseClient, workspaceKey: string, workspaceName: string, kind: ContentKind | 'roadmaps', id: string, expectedUpdatedAt?: string,
 ): Promise<string | null> {
   await ensureCloudWorkspace(client, workspaceKey, workspaceName);
   let query = client.from(kind).delete().eq('workspace_key', workspaceKey).eq('id', id);
@@ -100,7 +100,7 @@ export async function deleteCloudItem(
   if (expectedUpdatedAt && (data?.length ?? 0) === 0) {
     const still = await client.from(kind).select('id').eq('workspace_key', workspaceKey).eq('id', id);
     fail(still.error);
-    if ((still.data?.length ?? 0) > 0) throw new ContentConflictError(kind, id);
+    if ((still.data?.length ?? 0) > 0) throw new ContentConflictError(kind as ContentKind, id);
   }
   const tombstone = await client.from('content_tombstones').upsert(
     { workspace_key: workspaceKey, kind, id, deleted_at: new Date().toISOString() }, { onConflict: 'user_id,workspace_key,kind,id' },

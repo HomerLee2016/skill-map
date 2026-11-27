@@ -27,6 +27,8 @@ export interface ContentEditing {
   deleteLesson: (id: string) => Promise<EditOutcome>;
   saveTest: (input: { id: string; title: string; questions: TestQuestion[]; isNew: boolean; keepProgress: boolean }) => Promise<EditOutcome>;
   deleteTest: (id: string) => Promise<EditOutcome>;
+  /** Removes a roadmap from the folder and the account. A roadmap that was never saved only needs removing from the screen. */
+  deleteRoadmap: (id: string) => Promise<EditOutcome>;
   /** Saves the prompt guide for this workspace; null goes back to the bundled guide. */
   saveGuide: (guide: string | null) => Promise<EditOutcome>;
   /** Puts content that sync pulled in (or whose versions it refreshed) on screen without reloading the workspace. */
@@ -130,6 +132,19 @@ export function useContentEditing(params: Params): ContentEditing {
   const deleteTest = useCallback<ContentEditing['deleteTest']>(
     (id) => deleteItem('tests', id, deleteTestFromContent(ref.current.workspace, id)), [deleteItem]);
 
+  const deleteRoadmap = useCallback<ContentEditing['deleteRoadmap']>(async (id) => {
+    const { workspace, workspaceKey, workspaceName, handle, userId, setWorkspace } = ref.current;
+    const warnings: string[] = [];
+    if (!workspace.roadmaps.some((roadmap) => roadmap.id === id)) return { warnings }; // never saved: nothing stored to remove
+    if (supabase && userId) {
+      const warning = await deleteCloudItem(supabase, workspaceKey, workspaceName, 'roadmaps', id);
+      if (warning) warnings.push(warning);
+    }
+    if (handle) warnings.push(...folderWarning(await deleteContentFile(handle, 'roadmaps', id), 'The deletion'));
+    setWorkspace({ ...workspace, roadmaps: workspace.roadmaps.filter((roadmap) => roadmap.id !== id) });
+    return { warnings };
+  }, []);
+
   const saveTest = useCallback<ContentEditing['saveTest']>(async ({ id, title, questions, isNew, keepProgress }) => {
     const { workspace, workspaceKey, workspaceName, handle, userId, setWorkspace } = ref.current;
     const existing = workspace.tests.find((test) => test.id === id);
@@ -197,7 +212,7 @@ export function useContentEditing(params: Params): ContentEditing {
 
   const { setWorkspace } = params;
   return useMemo(
-    () => ({ editBlockedReason, saveLesson, deleteLesson, saveTest, deleteTest, saveGuide, applySyncedContent: setWorkspace, recordVersions }),
-    [editBlockedReason, saveLesson, deleteLesson, saveTest, deleteTest, saveGuide, setWorkspace, recordVersions],
+    () => ({ editBlockedReason, saveLesson, deleteLesson, saveTest, deleteTest, deleteRoadmap, saveGuide, applySyncedContent: setWorkspace, recordVersions }),
+    [editBlockedReason, saveLesson, deleteLesson, saveTest, deleteTest, deleteRoadmap, saveGuide, setWorkspace, recordVersions],
   );
 }
