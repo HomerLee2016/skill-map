@@ -1198,9 +1198,11 @@ body, html, #root {
   padding: 0px 0px 20px;
 }
 
-.summary-table-header-buttons {
+.summary-table-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  margin: 10px 10px 16px;
 }
 
 .summary-table {
@@ -2131,7 +2133,7 @@ body, html, #root {
 .summary-table .col-select input { width: 18px; height: 18px; cursor: pointer; }
 .summary-table tbody tr.summary-row--selected { background: rgba(239, 68, 68, 0.12); }
 .remove-records-list { margin: 8px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.5; max-height: 160px; overflow-y: auto; overflow-wrap: anywhere; }
-.summary-table-header-buttons .toolbar-btn.remove-confirm--danger:not(:disabled) { background: #dc2626; color: #fff; border-color: transparent; }
+.summary-table-actions .toolbar-btn.remove-confirm--danger:not(:disabled) { background: #dc2626; color: #fff; border-color: transparent; }
 
 .folder-reconnect-banner {
   display: flex;
