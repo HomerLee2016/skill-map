@@ -74,23 +74,6 @@ export function LearntSummary({ completedRows, dueCount, nextRevisionIso, onStar
           <div>
             <h2>Learnt Summary</h2>
           </div>
-          <div className="summary-table-header-buttons">
-            {selecting ? (
-              <>
-                <button type="button" className="toolbar-btn remove-confirm remove-confirm--danger" disabled={selected.size === 0} onClick={() => setConfirming(true)}>
-                  Remove{selected.size > 0 ? ` (${selected.size})` : ''}
-                </button>
-                <button type="button" className="toolbar-btn" onClick={stopSelecting}>Cancel</button>
-              </>
-            ) : (
-              <>
-                <button type="button" className="toolbar-btn" disabled={completedRows.length === 0} onClick={() => setSelecting(true)}>
-                  Remove record
-                </button>
-                <RevisionDataButtons onImported={onDataImported} recordCount={completedRows.length} />
-              </>
-            )}
-          </div>
         </div>
         <div className="summary-highlight">
           <StarStatsChart completedRows={completedRows} />
@@ -100,6 +83,23 @@ export function LearntSummary({ completedRows, dueCount, nextRevisionIso, onStar
           <div className="summary-total-question-count row summary-highlight-block">
             <h1>{completedRows.length}</h1> <p>{completedRows.length !== 1 ? 'questions' : 'question'}</p>
           </div>
+        </div>
+        <div className="summary-table-actions">
+          {selecting ? (
+            <>
+              <button type="button" className="toolbar-btn remove-confirm remove-confirm--danger" disabled={selected.size === 0} onClick={() => setConfirming(true)}>
+                Remove{selected.size > 0 ? ` (${selected.size})` : ''}
+              </button>
+              <button type="button" className="toolbar-btn" onClick={stopSelecting}>Cancel</button>
+            </>
+          ) : (
+            <>
+              <button type="button" className="toolbar-btn" disabled={completedRows.length === 0} onClick={() => setSelecting(true)}>
+                Remove record
+              </button>
+              <RevisionDataButtons onImported={onDataImported} recordCount={completedRows.length} />
+            </>
+          )}
         </div>
         <table className="summary-table">
           <thead>
