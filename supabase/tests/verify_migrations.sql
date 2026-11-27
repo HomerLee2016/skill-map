@@ -39,7 +39,9 @@ with checks(migration, present) as (values
     exists (select 1 from pg_constraint
             where conname = 'content_tombstones_kind_check' and pg_get_constraintdef(oid) like '%roadmaps%')),
   ('20261127010000_migration_log.sql',
-    to_regclass('public.migration_log') is not null)
+    to_regclass('public.migration_log') is not null),
+  ('20261127030000_roadmap_tombstones_log.sql',
+    to_regprocedure('public.admin_migration_status()') is not null)
 )
 select c.migration,
        c.present as objects_ok,

@@ -1,6 +1,5 @@
 -- Admin check for the web app: which migration scripts are applied?
 -- Needs 20261127010000_migration_log.sql first. Safe to re-run.
--- Re-run this script after it changes (create or replace) to pick up new object checks.
 --
 -- 1. app_admins: who may see the Admin tab. Private (RLS on, no policies, no grants); you add yourself
 --    once in the SQL Editor (see the end of this file). No service key, no secret, nothing in the repo.
@@ -74,9 +73,6 @@ begin
       to_regclass('public.content_tombstones') is not null
       and exists (select 1 from information_schema.columns
                   where table_schema = 'public' and table_name = 'workspaces' and column_name = 'prompt_guide')),
-    ('20261127000000_roadmap_tombstones.sql',
-      exists (select 1 from pg_constraint
-              where conname = 'content_tombstones_kind_check' and pg_get_constraintdef(oid) like '%roadmaps%')),
     ('20261127010000_migration_log.sql',
       to_regclass('public.migration_log') is not null),
     ('20261127020000_admin_migration_status.sql',
